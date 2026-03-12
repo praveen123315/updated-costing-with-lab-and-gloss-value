@@ -174,12 +174,21 @@ tr:hover td{background:var(--bg3);color:var(--text);}
 textarea.form-control{resize:vertical;min-height:80px;}
 
 /* FORMULATION ITEMS */
-.fi-row{display:grid;grid-template-columns:1fr 120px 40px;gap:8px;align-items:center;margin-bottom:8px;}
+.fi-row{display:grid;grid-template-columns:1fr 120px 100px 40px;gap:8px;align-items:center;margin-bottom:8px;}
 .fi-unit{font-size:11px;font-weight:600;color:var(--text2);padding:11px 10px;background:var(--bg3);border:1.5px solid var(--border);border-radius:7px;white-space:nowrap;text-align:center;}
+.fi-cost{font-size:12px;font-weight:700;color:#059669;font-family:'JetBrains Mono',monospace;padding:11px 6px;background:var(--green-light);border:1.5px solid #a7f3d0;border-radius:7px;text-align:right;min-width:90px;}
 .add-item-btn{color:var(--accent2);background:var(--accent-light);border:1.5px dashed #fcd34d;border-radius:8px;padding:9px;cursor:pointer;font-size:12px;font-weight:600;width:100%;font-family:inherit;transition:all 0.15s;}
 .add-item-btn:hover{background:#fef08a;border-color:var(--accent);}
 .remove-btn{background:var(--red-light);border:1px solid #fca5a5;color:var(--red);border-radius:7px;width:34px;height:34px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:all 0.15s;}
 .remove-btn:hover{background:#fecaca;}
+.fm-live-total{background:linear-gradient(135deg,#0f172a,#1e293b);border-radius:10px;padding:14px 18px;margin-top:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
+.fm-lt-item{text-align:center;}
+.fm-lt-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#94a3b8;}
+.fm-lt-value{font-size:16px;font-weight:800;color:#f1f5f9;font-family:'JetBrains Mono',monospace;margin-top:2px;}
+.fm-lt-value.green{color:#34d399;}
+.fm-lt-value.amber{color:#fbbf24;}
+.fi-header{display:grid;grid-template-columns:1fr 120px 100px 40px;gap:8px;margin-bottom:4px;padding:0 2px;}
+.fi-header span{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--text3);}
 
 /* ALERTS */
 .alert{border-radius:10px;padding:12px 14px;font-size:13px;font-weight:500;margin-bottom:16px;display:flex;align-items:flex-start;gap:9px;}
@@ -919,6 +928,9 @@ function renderFormulations(){
               ${can('viewCost')?`<button class="btn btn-sm" style="background:#fffbeb;color:#92400e;border:1.5px solid #fcd34d;" onclick="openSudhirPDFModal(${f.id})">
                 📋 Sudhir PDF
               </button>`:''}`}
+          ${can('formulations')?`<button class="btn btn-sm" style="background:#fef3c7;color:#92400e;border:1.5px solid #fcd34d;font-weight:700;" onclick="openEditFormModal(${f.id})">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> ✏️ Edit Recipe
+          </button>`:''}
           ${can('formulations')?`<button class="btn btn-secondary btn-sm" onclick="openEditBatchCodeModal(${f.id})">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Edit Codes
           </button>`:''}
@@ -928,12 +940,12 @@ function renderFormulations(){
         </div>
       </div>
       <div class="batch-card-meta" style="margin-top:10px;">
-        <span>📅 ${f.mfgDate}</span><span>👤 ${f.byName}</span><span>⚗ ${(f.items||[]).length} materials · ${totalQty.toFixed(2)} kg total</span>${f.remarks?`<span>💬 ${f.remarks}</span>`:''}<span style="background:${(f.inventoryDebited===false||f.inventoryDebited==="false")?'var(--accent-light)':'var(--green-light)'};color:${(f.inventoryDebited===false||f.inventoryDebited==="false")?'var(--accent2)':'var(--green)'};padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;">${(f.inventoryDebited===false||f.inventoryDebited==="false")?'🔒 No Debit':'📦 Debited'}</span>
+        <span>📅 ${f.mfgDate}</span><span>👤 ${f.byName}</span><span>⚗ ${(f.items||[]).length} materials · ${totalQty.toFixed(2)} total</span>${f.remarks?`<span>💬 ${f.remarks}</span>`:''}<span style="background:${(f.inventoryDebited===false||f.inventoryDebited==="false")?'var(--accent-light)':'var(--green-light)'};color:${(f.inventoryDebited===false||f.inventoryDebited==="false")?'var(--accent2)':'var(--green)'};padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;">${(f.inventoryDebited===false||f.inventoryDebited==="false")?'🔒 No Debit':'📦 Debited'}</span>
         ${f.labValues?`<span style="background:var(--purple-light);color:var(--purple);padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;">🧪 L:${f.labValues.L||'—'} a:${f.labValues.A||'—'} b:${f.labValues.B||'—'}</span>`:''}
         ${f.glossValue!=null?`<span style="background:#fdf4ff;color:#9333ea;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;">✨ Gloss: ${f.glossValue} GU</span>`:''}
       </div>
       <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap;">
-        ${(f.items||[]).map(item=>{const rm=getRMById(item.rmId);return rm?`<span style="background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:3px 10px;font-size:11px;font-weight:500;color:var(--text2)">${rm.name} (${item.qty} ${rm.unit})</span>`:''}).join('')}
+        ${(f.items||[]).map(item=>{const rm=getRMById(item.rmId);return rm?`<span style="background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:3px 10px;font-size:11px;font-weight:500;color:var(--text2)">${rm.name} (${item.qty} ${item.unit||rm.unit})</span>`:''}).join('')}
       </div>
     </div>`;
     }catch(e){console.warn("Skipped formulation render:",f?.id,e);}
@@ -1560,6 +1572,178 @@ function copyFormulationAsNew(id){
   openNewFormModal(src);
 }
 
+// ── EDIT EXISTING RECIPE ──────────────────────────────────
+function openEditFormModal(id){
+  const f=DB.formulations.find(x=>x.id===id);
+  if(!f){toast('Formulation not found','error');return;}
+  const modal=`<div class="modal-overlay" id="edit-form-modal" onclick="if(event.target.id==='edit-form-modal')closeModal('edit-form-modal')">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">✏️ Edit Recipe</div>
+        <div style="font-size:12px;color:var(--accent2);margin-top:3px;">${f.productName} · Batch ${f.batchNo}</div>
+      </div>
+      <button class="close-btn" onclick="closeModal('edit-form-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="alert alert-warning" style="font-size:12px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        Editing will update the recipe ingredients. Inventory transactions already recorded will NOT be reversed.
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Product Name ✱</label><input class="form-control" id="ef-pname" value="${f.productName}" placeholder="Product Name"></div>
+        <div class="form-group"><label>Product Code</label><input class="form-control" id="ef-pcode" value="${f.productCode||''}" placeholder="e.g. FG003"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Batch Number</label><input class="form-control" id="ef-batch" value="${f.batchNo||''}" placeholder="Batch No"></div>
+        <div class="form-group"><label>Remarks</label><input class="form-control" id="ef-remarks" value="${f.remarks||''}" placeholder="Remarks"></div>
+      </div>
+      <hr style="border-color:var(--border);margin:16px 0;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <div style="font-size:13px;font-weight:700;color:var(--text);">Recipe Ingredients</div>
+      </div>
+      <div class="fi-header">
+        <span>Raw Material</span>
+        <span style="text-align:center;">Qty</span>
+        <span style="text-align:center;">Unit</span>
+        ${can('viewCost')?'<span style="text-align:right;">Line Cost</span>':''}
+        <span></span>
+      </div>
+      <div id="ef-items"></div>
+      <button class="add-item-btn" onclick="addEditFormItem()">＋ Add Ingredient</button>
+      <div class="fm-live-total" id="ef-live-total" style="margin-top:12px;"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('edit-form-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveEditFormulation(${f.id})">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Save Changes
+      </button>
+    </div>
+  </div></div>`;
+  document.body.insertAdjacentHTML('beforeend',modal);
+  // Populate existing items
+  (f.items||[]).forEach(item=>addEditFormItem(item.rmId,item.qty,item.unit));
+  if(!f.items||f.items.length===0) addEditFormItem();
+}
+
+let _efCount=0;
+function addEditFormItem(preRmId=null,preQty=null,preUnit=null){
+  _efCount++;
+  const id='efitem-'+_efCount;
+  const preRM=preRmId?DB.rawMaterials.find(r=>r.id===preRmId):null;
+  const defaultUnit=preUnit||(preRM?preRM.unit:'KG');
+  const preLabel=preRM?`${preRM.name} (${preRM.code})`:'';
+  const showCostCol=can('viewCost');
+  const allUnits=['KG','G','LTR','ML','NOS','PCS','MTR','CM','MM','BOX','BAG','DRUM'];
+  const unitOpts=allUnits.map(u=>`<option value="${u}" ${u===defaultUnit?'selected':''}>${u}</option>`).join('');
+  document.getElementById('ef-items').insertAdjacentHTML('beforeend',`
+    <div class="fi-row" id="${id}">
+      <div class="rm-search-wrap" style="position:relative;">
+        <input class="rm-search-input" id="rmsearch-${id}" placeholder="🔍 Search raw material..." 
+          value="${preLabel}" autocomplete="off"
+          oninput="filterRMDropdownEF('${id}')"
+          onfocus="openRMDropdownEF('${id}')"
+          onkeydown="handleRMDropdownKeyEF(event,'${id}')">
+        <div class="rm-dropdown" id="rmdrop-${id}"></div>
+        <input type="hidden" id="efsel-${id}" value="${preRmId||''}">
+      </div>
+      <input class="form-control" id="efqty-${id}" type="number" step="0.001" min="0" value="${preQty||''}" placeholder="Qty" oninput="updateEfLiveTotal()">
+      <select class="form-control" id="efunit-${id}" style="padding:10px 6px;font-size:12px;" onchange="updateEfLiveTotal()">${unitOpts}</select>
+      ${showCostCol?`<span class="fi-cost" id="efcost-${id}">—</span>`:''}
+      <button class="remove-btn" onclick="document.getElementById('${id}').remove();updateEfLiveTotal()">−</button>
+    </div>`);
+  if(!preRmId) openRMDropdownEF(id);
+  updateEfLiveTotal();
+}
+
+function openRMDropdownEF(id){
+  const q=(document.getElementById('rmsearch-'+id)?.value||'').toLowerCase();
+  renderRMDropdownEF(id,q);
+  document.getElementById('rmdrop-'+id)?.classList.add('open');
+  document.querySelectorAll('.rm-dropdown.open').forEach(d=>{if(d.id!=='rmdrop-'+id)d.classList.remove('open');});
+}
+function filterRMDropdownEF(id){
+  const q=(document.getElementById('rmsearch-'+id)?.value||'').toLowerCase();
+  renderRMDropdownEF(id,q);
+  document.getElementById('rmdrop-'+id)?.classList.add('open');
+}
+function renderRMDropdownEF(id,q){
+  const drop=document.getElementById('rmdrop-'+id);if(!drop)return;
+  const filtered=DB.rawMaterials.filter(r=>r.name.toLowerCase().includes(q)||r.code.toLowerCase().includes(q));
+  if(filtered.length===0){drop.innerHTML=`<div class="rm-dropdown-empty">No materials found</div>`;return;}
+  drop.innerHTML=filtered.map(r=>`<div class="rm-dropdown-item" onclick="selectRMEF('${id}',${r.id},'${r.name.replace(/'/g,"\\'")}','${r.code}','${r.unit}')"><span>${r.name}</span><span class="rm-code">${r.code} · ${r.unit}</span></div>`).join('');
+}
+function handleRMDropdownKeyEF(e,id){handleRMDropdownKey(e,id);}
+function selectRMEF(id,rmId,rmName,rmCode,rmUnit){
+  document.getElementById('efsel-'+id).value=rmId;
+  document.getElementById('rmsearch-'+id).value=`${rmName} (${rmCode})`;
+  const unitSel=document.getElementById('efunit-'+id);
+  if(unitSel) unitSel.value=rmUnit;
+  document.getElementById('rmdrop-'+id)?.classList.remove('open');
+  document.getElementById('efqty-'+id)?.focus();
+  updateEfLiveTotal();
+}
+function updateEfLiveTotal(){
+  let totalQty=0,totalCost=0,lineCount=0;
+  document.querySelectorAll('[id^="efitem-"]').forEach(row=>{
+    const id=row.id;
+    const rmId=parseInt(document.getElementById('efsel-'+id)?.value)||0;
+    const qty=parseFloat(document.getElementById('efqty-'+id)?.value)||0;
+    const rm=getRMById(rmId);
+    totalQty+=qty;lineCount++;
+    if(rm&&can('viewCost')){
+      const lineCost=qty*(rm.rate||0);
+      totalCost+=lineCost;
+      const costEl=document.getElementById('efcost-'+id);
+      if(costEl) costEl.textContent=qty>0?fmtCurrency(lineCost):'—';
+    }
+  });
+  const panel=document.getElementById('ef-live-total');if(!panel)return;
+  if(can('viewCost')){
+    panel.innerHTML=`
+      <div class="fm-lt-item"><div class="fm-lt-label">Materials</div><div class="fm-lt-value">${lineCount}</div></div>
+      <div class="fm-lt-item"><div class="fm-lt-label">Total Qty</div><div class="fm-lt-value amber">${totalQty.toFixed(3)}</div></div>
+      <div class="fm-lt-item"><div class="fm-lt-label">RM Cost</div><div class="fm-lt-value green">${fmtCurrency(totalCost)}</div></div>
+      <div class="fm-lt-item"><div class="fm-lt-label">+Packaging</div><div class="fm-lt-value green">${fmtCurrency(totalCost+(DB.packagingCost||0)*totalQty)}</div></div>
+      <div class="fm-lt-item"><div class="fm-lt-label">Cost/KG</div><div class="fm-lt-value green">${totalQty>0?fmtCurrency((totalCost+(DB.packagingCost||0)*totalQty)/totalQty):'—'}</div></div>`;
+  } else {
+    panel.innerHTML=`
+      <div class="fm-lt-item"><div class="fm-lt-label">Materials</div><div class="fm-lt-value">${lineCount}</div></div>
+      <div class="fm-lt-item"><div class="fm-lt-label">Total Qty</div><div class="fm-lt-value amber">${totalQty.toFixed(3)}</div></div>`;
+  }
+}
+
+function saveEditFormulation(id){
+  const f=DB.formulations.find(x=>x.id===id);
+  if(!f){toast('Formulation not found','error');return;}
+  const pname=document.getElementById('ef-pname').value.trim();
+  const pcode=document.getElementById('ef-pcode').value.trim();
+  const batch=document.getElementById('ef-batch').value.trim();
+  const remarks=document.getElementById('ef-remarks').value.trim();
+  if(!pname){toast('Product Name is required','error');return;}
+  const items=[];
+  document.querySelectorAll('[id^="efitem-"]').forEach(row=>{
+    const rowId=row.id;
+    const rmId=parseInt(document.getElementById('efsel-'+rowId)?.value)||0;
+    const qty=parseFloat(document.getElementById('efqty-'+rowId)?.value)||0;
+    const unit=document.getElementById('efunit-'+rowId)?.value||'KG';
+    if(rmId&&qty>0) items.push({rmId,qty,unit});
+  });
+  if(items.length===0){toast('Add at least one ingredient','error');return;}
+  f.productName=pname;
+  f.productCode=pcode;
+  f.batchNo=batch;
+  f.remarks=remarks;
+  f.items=items;
+  addAudit('Edited formulation recipe',`${pcode} — Batch ${batch}`);
+  gasCall('saveFormulation',{formulation:f,items,inventoryUpdates:[],transactions:[],debitInventory:false})
+    .then(()=>toast('Recipe updated in Google Sheets ✓','success'));
+  closeModal('edit-form-modal');
+  toast('Recipe updated successfully ✓','success');
+  navigate('formulations');
+}
+
+
 function openNewFormModal(template=null){
   const ts=nowDateTime();
   const debit=DB.settings.debitInventoryOnSave;
@@ -1577,9 +1761,9 @@ function openNewFormModal(template=null){
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
         Pricing data is hidden from formulation users. Entry is saved securely.
       </div>
-      <div class="alert ${debit?'alert-success':'alert-info'}" style="font-size:13px;">
-        <span style="font-size:16px;">${debit?'📦':'🔒'}</span>
-        <span><strong>Inventory Debit is ${debit?'ON':'OFF'}.</strong> ${debit?'Raw materials will be deducted from stock when you save this formulation.':'This formulation will be saved but raw material stock will NOT be deducted (controlled by Admin in Settings).'}</span>
+      <div class="alert ${(()=>{const isAdmin=currentUser&&currentUser.role==='admin';const debit=DB.settings.debitInventoryOnSave;return isAdmin?'alert-info':debit?'alert-success':'alert-warning';})()}" style="font-size:13px;">
+        <span style="font-size:16px;">${(()=>{const isAdmin=currentUser&&currentUser.role==='admin';const debit=DB.settings.debitInventoryOnSave;return isAdmin?'🛡️':debit?'📦':'🔒';})()}</span>
+        <span><strong>${(()=>{const isAdmin=currentUser&&currentUser.role==='admin';const debit=DB.settings.debitInventoryOnSave;return isAdmin?'Admin Mode — Inventory NOT Debited.':debit?'Inventory Debit is ON.':'Inventory Debit is OFF.';})()}</strong> ${(()=>{const isAdmin=currentUser&&currentUser.role==='admin';const debit=DB.settings.debitInventoryOnSave;return isAdmin?'Admins can enter formulations freely — inventory is never deducted when Admin saves. Only Sudhir Ji\'s entries debit stock.':debit?'Raw materials will be deducted from stock when you save this formulation.':'This formulation will be saved but raw material stock will NOT be deducted (controlled by Admin in Settings).';})()}</span>
       </div>
       <div class="form-row">
         <div class="form-group"><label>Product Name ✱</label><input class="form-control" id="fm-pname" value="${template?template.productName:''}" placeholder="e.g. LDPE Pipe Compound" required></div>
@@ -1596,9 +1780,20 @@ function openNewFormModal(template=null){
       <div class="form-group"><label>Remarks</label><textarea class="form-control" id="fm-remarks">${template?template.remarks||'':''}</textarea></div>
 
       <hr style="border-color:var(--border);margin:16px 0;">
-      <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px;">Raw Material Items</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <div style="font-size:13px;font-weight:700;color:var(--text);">Raw Material Items</div>
+      </div>
+      <div class="fi-header">
+        <span>Raw Material</span>
+        <span style="text-align:center;">Qty</span>
+        <span style="text-align:center;">Unit</span>
+        ${can('viewCost')?'<span style="text-align:right;">Line Cost</span>':''}
+        <span></span>
+      </div>
       <div id="fm-items"></div>
       <button class="add-item-btn" onclick="addFormItem()">＋ Add Raw Material</button>
+      <!-- Live total panel -->
+      <div class="fm-live-total" id="fm-live-total" style="margin-top:12px;"></div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('form-modal')">Cancel</button>
@@ -1623,12 +1818,18 @@ function updateLotPreview(){
 }
 
 let formItemCount=0;
-function addFormItem(preRmId=null, preQty=null){
+function addFormItem(preRmId=null, preQty=null, preUnit=null){
   formItemCount++;
   const id='fitem-'+formItemCount;
   const preRM=preRmId?DB.rawMaterials.find(r=>r.id===preRmId):null;
-  const preUnit=preRM?preRM.unit:'KG';
+  const defaultUnit=preUnit||(preRM?preRM.unit:'KG');
   const preLabel=preRM?`${preRM.name} (${preRM.code})`:'';
+  const showCostCol=can('viewCost');
+
+  // All units for paint/manufacturing companies
+  const allUnits=['KG','G','LTR','ML','NOS','PCS','MTR','CM','MM','BOX','BAG','DRUM'];
+  const unitOpts=allUnits.map(u=>`<option value="${u}" ${u===defaultUnit?'selected':''}>${u}</option>`).join('');
+
   document.getElementById('fm-items').insertAdjacentHTML('beforeend',`
     <div class="fi-row" id="${id}">
       <div class="rm-search-wrap" style="position:relative;">
@@ -1640,13 +1841,47 @@ function addFormItem(preRmId=null, preQty=null){
         <div class="rm-dropdown" id="rmdrop-${id}"></div>
         <input type="hidden" id="sel-${id}" value="${preRmId||''}">
       </div>
-      <input class="form-control" id="qty-${id}" type="number" step="0.01" min="0" value="${preQty||''}" placeholder="Qty">
-      <div style="display:flex;gap:4px;align-items:center;">
-        <span class="fi-unit" id="unit-${id}">${preUnit}</span>
-        <button class="remove-btn" onclick="document.getElementById('${id}').remove()">−</button>
-      </div>
+      <input class="form-control" id="qty-${id}" type="number" step="0.001" min="0" value="${preQty||''}" placeholder="Qty" oninput="updateFmLiveTotal()">
+      <select class="form-control" id="fmunit-${id}" style="padding:10px 6px;font-size:12px;" onchange="updateFmLiveTotal()">${unitOpts}</select>
+      ${showCostCol?`<span class="fi-cost" id="ficost-${id}">—</span>`:''}
+      <button class="remove-btn" onclick="document.getElementById('${id}').remove();updateFmLiveTotal()">−</button>
     </div>`);
+
   if(!preRmId) openRMDropdown(id);
+  updateFmLiveTotal();
+}
+
+function updateFmLiveTotal(){
+  let totalQty=0, totalCost=0, lineCount=0;
+  document.querySelectorAll('[id^="fitem-"]').forEach(row=>{
+    const id=row.id;
+    const rmId=parseInt(document.getElementById('sel-'+id)?.value)||0;
+    const qty=parseFloat(document.getElementById('qty-'+id)?.value)||0;
+    const rm=getRMById(rmId);
+    totalQty+=qty;
+    lineCount++;
+    if(rm&&can('viewCost')){
+      const lineCost=qty*(rm.rate||0);
+      totalCost+=lineCost;
+      const costEl=document.getElementById('ficost-'+id);
+      if(costEl) costEl.textContent=qty>0&&rm?fmtCurrency(lineCost):'—';
+    }
+  });
+  const panel=document.getElementById('fm-live-total');
+  if(!panel) return;
+  if(can('viewCost')){
+    panel.innerHTML=`
+      <div class="fm-lt-item"><div class="fm-lt-label">Materials Added</div><div class="fm-lt-value">${lineCount}</div></div>
+      <div class="fm-lt-item"><div class="fm-lt-label">Total Qty</div><div class="fm-lt-value amber">${totalQty.toFixed(3)}</div></div>
+      <div class="fm-lt-item"><div class="fm-lt-label">RM Cost</div><div class="fm-lt-value green">${fmtCurrency(totalCost)}</div></div>
+      <div class="fm-lt-item"><div class="fm-lt-label">+Packaging</div><div class="fm-lt-value green">${fmtCurrency(totalCost+(DB.packagingCost||0)*totalQty)}</div></div>
+      <div class="fm-lt-item"><div class="fm-lt-label">Cost/KG</div><div class="fm-lt-value green">${totalQty>0?fmtCurrency((totalCost+(DB.packagingCost||0)*totalQty)/totalQty):'—'}</div></div>`;
+  } else {
+    panel.innerHTML=`
+      <div class="fm-lt-item"><div class="fm-lt-label">Materials Added</div><div class="fm-lt-value">${lineCount}</div></div>
+      <div class="fm-lt-item"><div class="fm-lt-label">Total Qty</div><div class="fm-lt-value amber">${totalQty.toFixed(3)}</div></div>
+      <div class="fm-lt-item"><div class="fm-lt-label">Status</div><div class="fm-lt-value" style="color:#34d399;font-size:12px;">${lineCount>0?'✓ Ready':'Add items'}</div></div>`;
+  }
 }
 
 function openRMDropdown(id){
@@ -1690,12 +1925,21 @@ function selectRM(id,rmId,rmName,rmCode,rmUnit){
   if(hiddenFm) hiddenFm.value=rmId;
   if(hiddenCA) hiddenCA.value=rmId;
   document.getElementById('rmsearch-'+id).value=`${rmName} (${rmCode})`;
+  // Set the unit dropdown if it exists (formulation modal)
+  const unitSel=document.getElementById('fmunit-'+id);
+  if(unitSel&&rmUnit){
+    unitSel.value=rmUnit;
+    if(!unitSel.value) unitSel.value='KG'; // fallback
+  }
+  // Legacy unit span (fallback)
   const unitEl=document.getElementById('unit-'+id);
   if(unitEl) unitEl.textContent=rmUnit;
   document.getElementById('rmdrop-'+id)?.classList.remove('open');
   // Focus qty field (either naming convention)
   const qtyEl=document.getElementById('qty-'+id)||document.getElementById('caqty-'+id);
   qtyEl?.focus();
+  // Update live total
+  if(typeof updateFmLiveTotal==='function') updateFmLiveTotal();
 }
 
 function handleRMDropdownKey(e,id){
@@ -1729,7 +1973,8 @@ function saveFormulation(){
   const mfgDateTime=nowDateTime();
   const remarks=document.getElementById('fm-remarks').value.trim();
   const lots=1;  // lots removed from new formulation form; always saved as 1
-  const debit=DB.settings.debitInventoryOnSave;
+  // Admin NEVER debits inventory. Only formulation role users do (when debit setting is ON)
+  const debit = currentUser.role !== 'admin' && DB.settings.debitInventoryOnSave;
 
   if(!pname){toast('Product Name is required','error');return;}
 
@@ -1738,7 +1983,8 @@ function saveFormulation(){
     const id=row.id;
     const rmId=parseInt(document.getElementById('sel-'+id).value);
     const baseQty=parseFloat(document.getElementById('qty-'+id).value);
-    if(rmId&&baseQty>0)items.push({rmId,qty:baseQty*lots});
+    const unit=document.getElementById('fmunit-'+id)?.value||'KG';
+    if(rmId&&baseQty>0)items.push({rmId,qty:baseQty*lots,unit});
   });
   if(items.length===0){toast('Add at least one raw material','error');return;}
 
@@ -1805,9 +2051,10 @@ function viewFormulation(id){
         <tbody>${itemsHTML}</tbody>
         ${can('viewCost')?`<tfoot>
           <tr><td colspan="3"></td><td style="padding:10px 14px;font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;">RM Total</td><td class="cost-tag" style="padding:10px 14px;font-weight:700;">${fmtCurrency(cost.rmCost)}</td></tr>
-          <tr><td colspan="3"></td><td style="padding:8px 14px;font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;">Packaging</td><td class="cost-tag" style="padding:8px 14px;">${fmtCurrency(cost.packaging)}</td></tr>
+          <tr><td colspan="3"></td><td style="padding:4px 14px;font-size:11px;color:var(--text3);">RM Cost/KG</td><td class="cost-tag" style="padding:4px 14px;font-size:12px;">${fmtCurrency(cost.rmCost/totalQty)}</td></tr>
+          <tr><td colspan="3"></td><td style="padding:8px 14px;font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;">Packaging (₹${cost.packagingPerKg}/kg × ${totalQty.toFixed(2)})</td><td class="cost-tag" style="padding:8px 14px;">${fmtCurrency(cost.packaging)}</td></tr>
           <tr style="background:var(--bg3);"><td colspan="3"></td><td style="padding:12px 14px;font-size:13px;font-weight:800;color:var(--text);">FINAL COST</td><td class="cost-tag" style="padding:12px 14px;font-size:18px;font-weight:800;">${fmtCurrency(cost.total)}</td></tr>
-          <tr><td colspan="3"></td><td style="padding:6px 14px;font-size:11px;color:var(--text3);">Cost/KG</td><td class="cost-tag" style="padding:6px 14px;">${fmtCurrency(cost.total/totalQty)}</td></tr>
+          <tr><td colspan="3"></td><td style="padding:6px 14px;font-size:11px;color:var(--text3);">Cost/KG (incl. Packaging)</td><td class="cost-tag" style="padding:6px 14px;">${fmtCurrency(cost.total/totalQty)}</td></tr>
         </tfoot>`:''}
       </table>
     </div>
@@ -3656,7 +3903,13 @@ td{padding:7px 10px;color:#1a1a1a;vertical-align:middle;}
     <tbody>${itemRows}</tbody>
     <tfoot><tr style="background:#f0f0f0"><td class="c" colspan="4" style="font-weight:700;text-align:right;padding-right:10px;">TOTAL →</td><td class="r" style="font-weight:700;font-size:11pt;font-family:'JetBrains Mono'">${totalQty.toFixed(3)}</td>${showCost?`<td></td><td class="r" style="font-weight:700;font-size:10.5pt;font-family:'JetBrains Mono'">&#8377;${cost.rmCost.toLocaleString('en-IN',{minimumFractionDigits:2})}</td>`:''}</tr></tfoot>
   </table>
-  ${showCost?`<div class="tr-row"><table><tr><td>Raw Material Cost</td><td>&#8377;${cost.rmCost.toLocaleString('en-IN',{minimumFractionDigits:2})}</td></tr><tr><td>Packaging Cost</td><td>&#8377;${cost.packaging.toLocaleString('en-IN',{minimumFractionDigits:2})}</td></tr><tr class="gd"><td>TOTAL BATCH COST</td><td>&#8377;${cost.total.toLocaleString('en-IN',{minimumFractionDigits:2})}</td></tr><tr><td style="color:#666">Cost Per KG</td><td style="color:#444">&#8377;${(cost.total/totalQty).toLocaleString('en-IN',{minimumFractionDigits:2})}</td></tr></table></div>`:''}
+  ${showCost?`<div class="tr-row"><table>
+  <tr><td>Raw Material Cost</td><td>&#8377;${cost.rmCost.toLocaleString('en-IN',{minimumFractionDigits:2})}</td></tr>
+  <tr><td style="color:#888;font-size:9.5pt;">Cost/KG (RM only)</td><td style="color:#555;font-family:'JetBrains Mono';text-align:right;font-size:9pt;">&#8377;${(cost.rmCost/totalQty).toLocaleString('en-IN',{minimumFractionDigits:2})}</td></tr>
+  <tr><td>Packaging Cost (&#8377;${cost.packagingPerKg}/kg &times; ${totalQty.toFixed(3)} kg)</td><td>&#8377;${cost.packaging.toLocaleString('en-IN',{minimumFractionDigits:2})}</td></tr>
+  <tr class="gd"><td>TOTAL BATCH COST</td><td>&#8377;${cost.total.toLocaleString('en-IN',{minimumFractionDigits:2})}</td></tr>
+  <tr><td style="color:#666">Cost Per KG (with Packaging)</td><td style="color:#444">&#8377;${(cost.total/totalQty).toLocaleString('en-IN',{minimumFractionDigits:2})}</td></tr>
+  </table></div>`:''}
   <div class="rem"><div class="rl">Remarks</div><div>${f.remarks||'<span style="color:#bbb;font-style:italic">No remarks recorded.</span>'}</div></div>
   <div class="sig">
     <div><div class="sl"><div class="st">Prepared By</div><div style="font-size:9pt;color:#444;margin-top:2px">${f.byName}</div></div></div>
