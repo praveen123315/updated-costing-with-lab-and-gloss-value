@@ -416,7 +416,7 @@ const DB = {
   formulationComments: [], // [{id, formulationId, type:'production'|'sushil'|'md', text, by, byName, createdAt}]
 };
 
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbz82gBfTgFuf2cIhHkgcDAxbGZFSH-qh9bD2MYuXNP4ZA7dC8xLPBvToV7LdJ5hJP8b/exec';
+const GAS_URL = 'sELECT $RIdVchNo, $RDate, $RMethod, $RAmount, $RCustomerName, $ROrderNo, $RBalanceAmt, $RBankLedger, $RTransactionRef FROM  ReceiptListVarColl';
 
 let currentUser = null;
 let dashboardRefreshTimer = null;
