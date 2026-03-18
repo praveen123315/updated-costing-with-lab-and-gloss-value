@@ -174,9 +174,13 @@ tr:hover td{background:var(--bg3);color:var(--text);}
 textarea.form-control{resize:vertical;min-height:80px;}
 
 /* FORMULATION ITEMS */
-.fi-row{display:grid;grid-template-columns:1fr 120px 100px 40px;gap:8px;align-items:center;margin-bottom:8px;}
+.fi-row{display:grid;grid-template-columns:1fr 100px 90px 90px 40px;gap:8px;align-items:center;margin-bottom:8px;}
+.fi-row.no-cost{grid-template-columns:1fr 120px 100px 40px;}
 .fi-unit{font-size:11px;font-weight:600;color:var(--text2);padding:11px 10px;background:var(--bg3);border:1.5px solid var(--border);border-radius:7px;white-space:nowrap;text-align:center;}
 .fi-cost{font-size:12px;font-weight:700;color:#059669;font-family:'JetBrains Mono',monospace;padding:11px 6px;background:var(--green-light);border:1.5px solid #a7f3d0;border-radius:7px;text-align:right;min-width:90px;}
+.fi-rate{font-size:12px;font-weight:600;color:var(--blue);font-family:'JetBrains Mono',monospace;padding:9px 8px;background:var(--blue-light);border:1.5px solid #93c5fd;border-radius:7px;text-align:right;width:100%;outline:none;font-family:inherit;}
+.fi-rate:focus{border-color:var(--blue);box-shadow:0 0 0 2px rgba(59,130,246,0.15);}
+.fi-rate-changed{background:#fffbeb;border-color:#f59e0b;color:#92400e;}
 .add-item-btn{color:var(--accent2);background:var(--accent-light);border:1.5px dashed #fcd34d;border-radius:8px;padding:9px;cursor:pointer;font-size:12px;font-weight:600;width:100%;font-family:inherit;transition:all 0.15s;}
 .add-item-btn:hover{background:#fef08a;border-color:var(--accent);}
 .remove-btn{background:var(--red-light);border:1px solid #fca5a5;color:var(--red);border-radius:7px;width:34px;height:34px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:all 0.15s;}
@@ -187,7 +191,8 @@ textarea.form-control{resize:vertical;min-height:80px;}
 .fm-lt-value{font-size:16px;font-weight:800;color:#f1f5f9;font-family:'JetBrains Mono',monospace;margin-top:2px;}
 .fm-lt-value.green{color:#34d399;}
 .fm-lt-value.amber{color:#fbbf24;}
-.fi-header{display:grid;grid-template-columns:1fr 120px 100px 40px;gap:8px;margin-bottom:4px;padding:0 2px;}
+.fi-header{display:grid;grid-template-columns:1fr 100px 90px 90px 40px;gap:8px;margin-bottom:4px;padding:0 2px;}
+.fi-header.no-cost{grid-template-columns:1fr 120px 100px 40px;}
 .fi-header span{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--text3);}
 
 /* ALERTS */
@@ -653,7 +658,12 @@ function getStockStatus(rm){
 }
 function calcBatchCost(f){
   let rmCost=0;
-  (f.items||[]).forEach(item=>{const rm=getRMById(item.rmId);if(rm)rmCost+=item.qty*(rm.rate||0);});
+  (f.items||[]).forEach(item=>{
+    const rm=getRMById(item.rmId);if(!rm)return;
+    // Use per-item saved rate if available, else use current RM rate
+    const rate=item.rate!==undefined&&item.rate!==null?item.rate:(rm.rate||0);
+    rmCost+=item.qty*rate;
+  });
   const totalQty=calcTotalQty(f);
   const packagingPerKg=DB.packagingCost||0;
   const totalPackaging=packagingPerKg*totalQty;
@@ -1545,10 +1555,11 @@ function openEditFormModal(id){
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
         <div style="font-size:13px;font-weight:700;color:var(--text);">Recipe Ingredients</div>
       </div>
-      <div class="fi-header">
+      <div class="fi-header ${can('viewCost')?'':'no-cost'}">
         <span>Raw Material</span>
         <span style="text-align:center;">Qty</span>
         <span style="text-align:center;">Unit</span>
+        ${can('viewCost')?'<span style="text-align:right;">Rate ₹/unit</span>':''}
         ${can('viewCost')?'<span style="text-align:right;">Line Cost</span>':''}
         <span></span>
       </div>
@@ -1565,22 +1576,23 @@ function openEditFormModal(id){
   </div></div>`;
   document.body.insertAdjacentHTML('beforeend',modal);
   // Populate existing items
-  (f.items||[]).forEach(item=>addEditFormItem(item.rmId,item.qty,item.unit));
+  (f.items||[]).forEach(item=>addEditFormItem(item.rmId,item.qty,item.unit,item.rate));
   if(!f.items||f.items.length===0) addEditFormItem();
 }
 
 let _efCount=0;
-function addEditFormItem(preRmId=null,preQty=null,preUnit=null){
+function addEditFormItem(preRmId=null,preQty=null,preUnit=null,preRate=null){
   _efCount++;
   const id='efitem-'+_efCount;
   const preRM=preRmId?DB.rawMaterials.find(r=>r.id===preRmId):null;
   const defaultUnit=preUnit||(preRM?preRM.unit:'KG');
+  const defaultRate=preRate!==null&&preRate!==undefined?preRate:(preRM?preRM.rate||0:0);
   const preLabel=preRM?`${preRM.name} (${preRM.code})`:'';
   const showCostCol=can('viewCost');
   const allUnits=['KG','G','LTR','ML','NOS','PCS','MTR','CM','MM','BOX','BAG','DRUM'];
   const unitOpts=allUnits.map(u=>`<option value="${u}" ${u===defaultUnit?'selected':''}>${u}</option>`).join('');
   document.getElementById('ef-items').insertAdjacentHTML('beforeend',`
-    <div class="fi-row" id="${id}">
+    <div class="fi-row ${showCostCol?'':'no-cost'}" id="${id}">
       <div class="rm-search-wrap" style="position:relative;">
         <input class="rm-search-input" id="rmsearch-${id}" placeholder="🔍 Search raw material..." 
           value="${preLabel}" autocomplete="off"
@@ -1589,14 +1601,30 @@ function addEditFormItem(preRmId=null,preQty=null,preUnit=null){
           onkeydown="handleRMDropdownKeyEF(event,'${id}')">
         <div class="rm-dropdown" id="rmdrop-${id}"></div>
         <input type="hidden" id="efsel-${id}" value="${preRmId||''}">
+        <input type="hidden" id="efbaserate-${id}" value="${defaultRate}">
       </div>
       <input class="form-control" id="efqty-${id}" type="number" step="0.001" min="0" value="${preQty||''}" placeholder="Qty" oninput="updateEfLiveTotal()">
       <select class="form-control" id="efunit-${id}" style="padding:10px 6px;font-size:12px;" onchange="updateEfLiveTotal()">${unitOpts}</select>
+      ${showCostCol?`<input class="fi-rate" id="efrate-${id}" type="number" step="0.01" min="0" value="${defaultRate||''}" placeholder="Rate" title="Edit rate for this batch" oninput="onEfRateInput('${id}');updateEfLiveTotal()">`:''}
       ${showCostCol?`<span class="fi-cost" id="efcost-${id}">—</span>`:''}
       <button class="remove-btn" onclick="document.getElementById('${id}').remove();updateEfLiveTotal()">−</button>
     </div>`);
   if(!preRmId) openRMDropdownEF(id);
   updateEfLiveTotal();
+}
+
+function onEfRateInput(id){
+  const rateEl=document.getElementById('efrate-'+id);
+  const baseRate=parseFloat(document.getElementById('efbaserate-'+id)?.value)||0;
+  if(!rateEl)return;
+  const currentRate=parseFloat(rateEl.value)||0;
+  if(currentRate!==baseRate){
+    rateEl.classList.add('fi-rate-changed');
+    rateEl.title='⚠ Rate changed from default ₹'+baseRate;
+  } else {
+    rateEl.classList.remove('fi-rate-changed');
+    rateEl.title='Edit rate for this batch';
+  }
 }
 
 function openRMDropdownEF(id){
@@ -1614,7 +1642,7 @@ function renderRMDropdownEF(id,q){
   const drop=document.getElementById('rmdrop-'+id);if(!drop)return;
   const filtered=DB.rawMaterials.filter(r=>r.name.toLowerCase().includes(q)||r.code.toLowerCase().includes(q));
   if(filtered.length===0){drop.innerHTML=`<div class="rm-dropdown-empty">No materials found</div>`;return;}
-  drop.innerHTML=filtered.map(r=>`<div class="rm-dropdown-item" onclick="selectRMEF('${id}',${r.id},'${r.name.replace(/'/g,"\\'")}','${r.code}','${r.unit}')"><span>${r.name}</span><span class="rm-code">${r.code} · ${r.unit}</span></div>`).join('');
+  drop.innerHTML=filtered.map(r=>`<div class="rm-dropdown-item" onclick="selectRMEF('${id}',${r.id},'${r.name.replace(/'/g,"\\'")}','${r.code}','${r.unit}')"><span>${r.name}</span><span class="rm-code">${r.code} · ${r.unit}${can('viewCost')&&r.rate?' · <strong style="color:var(--accent2)">₹'+r.rate+'</strong>':''}</span></div>`).join('');
 }
 function handleRMDropdownKeyEF(e,id){handleRMDropdownKey(e,id);}
 function selectRMEF(id,rmId,rmName,rmCode,rmUnit){
@@ -1622,6 +1650,12 @@ function selectRMEF(id,rmId,rmName,rmCode,rmUnit){
   document.getElementById('rmsearch-'+id).value=`${rmName} (${rmCode})`;
   const unitSel=document.getElementById('efunit-'+id);
   if(unitSel) unitSel.value=rmUnit;
+  // Populate rate field
+  const rm=getRMById(rmId);
+  const rateEl=document.getElementById('efrate-'+id);
+  const baseRateEl=document.getElementById('efbaserate-'+id);
+  if(rateEl&&rm){rateEl.value=rm.rate||0;rateEl.classList.remove('fi-rate-changed');}
+  if(baseRateEl&&rm) baseRateEl.value=rm.rate||0;
   document.getElementById('rmdrop-'+id)?.classList.remove('open');
   document.getElementById('efqty-'+id)?.focus();
   updateEfLiveTotal();
@@ -1633,9 +1667,11 @@ function updateEfLiveTotal(){
     const rmId=parseInt(document.getElementById('efsel-'+id)?.value)||0;
     const qty=parseFloat(document.getElementById('efqty-'+id)?.value)||0;
     const rm=getRMById(rmId);
+    const rateEl=document.getElementById('efrate-'+id);
+    const rate=rateEl?parseFloat(rateEl.value)||0:(rm?rm.rate||0:0);
     totalQty+=qty;lineCount++;
     if(rm&&can('viewCost')){
-      const lineCost=qty*(rm.rate||0);
+      const lineCost=qty*rate;
       totalCost+=lineCost;
       const costEl=document.getElementById('efcost-'+id);
       if(costEl) costEl.textContent=qty>0?fmtCurrency(lineCost):'—';
@@ -1670,7 +1706,10 @@ function saveEditFormulation(id){
     const rmId=parseInt(document.getElementById('efsel-'+rowId)?.value)||0;
     const qty=parseFloat(document.getElementById('efqty-'+rowId)?.value)||0;
     const unit=document.getElementById('efunit-'+rowId)?.value||'KG';
-    if(rmId&&qty>0) items.push({rmId,qty,unit});
+    const rm=getRMById(rmId);
+    const rateEl=document.getElementById('efrate-'+rowId);
+    const rate=rateEl?parseFloat(rateEl.value)||0:(rm?rm.rate||0:0);
+    if(rmId&&qty>0) items.push({rmId,qty,unit,rate});
   });
   if(items.length===0){toast('Add at least one ingredient','error');return;}
   f.productName=pname;
@@ -1726,10 +1765,11 @@ function openNewFormModal(template=null){
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
         <div style="font-size:13px;font-weight:700;color:var(--text);">Raw Material Items</div>
       </div>
-      <div class="fi-header">
+      <div class="fi-header ${can('viewCost')?'':'no-cost'}">
         <span>Raw Material</span>
         <span style="text-align:center;">Qty</span>
         <span style="text-align:center;">Unit</span>
+        ${can('viewCost')?'<span style="text-align:right;">Rate ₹/unit</span>':''}
         ${can('viewCost')?'<span style="text-align:right;">Line Cost</span>':''}
         <span></span>
       </div>
@@ -1761,11 +1801,12 @@ function updateLotPreview(){
 }
 
 let formItemCount=0;
-function addFormItem(preRmId=null, preQty=null, preUnit=null){
+function addFormItem(preRmId=null, preQty=null, preUnit=null, preRate=null){
   formItemCount++;
   const id='fitem-'+formItemCount;
   const preRM=preRmId?DB.rawMaterials.find(r=>r.id===preRmId):null;
   const defaultUnit=preUnit||(preRM?preRM.unit:'KG');
+  const defaultRate=preRate!==null?preRate:(preRM?preRM.rate:0);
   const preLabel=preRM?`${preRM.name} (${preRM.code})`:'';
   const showCostCol=can('viewCost');
 
@@ -1774,7 +1815,7 @@ function addFormItem(preRmId=null, preQty=null, preUnit=null){
   const unitOpts=allUnits.map(u=>`<option value="${u}" ${u===defaultUnit?'selected':''}>${u}</option>`).join('');
 
   document.getElementById('fm-items').insertAdjacentHTML('beforeend',`
-    <div class="fi-row" id="${id}">
+    <div class="fi-row ${showCostCol?'':'no-cost'}" id="${id}">
       <div class="rm-search-wrap" style="position:relative;">
         <input class="rm-search-input" id="rmsearch-${id}" placeholder="🔍 Search raw material..." 
           value="${preLabel}" autocomplete="off"
@@ -1783,15 +1824,32 @@ function addFormItem(preRmId=null, preQty=null, preUnit=null){
           onkeydown="handleRMDropdownKey(event,'${id}')">
         <div class="rm-dropdown" id="rmdrop-${id}"></div>
         <input type="hidden" id="sel-${id}" value="${preRmId||''}">
+        <input type="hidden" id="baserate-${id}" value="${defaultRate}">
       </div>
       <input class="form-control" id="qty-${id}" type="number" step="0.001" min="0" value="${preQty||''}" placeholder="Qty" oninput="updateFmLiveTotal()">
       <select class="form-control" id="fmunit-${id}" style="padding:10px 6px;font-size:12px;" onchange="updateFmLiveTotal()">${unitOpts}</select>
+      ${showCostCol?`<input class="fi-rate" id="rate-${id}" type="number" step="0.01" min="0" value="${defaultRate||''}" placeholder="Rate" title="Edit rate for this batch" oninput="onRateInput('${id}');updateFmLiveTotal()">`:''}
       ${showCostCol?`<span class="fi-cost" id="ficost-${id}">—</span>`:''}
       <button class="remove-btn" onclick="document.getElementById('${id}').remove();updateFmLiveTotal()">−</button>
     </div>`);
 
   if(!preRmId) openRMDropdown(id);
   updateFmLiveTotal();
+}
+
+// Highlight rate field yellow when user edits it away from default
+function onRateInput(id){
+  const rateEl=document.getElementById('rate-'+id);
+  const baseRate=parseFloat(document.getElementById('baserate-'+id)?.value)||0;
+  if(!rateEl)return;
+  const currentRate=parseFloat(rateEl.value)||0;
+  if(currentRate!==baseRate){
+    rateEl.classList.add('fi-rate-changed');
+    rateEl.title='⚠ Rate changed from default ₹'+baseRate;
+  } else {
+    rateEl.classList.remove('fi-rate-changed');
+    rateEl.title='Edit rate for this batch';
+  }
 }
 
 function updateFmLiveTotal(){
@@ -1801,13 +1859,16 @@ function updateFmLiveTotal(){
     const rmId=parseInt(document.getElementById('sel-'+id)?.value)||0;
     const qty=parseFloat(document.getElementById('qty-'+id)?.value)||0;
     const rm=getRMById(rmId);
+    // Use editable rate if available, else fall back to rm.rate
+    const rateEl=document.getElementById('rate-'+id);
+    const rate=rateEl?parseFloat(rateEl.value)||0:(rm?rm.rate||0:0);
     totalQty+=qty;
     lineCount++;
     if(rm&&can('viewCost')){
-      const lineCost=qty*(rm.rate||0);
+      const lineCost=qty*rate;
       totalCost+=lineCost;
       const costEl=document.getElementById('ficost-'+id);
-      if(costEl) costEl.textContent=qty>0&&rm?fmtCurrency(lineCost):'—';
+      if(costEl) costEl.textContent=qty>0?fmtCurrency(lineCost):'—';
     }
   });
   const panel=document.getElementById('fm-live-total');
@@ -1855,7 +1916,7 @@ function renderRMDropdown(id,q){
     drop.innerHTML=filtered.map(r=>
       `<div class="rm-dropdown-item" data-rmid="${r.id}" data-rmname="${r.name}" data-rmcode="${r.code}" data-rmunit="${r.unit}"
          onclick="selectRM('${id}',${r.id},'${r.name.replace(/'/g,"\\'")}','${r.code}','${r.unit}')">
-         <span>${r.name}</span><span class="rm-code">${r.code} · ${r.unit}</span>
+         <span>${r.name}</span><span class="rm-code">${r.code} · ${r.unit}${can('viewCost')&&r.rate?' · <strong style="color:var(--accent2)">₹'+r.rate+'</strong>':''}</span>
        </div>`
     ).join('');
   }
@@ -1877,6 +1938,16 @@ function selectRM(id,rmId,rmName,rmCode,rmUnit){
   // Legacy unit span (fallback)
   const unitEl=document.getElementById('unit-'+id);
   if(unitEl) unitEl.textContent=rmUnit;
+  // ── Populate editable rate field with RM's current rate ──
+  const rm=getRMById(rmId);
+  const rateEl=document.getElementById('rate-'+id);
+  const baseRateEl=document.getElementById('baserate-'+id);
+  if(rateEl&&rm){
+    rateEl.value=rm.rate||0;
+    rateEl.classList.remove('fi-rate-changed');
+    rateEl.title='Edit rate for this batch';
+  }
+  if(baseRateEl&&rm) baseRateEl.value=rm.rate||0;
   document.getElementById('rmdrop-'+id)?.classList.remove('open');
   // Focus qty field (either naming convention)
   const qtyEl=document.getElementById('qty-'+id)||document.getElementById('caqty-'+id);
@@ -1927,7 +1998,11 @@ function saveFormulation(){
     const rmId=parseInt(document.getElementById('sel-'+id).value);
     const baseQty=parseFloat(document.getElementById('qty-'+id).value);
     const unit=document.getElementById('fmunit-'+id)?.value||'KG';
-    if(rmId&&baseQty>0)items.push({rmId,qty:baseQty*lots,unit});
+    // Save overridden rate if admin provided one
+    const rateEl=document.getElementById('rate-'+id);
+    const rm=getRMById(rmId);
+    const rate=rateEl?parseFloat(rateEl.value)||0:(rm?rm.rate||0:0);
+    if(rmId&&baseQty>0)items.push({rmId,qty:baseQty*lots,unit,rate});
   });
   if(items.length===0){toast('Add at least one raw material','error');return;}
 
