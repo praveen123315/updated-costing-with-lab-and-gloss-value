@@ -416,7 +416,7 @@ const DB = {
   formulationComments: [], // [{id, formulationId, type:'production'|'sushil'|'md', text, by, byName, createdAt}]
 };
 
-const GAS_URL = 'sELECT $RIdVchNo, $RDate, $RMethod, $RAmount, $RCustomerName, $ROrderNo, $RBalanceAmt, $RBankLedger, $RTransactionRef FROM  ReceiptListVarColl';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbyKc5yzr-nw_GCTHE6aTQs7dLLmno9DXQtPEZbqCPID3a5CariSLbtg-BNwOYcbrIvP/exec';
 
 let currentUser = null;
 let dashboardRefreshTimer = null;
@@ -949,24 +949,6 @@ function renderFormulations(){
         ${f.glossValue!=null?`<span style="background:#fdf4ff;color:#9333ea;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;">✨ Gloss: ${f.glossValue} GU</span>`:''}
         ${(()=>{const cc=DB.formulationComments.filter(c=>c.formulationId===f.id).length;return cc>0?`<span style="background:var(--blue-light);color:var(--blue);padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;">💬 ${cc} comment${cc>1?'s':''}</span>`:'';})()}
       </div>
-      ${(()=>{
-        const fComments=DB.formulationComments.filter(c=>c.formulationId===f.id);
-        if(fComments.length===0)return'';
-        const typeConfig={
-          production:{label:'Production',bg:'#eff6ff',color:'#1d4ed8',border:'#bfdbfe'},
-          sushil:{label:'Sushil Sir',bg:'#f0fdf4',color:'#15803d',border:'#bbf7d0'},
-          md:{label:'MD Sir',bg:'#fefce8',color:'#92400e',border:'#fde68a'}
-        };
-        return`<div style="margin-top:8px;display:flex;flex-direction:column;gap:5px;">
-          ${fComments.map(c=>{
-            const cfg=typeConfig[c.type]||{label:c.type,bg:'var(--bg3)',color:'var(--text)',border:'var(--border)'};
-            return`<div style="background:${cfg.bg};border:1px solid ${cfg.border};border-radius:8px;padding:6px 12px;display:flex;align-items:flex-start;gap:8px;">
-              <span style="font-size:10px;font-weight:800;color:${cfg.color};white-space:nowrap;padding-top:1px;">By ${cfg.label}:</span>
-              <span style="font-size:12px;color:var(--text);font-weight:500;line-height:1.4;">${c.text}</span>
-            </div>`;
-          }).join('')}
-        </div>`;
-      })()}
       <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap;">
         ${(f.items||[]).map(item=>{const rm=getRMById(item.rmId);return rm?`<span style="background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:3px 10px;font-size:11px;font-weight:500;color:var(--text2)">${rm.name} (${item.qty} ${item.unit||rm.unit})</span>`:''}).join('')}
       </div>
@@ -1149,59 +1131,52 @@ function exportWorkerPDF(id){
   const f=DB.formulations.find(x=>x.id===id);
   if(!f)return;
   const printDate=new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'long',year:'numeric'});
+  const lots=f.lots||1;
   let sno=1;
   let itemRows='';
-  let totalQty=0;
   f.items.forEach(item=>{
     const rm=getRMById(item.rmId);if(!rm)return;
-    const qty=item.qty;
-    totalQty+=qty;
+    const qtyPerLot=(item.qty/lots);
     const unit=item.unit||rm.unit||'KG';
-    const qtyDisplay=qty%1===0?qty.toFixed(0):qty.toFixed(3);
-    itemRows+=`<tr>
-      <td style="text-align:center;">${sno++}</td>
-      <td>${rm.name}</td>
-      <td style="text-align:right;font-size:14pt;font-weight:800;">${qtyDisplay} ${unit}</td>
-    </tr>`;
+    // Display qty with unit (e.g. 25 KG or 500 G)
+    const qtyDisplay=qtyPerLot%1===0?qtyPerLot.toFixed(0):qtyPerLot.toFixed(3);
+    itemRows+=`<tr><td style="font-size:13pt;font-weight:700;text-align:center;">${sno++}</td><td style="font-size:13pt;font-weight:700;">${rm.name}</td><td style="font-size:15pt;font-weight:800;text-align:right;font-family:'JetBrains Mono',monospace;">${qtyDisplay} <span style="font-size:11pt;">${unit}</span></td></tr>`;
   });
 
   const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Worker Recipe — ${f.productName}</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
-@page{size:A4;margin:14mm 16mm 16mm 16mm;}
+@import url('https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;600;700;800&family=EB+Garamond:wght@400;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@page{size:A4;margin:15mm 18mm 18mm 18mm;}
 *{margin:0;padding:0;box-sizing:border-box;}
-body{font-family:'Inter',Arial,sans-serif;font-size:11pt;color:#111;background:#fff;line-height:1.5;}
-.top{border-bottom:3px solid #111;padding-bottom:10px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:flex-end;}
-.product-name{font-size:22pt;font-weight:800;color:#111;letter-spacing:-0.5px;}
-.date-line{font-size:10pt;font-weight:600;color:#444;text-align:right;}
-.section-title{font-size:10pt;font-weight:800;text-transform:uppercase;letter-spacing:1.2px;border-bottom:2px solid #111;padding-bottom:5px;margin:16px 0 10px;color:#111;}
-table{width:100%;border-collapse:collapse;font-size:11pt;}
-thead tr{background:#f0f0f0;border-bottom:2px solid #111;}
-thead th{padding:9px 12px;font-size:9pt;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:#111;text-align:left;}
-thead th:first-child{width:50px;text-align:center;}
-thead th:last-child{text-align:right;}
-tbody tr{border-bottom:1px solid #ddd;}
-tbody tr:nth-child(even){background:#fafafa;}
-td{padding:10px 12px;color:#111;vertical-align:middle;font-weight:600;}
-tfoot tr{border-top:2px solid #111;background:#f0f0f0;}
-tfoot td{padding:10px 12px;font-weight:800;font-size:12pt;color:#111;}
-@media screen{body{background:#ccc;padding:20px;}.page{background:#fff;max-width:210mm;margin:0 auto;padding:14mm 16mm 16mm;box-shadow:0 4px 24px rgba(0,0,0,.2);}}
+body{font-family:'Crimson Pro',Georgia,serif;font-size:12pt;color:#000;background:#fff;line-height:1.5;}
+.header{border-bottom:4px solid #000;padding-bottom:10px;margin-bottom:16px;}
+.product-name{font-family:'EB Garamond';font-size:24pt;font-weight:800;color:#000;letter-spacing:-0.5px;}
+.date-line{font-size:13pt;font-weight:700;color:#000;margin-top:6px;}
+.section-title{font-size:12pt;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;border-bottom:2.5px solid #000;padding-bottom:5px;margin:18px 0 12px;color:#000;}
+table{width:100%;border-collapse:collapse;}
+thead tr{background:#000;color:#fff;}
+thead th{padding:10px 12px;font-size:10pt;font-weight:800;text-transform:uppercase;letter-spacing:1px;}
+tbody tr{border-bottom:2px solid #333;}
+tbody tr:nth-child(even){background:#f5f5f5;}
+td{padding:10px 12px;color:#000;vertical-align:middle;}
+tfoot td{background:#000;color:#fff;font-weight:800;font-size:13pt;padding:12px;}
+@media screen{body{background:#e0e0e0;padding:20px;}.page{background:#fff;max-width:210mm;margin:0 auto;padding:15mm 18mm 18mm;box-shadow:0 4px 24px rgba(0,0,0,.2);}}
 @media print{.np{display:none;}body{background:#fff;}.page{padding:0;box-shadow:none;}}
 </style></head><body>
 <div class="np" style="text-align:center;margin-bottom:16px;">
-  <button onclick="window.print()" style="background:#111;color:#fff;border:none;padding:10px 28px;font-size:13px;cursor:pointer;border-radius:4px;margin-right:8px;">🖨 PRINT / SAVE AS PDF</button>
+  <button onclick="window.print()" style="background:#000;color:#fff;border:none;padding:10px 28px;font-size:13px;cursor:pointer;border-radius:4px;margin-right:8px;">🖨 PRINT / SAVE AS PDF</button>
   <button onclick="window.close()" style="background:#f0f0f0;color:#333;border:none;padding:10px 20px;font-size:13px;cursor:pointer;border-radius:4px;">Close</button>
 </div>
 <div class="page">
-  <div class="top">
+  <div class="header">
     <div class="product-name">${f.productName}</div>
     <div class="date-line"><strong>Date:</strong> ${printDate}</div>
   </div>
-  <div class="section-title">Raw Materials</div>
+  <div class="section-title">Raw Materials — 1 Lot</div>
   <table>
-    <thead><tr><th>S.No</th><th>Raw Material Name</th><th style="text-align:right;">Qty</th></tr></thead>
+    <thead><tr><th style="width:50px;">S.No</th><th>Raw Material Name</th><th style="text-align:right;width:180px;">Quantity</th></tr></thead>
     <tbody>${itemRows}</tbody>
-    <tfoot><tr><td colspan="2" style="text-align:right;padding-right:12px;font-weight:800;">Total Quantity</td><td style="text-align:right;">${totalQty%1===0?totalQty.toFixed(0):totalQty.toFixed(3)} KG</td></tr></tfoot>
+    <tfoot><tr><td colspan="2" style="text-align:right;padding-right:14px;">TOTAL FOR 1 LOT</td><td style="text-align:right;">${(f.items.reduce((s,i)=>s+(i.qty/(f.lots||1)),0)).toFixed(3)} KG</td></tr></tfoot>
   </table>
 </div></body></html>`;
 
@@ -1418,54 +1393,51 @@ function generateSudhirPDF(id){
   let totalQtyAll=0;
   f.items.forEach(item=>{
     const rm=getRMById(item.rmId);if(!rm)return;
-    const totalNeeded=((item.qty/perLot)*lots);
-    totalQtyAll+=totalNeeded;
+    const qtyPerLot=(item.qty/perLot).toFixed(3);
+    const totalNeeded=((item.qty/perLot)*lots).toFixed(3);
+    totalQtyAll+=(item.qty/perLot)*lots;
+    const itemCost=(item.qty/perLot)*lots*(rm.rate||0);
     const unit=item.unit||rm.unit||'KG';
-    const qtyDisplay=totalNeeded%1===0?totalNeeded.toFixed(0):totalNeeded.toFixed(3);
     itemRows+=`<tr>
-      <td style="text-align:center;">${sno++}</td>
-      <td>${rm.name}</td>
-      <td style="text-align:right;font-size:13pt;font-weight:800;">${qtyDisplay} ${unit}</td>
+      <td style="text-align:center;font-weight:700;">${sno++}</td>
+      <td style="font-weight:700;">${rm.name}</td>
+      <td style="text-align:center;font-weight:700;">${rm.code}</td>
+      <td style="text-align:right;font-weight:800;font-size:13pt;">${totalNeeded} <strong>${unit}</strong></td>
     </tr>`;
   });
 
   const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Production Record — ${f.productName}</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
-@page{size:A4;margin:14mm 16mm 16mm 16mm;}
+@import url('https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;600;700;800&family=EB+Garamond:wght@400;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@page{size:A4;margin:15mm 18mm 18mm 18mm;}
 *{margin:0;padding:0;box-sizing:border-box;}
-body{font-family:'Inter',Arial,sans-serif;font-size:11pt;color:#111;background:#fff;line-height:1.5;}
-.top{border-bottom:3px solid #111;padding-bottom:10px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:flex-end;}
-.product-name{font-size:22pt;font-weight:800;color:#111;letter-spacing:-0.5px;}
-.meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1.5px solid #333;margin-bottom:16px;}
-.meta-cell{padding:7px 12px;border-right:1px solid #bbb;border-bottom:1px solid #bbb;}
+body{font-family:'Crimson Pro',Georgia,serif;font-size:12pt;color:#000;background:#fff;line-height:1.6;}
+.header{border-bottom:4px solid #000;padding-bottom:12px;margin-bottom:18px;}
+.product-name{font-family:'EB Garamond';font-size:26pt;font-weight:800;color:#000;}
+.meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:0;border:2px solid #000;margin-bottom:20px;}
+.meta-cell{padding:8px 14px;border-right:1px solid #888;border-bottom:1px solid #888;}
 .meta-cell:nth-child(even){border-right:none;}
 .meta-cell:nth-last-child(-n+2){border-bottom:none;}
-.meta-label{font-size:7.5pt;text-transform:uppercase;letter-spacing:.9px;color:#666;margin-bottom:2px;font-weight:700;}
-.meta-val{font-size:13pt;font-weight:800;color:#111;}
-.section-title{font-size:10pt;font-weight:800;text-transform:uppercase;letter-spacing:1.2px;border-bottom:2px solid #111;padding-bottom:5px;margin:14px 0 10px;color:#111;}
-table{width:100%;border-collapse:collapse;font-size:11pt;}
-thead tr{background:#f0f0f0;border-bottom:2px solid #111;}
-thead th{padding:9px 12px;font-size:9pt;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:#111;text-align:left;}
-thead th:first-child{width:50px;text-align:center;}
-thead th:last-child{text-align:right;}
-tbody tr{border-bottom:1px solid #ddd;}
-tbody tr:nth-child(even){background:#fafafa;}
-td{padding:10px 12px;color:#111;vertical-align:middle;font-weight:600;}
-tfoot tr{border-top:2px solid #111;background:#f0f0f0;}
-tfoot td{padding:10px 12px;font-weight:800;font-size:12pt;color:#111;}
-.status-box{margin-top:14px;border:1.5px solid #bbb;padding:9px 13px;font-size:10pt;font-weight:700;}
-@media screen{body{background:#ccc;padding:20px;}.page{background:#fff;max-width:210mm;margin:0 auto;padding:14mm 16mm 16mm;box-shadow:0 4px 24px rgba(0,0,0,.2);}}
+.meta-label{font-size:8pt;text-transform:uppercase;letter-spacing:1px;color:#555;margin-bottom:2px;font-weight:700;}
+.meta-val{font-size:14pt;font-weight:800;color:#000;}
+.section-title{font-size:12pt;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;border-bottom:2.5px solid #000;padding-bottom:5px;margin:18px 0 12px;color:#000;}
+table{width:100%;border-collapse:collapse;}
+thead tr{background:#000;color:#fff;}
+thead th{padding:10px 12px;font-size:9pt;font-weight:800;text-transform:uppercase;letter-spacing:1px;}
+tbody tr{border-bottom:2px solid #555;}
+tbody tr:nth-child(even){background:#f5f5f5;}
+td{padding:10px 12px;color:#000;vertical-align:middle;font-weight:700;}
+tfoot td{background:#000;color:#fff;font-weight:800;font-size:13pt;padding:12px;}
+@media screen{body{background:#e0e0e0;padding:20px;}.page{background:#fff;max-width:210mm;margin:0 auto;padding:15mm 18mm 18mm;box-shadow:0 4px 24px rgba(0,0,0,.2);}}
 @media print{.np{display:none;}body{background:#fff;}.page{padding:0;box-shadow:none;}}
 </style></head><body>
 <div class="np" style="text-align:center;margin-bottom:16px;">
-  <button onclick="window.print()" style="background:#111;color:#fff;border:none;padding:10px 28px;font-size:13px;cursor:pointer;border-radius:4px;margin-right:8px;">🖨 PRINT / SAVE AS PDF</button>
+  <button onclick="window.print()" style="background:#000;color:#fff;border:none;padding:10px 28px;font-size:13px;cursor:pointer;border-radius:4px;margin-right:8px;">🖨 PRINT / SAVE AS PDF</button>
   <button onclick="window.close()" style="background:#f0f0f0;color:#333;border:none;padding:10px 20px;font-size:13px;cursor:pointer;border-radius:4px;">Close</button>
 </div>
 <div class="page">
-  <div class="top">
+  <div class="header">
     <div class="product-name">${f.productName}</div>
-    <div style="font-size:10pt;font-weight:600;color:#444;text-align:right;">Date: ${printDate}</div>
   </div>
   <div class="meta-grid">
     <div class="meta-cell"><div class="meta-label">Product Code</div><div class="meta-val">${f.productCode||'—'}</div></div>
@@ -1475,13 +1447,11 @@ tfoot td{padding:10px 12px;font-weight:800;font-size:12pt;color:#111;}
   </div>
   <div class="section-title">Raw Materials</div>
   <table>
-    <thead><tr><th>S.No</th><th>Raw Material Name</th><th style="text-align:right;">Qty</th></tr></thead>
+    <thead><tr><th style="width:50px;text-align:center;">S.No</th><th>Raw Material</th><th style="width:80px;text-align:center;">Code</th><th style="width:180px;text-align:right;">Total Quantity</th></tr></thead>
     <tbody>${itemRows}</tbody>
-    <tfoot><tr><td colspan="2" style="text-align:right;padding-right:12px;">Total Quantity</td><td style="text-align:right;">${totalQtyAll%1===0?totalQtyAll.toFixed(0):totalQtyAll.toFixed(3)} KG</td></tr></tfoot>
+    <tfoot><tr><td colspan="3" style="text-align:right;padding-right:14px;">TOTAL</td><td style="text-align:right;">${totalQtyAll.toFixed(3)} KG</td></tr></tfoot>
   </table>
-  <div class="status-box" style="color:${alreadyDebited?'#92400e':'#065f46'};border-color:${alreadyDebited?'#fcd34d':'#6ee7b7'};">
-    ${alreadyDebited?'⚠ Inventory was previously debited for this batch.':'✓ Inventory debited: '+lots+' lot'+(lots>1?'s':'')}
-  </div>
+  ${alreadyDebited?`<div style="margin-top:16px;border:2px solid #f59e0b;background:#fffbeb;padding:10px 14px;font-weight:700;font-size:11pt;color:#92400e;">⚠ Inventory was previously debited for this batch.</div>`:`<div style="margin-top:16px;border:2px solid #10b981;background:#f0fdf4;padding:10px 14px;font-weight:700;font-size:11pt;color:#065f46;">✓ Inventory debited: ${lots} lot${lots>1?'s':''}</div>`}
 </div></body></html>`;
 
   closeModal('sudhir-modal');
@@ -1784,7 +1754,7 @@ function addFormItem(preRmId=null, preQty=null, preUnit=null){
         <div class="rm-dropdown" id="rmdrop-${id}"></div>
         <input type="hidden" id="sel-${id}" value="${preRmId||''}">
       </div>
-      <input class="form-control" id="qty-${id}" type="number" step="0.001" min="0" value="${preQty||''}" placeholder="Qty" oninput="updateFmLiveTotal()">
+      <input class="form-control" id="qty-${id}" type="number" step="0.001" min="0" value="${preQty||''}" placeholder="Qty" oninput="autoDetectGram('${id}');updateFmLiveTotal()">
       <select class="form-control" id="fmunit-${id}" style="padding:10px 6px;font-size:12px;" onchange="updateFmLiveTotal()">${unitOpts}</select>
       ${showCostCol?`<span class="fi-cost" id="ficost-${id}">—</span>`:''}
       <button class="remove-btn" onclick="document.getElementById('${id}').remove();updateFmLiveTotal()">−</button>
@@ -1907,6 +1877,23 @@ function updateUnit(id){
   const sel=document.getElementById('sel-'+id);
   const unit=sel.selectedOptions?.[0]?.dataset.unit||'KG';
   document.getElementById('unit-'+id).textContent=unit;
+}
+
+// Auto-detect gram: if user types 0.something, switch unit to G and convert
+function autoDetectGram(id){
+  const qtyInput=document.getElementById('qty-'+id);
+  const unitSel=document.getElementById('fmunit-'+id);
+  if(!qtyInput||!unitSel)return;
+  const val=parseFloat(qtyInput.value);
+  if(!isNaN(val)&&val>0&&val<1&&unitSel.value==='KG'){
+    // Auto switch to G
+    unitSel.value='G';
+    // Convert: 0.5 KG → 500 G
+    qtyInput.value=(val*1000).toFixed(0);
+    // Flash hint
+    unitSel.style.background='#d1fae5';unitSel.style.borderColor='#10b981';
+    setTimeout(()=>{unitSel.style.background='';unitSel.style.borderColor='';},1200);
+  }
 }
 
 function saveFormulation(){
@@ -2119,7 +2106,7 @@ function renderCosting(){
         </div>
         <div style="text-align:right;">
           <div class="cost-tag" style="font-size:22px;font-weight:800;">${fmtCurrency(cost.total)}</div>
-          <div style="font-size:13px;font-weight:800;color:var(--text);margin-top:4px;font-family:'JetBrains Mono';">${fmtCurrency(cost.total/totalQty)}<span style="font-size:11px;font-weight:700;color:var(--text2);"> / kg</span></div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px;">${fmtCurrency(cost.total/totalQty)}/kg</div>
         </div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:18px;">
@@ -3865,45 +3852,49 @@ function exportFormulationPDF(id){
   const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Batch Record — ${f.batchNo}</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;600;700&family=EB+Garamond:wght@400;700&family=JetBrains+Mono:wght@400;500&display=swap');
-@page{size:A4;margin:14mm 16mm 16mm 16mm;}
+@page{size:A4;margin:18mm 20mm 20mm 20mm;}
 *{margin:0;padding:0;box-sizing:border-box;}
-body{font-family:'Crimson Pro',Georgia,serif;font-size:11pt;color:#1a1a1a;background:#fff;line-height:1.4;}
-.lh{border-bottom:2px solid #1a1a1a;padding-bottom:8px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:flex-start;}
-.lh .co{font-family:'EB Garamond',Georgia,serif;font-size:18pt;font-weight:700;color:#0d0d0d;line-height:1.1;}
-.lh .tl{font-size:8.5pt;color:#666;margin-top:1px;}
-.lh-r{text-align:right;font-size:8.5pt;color:#444;line-height:1.6;}
-.lh-r strong{color:#0d0d0d;font-size:9pt;}
-.ig{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1.5px solid #1a1a1a;margin-bottom:12px;}
-.ic{padding:5px 10px;border-right:1px solid #ccc;border-bottom:1px solid #ccc;}
+body{font-family:'Crimson Pro',Georgia,serif;font-size:11pt;color:#1a1a1a;background:#fff;line-height:1.5;}
+.lh{border-bottom:3px double #1a1a1a;padding-bottom:12px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:flex-end;}
+.lh .co{font-family:'EB Garamond',Georgia,serif;font-size:22pt;font-weight:700;color:#0d0d0d;}
+.lh .tl{font-size:9.5pt;color:#555;margin-top:2px;}
+.lh-r{text-align:right;font-size:9pt;color:#444;line-height:1.7;}
+.lh-r strong{color:#0d0d0d;}
+.dtb{background:#0d0d0d;color:#fff;text-align:center;padding:9px 0;margin-bottom:20px;}
+.dtb h1{font-family:'EB Garamond';font-size:14pt;font-weight:600;letter-spacing:2px;text-transform:uppercase;}
+.dtb p{font-size:8.5pt;color:#ccc;margin-top:2px;letter-spacing:1px;}
+.ig{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1.5px solid #1a1a1a;margin-bottom:20px;}
+.ic{padding:7px 12px;border-right:1px solid #ccc;border-bottom:1px solid #ccc;}
 .ic:nth-child(even){border-right:none;}
 .ic:nth-last-child(-n+2){border-bottom:none;}
-.il{font-size:7pt;text-transform:uppercase;letter-spacing:1px;color:#666;margin-bottom:1px;}
-.iv{font-size:10.5pt;font-weight:600;color:#0d0d0d;}
-.sh{font-family:'EB Garamond';font-size:10pt;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;border-bottom:1.5px solid #1a1a1a;padding-bottom:3px;margin-bottom:8px;color:#0d0d0d;margin-top:10px;}
+.il{font-size:7.5pt;text-transform:uppercase;letter-spacing:1px;color:#666;margin-bottom:2px;}
+.iv{font-size:11pt;font-weight:600;color:#0d0d0d;}
+.sh{font-family:'EB Garamond';font-size:11pt;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;border-bottom:1.5px solid #1a1a1a;padding-bottom:4px;margin-bottom:10px;color:#0d0d0d;}
+.sm{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:20px 0;}
+.sb{border:1.5px solid #1a1a1a;padding:10px 14px;text-align:center;}
+.sb .sl{font-size:8pt;text-transform:uppercase;letter-spacing:.8px;color:#666;margin-bottom:4px;}
+.sb .sv{font-size:14pt;font-weight:700;color:#0d0d0d;}
 table{width:100%;border-collapse:collapse;font-size:10pt;}
 thead tr{background:#0d0d0d;color:#fff;}
-thead th{padding:7px 9px;font-size:7.5pt;text-transform:uppercase;letter-spacing:.8px;font-weight:600;}
-th.c,td.c{text-align:center;}th.r,td.r{text-align:right;font-family:'JetBrains Mono',monospace;font-size:9pt;}
+thead th{padding:8px 10px;font-size:8pt;text-transform:uppercase;letter-spacing:.8px;font-weight:600;border:1px solid #0d0d0d;}
+th.c,td.c{text-align:center;}th.r,td.r{text-align:right;font-family:'JetBrains Mono',monospace;font-size:9.5pt;}
 tbody tr{border-bottom:1px solid #e0e0e0;}
 tbody tr:nth-child(even){background:#f8f8f8;}
-tbody tr:last-child{border-bottom:1.5px solid #1a1a1a;}
-td{padding:6px 9px;color:#1a1a1a;vertical-align:middle;}
-.cost-box{margin-top:10px;display:flex;justify-content:flex-end;}
-.cost-box table{width:310px;border-collapse:collapse;border:1px solid #ccc;}
-.cost-box td{padding:5px 10px;font-size:10pt;border-bottom:1px solid #e0e0e0;color:#333;}
-.cost-box td:last-child{font-family:'JetBrains Mono';text-align:right;font-size:9.5pt;font-weight:600;}
-.cost-box .sub{color:#888;font-size:9pt;}
-.cost-box .sub td{color:#666;font-size:8.5pt;}
-.cost-box .sub td:last-child{font-size:8.5pt;}
-.cost-box tr.gd td{background:#0d0d0d;color:#fff;font-weight:700;font-size:11pt;border-bottom:none;}
-.cost-box tr.cpkg td{color:#555;font-size:9pt;border-bottom:none;}
-.rem{border:1px solid #ccc;padding:7px 10px;margin:10px 0;background:#fafafa;}
-.rl{font-size:7pt;text-transform:uppercase;letter-spacing:.8px;color:#666;margin-bottom:3px;}
-.sig{display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;margin-top:30px;}
-.sig .sl{border-top:1.5px solid #1a1a1a;padding-top:5px;margin-top:35px;text-align:center;}
-.sig .st{font-size:8pt;text-transform:uppercase;letter-spacing:.8px;color:#444;}
-.df{margin-top:16px;border-top:1px solid #ccc;padding-top:6px;display:flex;justify-content:space-between;font-size:7.5pt;color:#888;}
-@media screen{body{background:#e0e0e0;padding:20px;}.page{background:#fff;max-width:210mm;margin:0 auto;padding:14mm 16mm 16mm;box-shadow:0 4px 24px rgba(0,0,0,.2);}}
+tbody tr:last-child{border-bottom:2px solid #1a1a1a;}
+td{padding:7px 10px;color:#1a1a1a;vertical-align:middle;}
+.tr-row{display:flex;justify-content:flex-end;margin-top:4px;}
+.tr-row table{width:320px;border-collapse:collapse;}
+.tr-row td{padding:6px 10px;font-size:10pt;border-bottom:1px solid #e0e0e0;}
+.tr-row td:first-child{color:#444;}
+.tr-row td:last-child{font-family:'JetBrains Mono';text-align:right;font-size:9.5pt;}
+.tr-row tr.gd td{background:#0d0d0d;color:#fff;font-weight:700;font-size:11pt;border-bottom:none;}
+.rem{border:1.5px solid #1a1a1a;padding:10px 14px;margin:20px 0;background:#fafafa;}
+.rl{font-size:8pt;text-transform:uppercase;letter-spacing:.8px;color:#666;margin-bottom:4px;}
+.sig{display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;margin-top:40px;}
+.sig .sl{border-top:1.5px solid #1a1a1a;padding-top:6px;margin-top:40px;text-align:center;}
+.sig .st{font-size:8.5pt;text-transform:uppercase;letter-spacing:.8px;color:#444;}
+.df{margin-top:24px;border-top:1px solid #ccc;padding-top:8px;display:flex;justify-content:space-between;font-size:8pt;color:#888;}
+@media screen{body{background:#e0e0e0;padding:20px;}.page{background:#fff;max-width:210mm;margin:0 auto;padding:18mm 20mm 20mm;box-shadow:0 4px 24px rgba(0,0,0,.2);}}
 @media print{.np{display:none;}body{background:#fff;}.page{padding:0;box-shadow:none;}}
 </style></head><body>
 <div class="np" style="text-align:center;margin-bottom:16px;">
@@ -3913,32 +3904,38 @@ td{padding:6px 9px;color:#1a1a1a;vertical-align:middle;}
 <div class="page">
   <div class="lh">
     <div><div class="co">ManufactureOS</div><div class="tl">Manufacturing Excellence · Quality Assured</div></div>
-    <div class="lh-r"><strong>Batch Production Record</strong><br>Print Date: ${printDate}<br>Doc No: BPR-${f.batchNo}<br>Prepared By: ${f.byName}</div>
+    <div class="lh-r"><strong>Batch Production Record</strong><br>Print Date: ${printDate}<br>Document No: BPR-${f.batchNo}<br>Prepared By: ${f.byName}</div>
   </div>
+  <div class="dtb"><h1>Batch Production Record</h1><p>Formulation &amp; Raw Material Consumption Sheet</p></div>
   <div class="ig">
     <div class="ic"><div class="il">Product Name</div><div class="iv">${f.productName}</div></div>
-    <div class="ic"><div class="il">Product Code</div><div class="iv">${f.productCode||'—'}</div></div>
-    <div class="ic"><div class="il">Batch Number</div><div class="iv">${f.batchNo||'—'}</div></div>
-    <div class="ic"><div class="il">Manufacturing Date &amp; Time</div><div class="iv">${f.mfgDate}</div></div>
+    <div class="ic"><div class="il">Product Code</div><div class="iv">${f.productCode}</div></div>
+    <div class="ic"><div class="il">Batch Number</div><div class="iv">${f.batchNo}</div></div>
+    <div class="ic"><div class="il">Manufacturing Date & Time</div><div class="iv">${f.mfgDate}</div></div>
     <div class="ic"><div class="il">Lots / Multiplier</div><div class="iv">${f.lots||1}</div></div>
     <div class="ic"><div class="il">Prepared By</div><div class="iv">${f.byName}</div></div>
+  </div>
+  <div class="sm">
+    <div class="sb"><div class="sl">Total Materials</div><div class="sv">${f.items.length}</div></div>
+    <div class="sb"><div class="sl">Total Quantity</div><div class="sv">${totalQty.toFixed(3)}</div></div>
+    ${showCost?`<div class="sb"><div class="sl">Total Batch Cost</div><div class="sv" style="font-size:11pt">&#8377;${cost.total.toLocaleString('en-IN',{minimumFractionDigits:2})}</div></div>`:`<div class="sb"><div class="sl">Status</div><div class="sv" style="font-size:11pt">PRODUCED</div></div>`}
   </div>
   <div class="sh">Raw Material Consumption Details</div>
   <table>
     <thead><tr><th class="c">S.No</th><th>Raw Material Name</th><th class="c">Code</th><th class="r">Qty Used</th>${showCost?'<th class="r">Rate/Unit</th><th class="r">Amount (&#8377;)</th>':''}</tr></thead>
     <tbody>${itemRows}</tbody>
-    <tfoot><tr style="background:#f0f0f0"><td class="c" colspan="3" style="font-weight:700;text-align:right;padding-right:10px;">TOTAL →</td><td class="r" style="font-weight:700;font-size:11pt;font-family:'JetBrains Mono'">${totalQty.toFixed(3)}</td>${showCost?`<td></td><td class="r" style="font-weight:700;font-size:10pt;font-family:'JetBrains Mono'">&#8377;${cost.rmCost.toLocaleString('en-IN',{minimumFractionDigits:2})}</td>`:''}</tr></tfoot>
+    <tfoot><tr style="background:#f0f0f0"><td class="c" colspan="3" style="font-weight:700;text-align:right;padding-right:10px;">TOTAL →</td><td class="r" style="font-weight:700;font-size:11pt;font-family:'JetBrains Mono'">${totalQty.toFixed(3)}</td>${showCost?`<td></td><td class="r" style="font-weight:700;font-size:10.5pt;font-family:'JetBrains Mono'">&#8377;${cost.rmCost.toLocaleString('en-IN',{minimumFractionDigits:2})}</td>`:''}</tr></tfoot>
   </table>
-  ${showCost?`<div class="cost-box"><table>
-    <tr><td>Raw Material Cost</td><td>&#8377;${cost.rmCost.toLocaleString('en-IN',{minimumFractionDigits:2})}</td></tr>
-    <tr class="sub"><td>Cost / KG &nbsp;<span style="color:#aaa">(RM only)</span></td><td>&#8377;${(cost.rmCost/totalQty).toLocaleString('en-IN',{minimumFractionDigits:2})}</td></tr>
-    <tr><td>Packaging Cost &nbsp;<span style="color:#888;font-size:8.5pt;">(&#8377;${cost.packagingPerKg}/kg &times; ${totalQty.toFixed(3)} kg)</span></td><td>&#8377;${cost.packaging.toLocaleString('en-IN',{minimumFractionDigits:2})}</td></tr>
-    <tr class="gd"><td>Total Batch Cost</td><td>&#8377;${cost.total.toLocaleString('en-IN',{minimumFractionDigits:2})}</td></tr>
-    <tr class="cpkg"><td>Cost Per KG &nbsp;<span style="color:#aaa">(with Packaging)</span></td><td>&#8377;${(cost.total/totalQty).toLocaleString('en-IN',{minimumFractionDigits:2})}</td></tr>
+  ${showCost?`<div class="tr-row"><table>
+  <tr><td>Raw Material Cost</td><td>&#8377;${cost.rmCost.toLocaleString('en-IN',{minimumFractionDigits:2})}</td></tr>
+  <tr><td style="color:#888;font-size:9.5pt;">Cost/KG (RM only)</td><td style="color:#555;font-family:'JetBrains Mono';text-align:right;font-size:9pt;">&#8377;${(cost.rmCost/totalQty).toLocaleString('en-IN',{minimumFractionDigits:2})}</td></tr>
+  <tr><td>Packaging Cost (&#8377;${cost.packagingPerKg}/kg &times; ${totalQty.toFixed(3)} kg)</td><td>&#8377;${cost.packaging.toLocaleString('en-IN',{minimumFractionDigits:2})}</td></tr>
+  <tr class="gd"><td>TOTAL BATCH COST</td><td>&#8377;${cost.total.toLocaleString('en-IN',{minimumFractionDigits:2})}</td></tr>
+  <tr><td style="color:#666">Cost Per KG (with Packaging)</td><td style="color:#444">&#8377;${(cost.total/totalQty).toLocaleString('en-IN',{minimumFractionDigits:2})}</td></tr>
   </table></div>`:''}
   <div class="rem"><div class="rl">Remarks</div><div>${f.remarks||'<span style="color:#bbb;font-style:italic">No remarks recorded.</span>'}</div></div>
   <div class="sig">
-    <div><div class="sl"><div class="st">Prepared By</div><div style="font-size:8.5pt;color:#444;margin-top:2px">${f.byName}</div></div></div>
+    <div><div class="sl"><div class="st">Prepared By</div><div style="font-size:9pt;color:#444;margin-top:2px">${f.byName}</div></div></div>
     <div><div class="sl"><div class="st">Quality Check</div></div></div>
     <div><div class="sl"><div class="st">Authorised By</div></div></div>
   </div>
