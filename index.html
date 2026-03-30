@@ -199,7 +199,21 @@ textarea.form-control{resize:vertical;min-height:80px;}
 .fi-header.no-cost{grid-template-columns:1fr 120px 100px 40px;}
 .fi-header span{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--text3);}
 
-/* ALERTS */
+/* COST/KG BIG DISPLAY */
+.cost-per-kg-hero{display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(135deg,#0f172a,#1e293b);border-radius:14px;padding:18px 28px;margin-top:12px;}
+.cost-per-kg-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:#94a3b8;margin-bottom:4px;}
+.cost-per-kg-value{font-size:36px;font-weight:900;color:#fbbf24;font-family:'JetBrains Mono',monospace;letter-spacing:-1px;line-height:1;}
+.cost-per-kg-sub{font-size:12px;color:#64748b;margin-top:6px;}
+
+/* SCALER SECTION */
+.scaler-card{background:linear-gradient(135deg,#eff6ff,#f0f9ff);border:2px solid #bfdbfe;border-radius:14px;padding:18px;margin-bottom:16px;}
+.scaler-product-row{background:var(--bg2);border:1.5px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px;position:relative;}
+.scaler-result-table{width:100%;border-collapse:collapse;margin-top:10px;font-size:12px;}
+.scaler-result-table th{background:#1e293b;color:#94a3b8;padding:7px 10px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.6px;}
+.scaler-result-table td{padding:7px 10px;border-bottom:1px solid var(--border);color:var(--text2);}
+.scaler-result-table tr:last-child td{border-bottom:none;}
+.scaler-total-row td{font-weight:800;color:var(--text);background:var(--accent-light);}
+
 .alert{border-radius:10px;padding:12px 14px;font-size:13px;font-weight:500;margin-bottom:16px;display:flex;align-items:flex-start;gap:9px;}
 .alert-warning{background:var(--accent-light);border:1.5px solid #fde68a;color:#92400e;}
 .alert-error{background:var(--red-light);border:1.5px solid #fca5a5;color:#991b1b;}
@@ -457,6 +471,8 @@ async function loadFromGAS(){
         ...f,
         productName: f.productName||'Unnamed',
         productCode: f.productCode||'',
+        productType: f.productType||'',
+        productFinish: f.productFinish||'',
         batchNo: f.batchNo||'',
         mfgDate: f.mfgDate||'',
         byName: f.byName||f.by||'',
@@ -679,7 +695,10 @@ function calcBatchCost(f){
     const rm=getRMById(item.rmId);if(!rm)return;
     // Use per-item saved rate if available, else use current RM rate
     const rate=item.rate!==undefined&&item.rate!==null?item.rate:(rm.rate||0);
-    rmCost+=item.qty*rate;
+    // Convert G/ML to KG before multiplying (rate is always per KG equivalent)
+    const u=(item.unit||rm.unit||'KG').toUpperCase();
+    const qtyKg=(u==='G'||u==='ML')?item.qty/1000:item.qty;
+    rmCost+=qtyKg*rate;
   });
   const totalQty=calcTotalQty(f);
   const packagingPerKg=DB.packagingCost||0;
@@ -916,6 +935,9 @@ function renderFormulations(){
   let html=`<div class="page-header">
     <div><div class="page-title">Formulations</div><div class="page-subtitle">Batch production records</div></div>
     ${can('formulations')?`<div style="display:flex;gap:8px;">
+      <button class="btn btn-sm" style="background:var(--accent-light);color:var(--accent2);border:1.5px solid #bfdbfe;" onclick="openStandaloneScaler()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> Batch Scaler
+      </button>
       <button class="btn btn-primary" onclick="openNewFormModal()">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> New Formulation
       </button>
@@ -949,7 +971,7 @@ function renderFormulations(){
       <div class="batch-card-top">
         <div>
           <div class="batch-card-title">${f.productName}</div>
-          <div class="batch-card-code">${f.productCode} · Batch: ${f.batchNo}</div>
+          <div class="batch-card-code">${f.productCode} · Batch: ${f.batchNo}${f.productType?` · <span style="background:#dbeafe;color:#1e40af;padding:1px 7px;border-radius:10px;font-size:10px;font-weight:700;">${f.productType}</span>`:''}${f.productFinish?` · <span style="background:#fef3c7;color:#92400e;padding:1px 7px;border-radius:10px;font-size:10px;font-weight:700;">${f.productFinish}</span>`:''}</div>
         </div>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
           ${can('viewCost')?`<div class="cost-tag" style="font-size:15px;font-weight:700;">${fmtCurrency(cost.total)}</div>`:''}
@@ -1759,12 +1781,14 @@ function updateEfLiveTotal(){
   const totalQtyKg=totalKg+(totalG/1000);
   const panel=document.getElementById('ef-live-total');if(!panel)return;
   if(can('viewCost')){
+    const totalWithPkgEf=totalCost+(DB.packagingCost||0)*totalQtyKg;
+    const costPerKgEf=totalQtyKg>0?totalWithPkgEf/totalQtyKg:0;
     panel.innerHTML=`
       <div class="fm-lt-item"><div class="fm-lt-label">Materials</div><div class="fm-lt-value">${lineCount}</div></div>
       <div class="fm-lt-item"><div class="fm-lt-label">Total Qty</div><div class="fm-lt-value amber">${totalQtyKg.toFixed(3)} KG</div></div>
       <div class="fm-lt-item"><div class="fm-lt-label">RM Cost</div><div class="fm-lt-value green">${fmtCurrency(totalCost)}</div></div>
-      <div class="fm-lt-item"><div class="fm-lt-label">+Packaging</div><div class="fm-lt-value green">${fmtCurrency(totalCost+(DB.packagingCost||0)*totalQtyKg)}</div></div>
-      <div class="fm-lt-item"><div class="fm-lt-label">Cost/KG</div><div class="fm-lt-value green">${totalQtyKg>0?fmtCurrency((totalCost+(DB.packagingCost||0)*totalQtyKg)/totalQtyKg):'—'}</div></div>`;
+      <div class="fm-lt-item"><div class="fm-lt-label">+Packaging</div><div class="fm-lt-value green">${fmtCurrency(totalWithPkgEf)}</div></div>
+      <div class="fm-lt-item" style="border-left:2px solid #fbbf24;padding-left:14px;"><div class="fm-lt-label" style="color:#fbbf24;font-size:11px;font-weight:800;">COST / KG</div><div style="font-size:30px;font-weight:900;color:#fbbf24;font-family:'JetBrains Mono',monospace;letter-spacing:-1px;line-height:1;">${totalQtyKg>0?fmtCurrency(costPerKgEf):'—'}</div></div>`;
   } else {
     panel.innerHTML=`
       <div class="fm-lt-item"><div class="fm-lt-label">Materials</div><div class="fm-lt-value">${lineCount}</div></div>
@@ -1832,6 +1856,23 @@ function openNewFormModal(template=null){
         <div class="form-group"><label>Product Code <span style="font-size:10px;color:var(--text3);font-weight:400;text-transform:none;">(optional, can add later)</span></label><input class="form-control" id="fm-pcode" value="${template?template.productCode:''}" placeholder="e.g. FG003 (optional)"></div>
       </div>
       <div class="form-row">
+        <div class="form-group"><label>Product Type</label>
+          <select class="form-control" id="fm-ptype">
+            <option value="" ${!(template&&template.productType)?'selected':''}>— Select Type —</option>
+            <option value="EP" ${template&&template.productType==='EP'?'selected':''}>EP (Epoxy Polyester)</option>
+            <option value="PP" ${template&&template.productType==='PP'?'selected':''}>PP (Pure Polyester)</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Product Finish</label>
+          <select class="form-control" id="fm-pfinish">
+            <option value="" ${!(template&&template.productFinish)?'selected':''}>— Select Finish —</option>
+            <option value="Plain" ${template&&template.productFinish==='Plain'?'selected':''}>Plain</option>
+            <option value="Texture" ${template&&template.productFinish==='Texture'?'selected':''}>Texture</option>
+            <option value="Structure" ${template&&template.productFinish==='Structure'?'selected':''}>Structure</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
         <div class="form-group"><label>Batch Number <span style="font-size:10px;color:var(--text3);font-weight:400;text-transform:none;">(optional, can add later)</span></label><input class="form-control" id="fm-batch" value="" placeholder="e.g. B2025-003 (optional)"></div>
         <div class="form-group">
           <label>Manufacturing Date & Time</label>
@@ -1863,6 +1904,37 @@ function openNewFormModal(template=null){
       <button class="add-item-btn" onclick="addFormItem()">＋ Add Raw Material</button>
       <!-- Live total panel -->
       <div class="fm-live-total" id="fm-live-total" style="margin-top:12px;"></div>
+
+      <!-- ══ BATCH SCALER ══ -->
+      <div style="margin-top:20px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+          <div style="font-size:13px;font-weight:800;color:var(--text);display:flex;align-items:center;gap:8px;">
+            <span style="font-size:18px;">⚖️</span> Batch Scaler
+            <span style="font-size:11px;font-weight:500;color:var(--text3);font-style:italic;">— scale quantities to any target batch size, or add multiple products</span>
+          </div>
+          <button class="btn btn-sm" style="background:var(--accent-light);color:var(--accent2);border:1.5px solid #bfdbfe;" onclick="toggleScaler()">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+            <span id="scaler-toggle-lbl">Show Scaler</span>
+          </button>
+        </div>
+        <div id="fm-scaler-wrap" style="display:none;">
+          <div class="scaler-card">
+            <div style="font-size:12px;font-weight:700;color:#1e40af;margin-bottom:12px;text-transform:uppercase;letter-spacing:.7px;">📦 Products to Scale</div>
+            <div id="scaler-products"></div>
+            <button class="btn btn-sm" style="background:#dbeafe;color:#1e40af;border:1.5px dashed #93c5fd;width:100%;justify-content:center;margin-top:6px;" onclick="addScalerProduct()">
+              ＋ Add Another Product
+            </button>
+            <div style="margin-top:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+              <button class="btn btn-primary btn-sm" onclick="runScaler()">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                Calculate Scaled Requirements
+              </button>
+              <span style="font-size:11px;color:var(--text3);">Inventory is NOT debited by this tool</span>
+            </div>
+            <div id="scaler-result" style="margin-top:14px;"></div>
+          </div>
+        </div>
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('form-modal')">Cancel</button>
@@ -1884,6 +1956,207 @@ function updateLotPreview(){
   const lots=parseInt(document.getElementById('fm-lots')?.value)||1;
   const el=document.getElementById('lot-preview-text');
   if(el) el.textContent=`All quantities × ${lots} = deducted from inventory`;
+}
+
+// ════════════════════════════════════════════════════════
+//  BATCH SCALER — scale formulation to any qty, multi-product
+// ════════════════════════════════════════════════════════
+let _scalerCount=0;
+function toggleScaler(){
+  const wrap=document.getElementById('fm-scaler-wrap');
+  const lbl=document.getElementById('scaler-toggle-lbl');
+  if(!wrap)return;
+  const isHidden=wrap.style.display==='none';
+  wrap.style.display=isHidden?'block':'none';
+  if(lbl)lbl.textContent=isHidden?'Hide Scaler':'Show Scaler';
+  if(isHidden&&document.querySelectorAll('#scaler-products .scaler-product-row').length===0){
+    addScalerProduct();
+  }
+}
+
+function addScalerProduct(){
+  _scalerCount++;
+  const n=_scalerCount;
+  const formOpts=DB.formulations.map(f=>`<option value="${f.id}">${f.productName}${f.productCode?' ('+f.productCode+')':''} — ${calcTotalQty(f).toFixed(2)} KG base</option>`).join('');
+  const row=document.createElement('div');
+  row.className='scaler-product-row';
+  row.id='sp-'+n;
+  row.innerHTML=`
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <div style="font-size:12px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:6px;">
+        <span style="background:var(--accent);color:#fff;border-radius:50%;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;">${n}</span>
+        Product ${n}
+      </div>
+      ${n>1?`<button onclick="document.getElementById('sp-${n}').remove()" style="background:var(--red-light);border:1px solid #fca5a5;color:var(--red);border-radius:6px;padding:3px 8px;cursor:pointer;font-size:11px;">✕ Remove</button>`:''}
+    </div>
+    <div class="form-row">
+      <div class="form-group" style="margin-bottom:10px;">
+        <label style="font-size:11px;">Base Formulation</label>
+        <select class="form-control" id="sp-form-${n}" style="font-size:13px;" onchange="scalerUpdateBase(${n})">
+          <option value="">— Use items from this modal —</option>
+          ${formOpts}
+        </select>
+      </div>
+      <div class="form-group" style="margin-bottom:10px;">
+        <label style="font-size:11px;">Required Quantity (KG)</label>
+        <input class="form-control" id="sp-qty-${n}" type="number" step="0.01" min="0.01" placeholder="e.g. 500" style="font-size:13px;font-weight:700;">
+      </div>
+    </div>
+    <div id="sp-base-info-${n}" style="font-size:11px;color:var(--text3);margin-top:-6px;margin-bottom:6px;"></div>`;
+  document.getElementById('scaler-products').appendChild(row);
+}
+
+function scalerUpdateBase(n){
+  const fId=parseInt(document.getElementById('sp-form-'+n)?.value)||0;
+  const infoEl=document.getElementById('sp-base-info-'+n);
+  if(!infoEl)return;
+  if(!fId){infoEl.textContent='Using items entered in this modal as the base formulation.';return;}
+  const f=DB.formulations.find(x=>x.id===fId);
+  if(!f){infoEl.textContent='';return;}
+  const base=calcTotalQty(f);
+  infoEl.textContent=`Base size: ${base.toFixed(3)} KG · ${f.items.length} raw materials`;
+}
+
+function _getScalerBaseItems(fId){
+  // If fId is set, use that formulation's items; else read from the current modal
+  if(fId){
+    const f=DB.formulations.find(x=>x.id===fId);
+    return f?f.items:[];
+  }
+  // Read from current modal form items
+  const items=[];
+  document.querySelectorAll('[id^="fitem-"]').forEach(row=>{
+    const id=row.id;
+    const rmId=parseInt(document.getElementById('sel-'+id)?.value)||0;
+    const qty=parseFloat(document.getElementById('qty-'+id)?.value)||0;
+    const unit=document.getElementById('fmunit-'+id)?.value||'KG';
+    const rateEl=document.getElementById('rate-'+id);
+    const rm=getRMById(rmId);
+    const rate=rateEl?parseFloat(rateEl.value)||0:(rm?rm.rate||0:0);
+    if(rmId&&qty>0)items.push({rmId,qty,unit,rate});
+  });
+  return items;
+}
+
+function runScaler(){
+  const resultEl=document.getElementById('scaler-result');
+  if(!resultEl)return;
+  const rows=document.querySelectorAll('#scaler-products .scaler-product-row');
+  if(rows.length===0){resultEl.innerHTML='<div class="alert alert-error">Add at least one product row.</div>';return;}
+
+  // Collect all product specs
+  const products=[];
+  let hasError=false;
+  rows.forEach(row=>{
+    const n=row.id.replace('sp-','');
+    const fId=parseInt(document.getElementById('sp-form-'+n)?.value)||0;
+    const reqKg=parseFloat(document.getElementById('sp-qty-'+n)?.value)||0;
+    if(reqKg<=0){hasError=true;return;}
+    const baseItems=_getScalerBaseItems(fId);
+    if(baseItems.length===0){hasError=true;return;}
+    // Compute base KG total
+    const baseKg=baseItems.reduce((s,i)=>{
+      const u=(i.unit||'KG').toUpperCase();
+      return s+((u==='G'||u==='ML')?i.qty/1000:i.qty);
+    },0);
+    if(baseKg<=0){hasError=true;return;}
+    const scaleFactor=reqKg/baseKg;
+    let fName='Current Formulation';
+    if(fId){const f=DB.formulations.find(x=>x.id===fId);if(f)fName=f.productName+(f.productCode?' ('+f.productCode+')':'');}
+    products.push({name:fName,reqKg,baseKg,scaleFactor,baseItems});
+  });
+
+  if(hasError||products.length===0){
+    resultEl.innerHTML='<div class="alert alert-error">Please enter valid required quantities for all products.</div>';
+    return;
+  }
+
+  // Aggregate RM totals across all products
+  const rmTotals={};// rmId -> {name, code, unit, totalQty, totalCost}
+  let grandCost=0, grandKg=0;
+
+  products.forEach(p=>{
+    p.baseItems.forEach(item=>{
+      const rm=getRMById(item.rmId);if(!rm)return;
+      const u=(item.unit||rm.unit||'KG').toUpperCase();
+      const scaledQty=item.qty*p.scaleFactor;
+      const scaledKg=(u==='G'||u==='ML')?scaledQty/1000:scaledQty;
+      const rate=(item.rate!==undefined&&item.rate!==null)?item.rate:(rm.rate||0);
+      const cost=scaledKg*rate;
+      if(!rmTotals[item.rmId])rmTotals[item.rmId]={name:rm.name,code:rm.code,unit:u,totalQtyKg:0,totalCost:0,perProduct:{}};
+      rmTotals[item.rmId].totalQtyKg+=scaledKg;
+      rmTotals[item.rmId].totalCost+=cost;
+      rmTotals[item.rmId].perProduct[p.name]=(rmTotals[item.rmId].perProduct[p.name]||0)+scaledQty;
+    });
+    grandKg+=p.reqKg;
+  });
+
+  Object.values(rmTotals).forEach(r=>{grandCost+=r.totalCost;});
+  const grandPkg=(DB.packagingCost||0)*grandKg;
+  const grandTotal=grandCost+grandPkg;
+  const costPerKg=grandKg>0?grandTotal/grandKg:0;
+
+  // Build product breakdown
+  let prodBreakdown='';
+  products.forEach(p=>{
+    prodBreakdown+=`<div style="display:inline-flex;align-items:center;gap:8px;background:var(--accent-light);border:1px solid #bfdbfe;border-radius:8px;padding:6px 14px;margin-right:8px;margin-bottom:6px;">
+      <span style="font-size:11px;font-weight:700;color:var(--accent2);">${p.name}</span>
+      <span style="font-size:11px;color:var(--text3);">${p.reqKg} KG</span>
+      <span style="font-size:10px;color:var(--text3);">(×${p.scaleFactor.toFixed(3)})</span>
+    </div>`;
+  });
+
+  // Build RM table
+  let rmRows='';
+  Object.values(rmTotals).forEach(r=>{
+    const displayQty=r.unit==='G'?`${(r.totalQtyKg*1000).toFixed(1)} G`:`${r.totalQtyKg.toFixed(3)} KG`;
+    rmRows+=`<tr>
+      <td class="td-primary" style="padding:8px 10px;">${r.name}</td>
+      <td class="mono" style="padding:8px 10px;font-size:11px;color:var(--text3);">${r.code}</td>
+      <td style="padding:8px 10px;font-weight:700;">${displayQty}</td>
+      ${can('viewCost')?`<td class="cost-tag" style="padding:8px 10px;">${fmtCurrency(r.totalCost)}</td>`:''}
+    </tr>`;
+  });
+
+  resultEl.innerHTML=`
+    <div style="background:var(--bg2);border:1.5px solid var(--border);border-radius:12px;overflow:hidden;">
+      <div style="background:#0f172a;padding:14px 18px;">
+        <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;">Scaling For</div>
+        <div style="display:flex;flex-wrap:wrap;">${prodBreakdown}</div>
+      </div>
+      <div style="padding:14px 18px;">
+        <table class="scaler-result-table">
+          <thead><tr><th>Raw Material</th><th>Code</th><th>Total Required</th>${can('viewCost')?'<th>Total Cost</th>':''}</tr></thead>
+          <tbody>${rmRows}</tbody>
+          <tfoot>
+            <tr class="scaler-total-row">
+              <td colspan="2" style="padding:10px;">TOTAL — ${grandKg.toFixed(2)} KG production</td>
+              <td style="padding:10px;font-size:13px;">${grandKg.toFixed(3)} KG</td>
+              ${can('viewCost')?`<td class="cost-tag" style="padding:10px;font-size:13px;font-weight:800;">${fmtCurrency(grandCost)}</td>`:''}
+            </tr>
+          </tfoot>
+        </table>
+        ${can('viewCost')?`
+        <div style="margin-top:14px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+          <div style="background:var(--green-light);border:1px solid #a7f3d0;border-radius:10px;padding:12px;text-align:center;">
+            <div style="font-size:10px;font-weight:700;color:#065f46;text-transform:uppercase;letter-spacing:.7px;">RM Cost</div>
+            <div class="cost-tag" style="font-size:18px;font-weight:800;margin-top:4px;">${fmtCurrency(grandCost)}</div>
+          </div>
+          <div style="background:var(--blue-light);border:1px solid #93c5fd;border-radius:10px;padding:12px;text-align:center;">
+            <div style="font-size:10px;font-weight:700;color:#1e40af;text-transform:uppercase;letter-spacing:.7px;">+Packaging</div>
+            <div style="font-size:18px;font-weight:800;color:var(--blue);margin-top:4px;">${fmtCurrency(grandPkg)}</div>
+          </div>
+          <div style="background:#0f172a;border-radius:10px;padding:12px;text-align:center;">
+            <div style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.7px;">COST / KG</div>
+            <div style="font-size:28px;font-weight:900;color:#fbbf24;font-family:'JetBrains Mono',monospace;letter-spacing:-1px;margin-top:4px;">${fmtCurrency(costPerKg)}</div>
+          </div>
+        </div>
+        <div style="margin-top:10px;background:var(--bg3);border-radius:8px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;">
+          <span style="font-size:12px;font-weight:600;color:var(--text2);">Grand Total (${grandKg.toFixed(2)} KG)</span>
+          <span class="cost-tag" style="font-size:20px;font-weight:900;">${fmtCurrency(grandTotal)}</span>
+        </div>`:''}
+      </div>
+    </div>`;
 }
 
 let formItemCount=0;
@@ -1964,12 +2237,14 @@ function updateFmLiveTotal(){
   const panel=document.getElementById('fm-live-total');
   if(!panel) return;
   if(can('viewCost')){
+    const totalWithPkg=totalCost+(DB.packagingCost||0)*totalQtyKg;
+    const costPerKg=totalQtyKg>0?totalWithPkg/totalQtyKg:0;
     panel.innerHTML=`
       <div class="fm-lt-item"><div class="fm-lt-label">Materials Added</div><div class="fm-lt-value">${lineCount}</div></div>
       <div class="fm-lt-item"><div class="fm-lt-label">Total Qty</div><div class="fm-lt-value amber" style="font-size:13px;">${qtyLabel}</div></div>
       <div class="fm-lt-item"><div class="fm-lt-label">RM Cost</div><div class="fm-lt-value green">${fmtCurrency(totalCost)}</div></div>
-      <div class="fm-lt-item"><div class="fm-lt-label">+Packaging</div><div class="fm-lt-value green">${fmtCurrency(totalCost+(DB.packagingCost||0)*totalQtyKg)}</div></div>
-      <div class="fm-lt-item"><div class="fm-lt-label">Cost/KG</div><div class="fm-lt-value green">${totalQtyKg>0?fmtCurrency((totalCost+(DB.packagingCost||0)*totalQtyKg)/totalQtyKg):'—'}</div></div>`;
+      <div class="fm-lt-item"><div class="fm-lt-label">+Packaging</div><div class="fm-lt-value green">${fmtCurrency(totalWithPkg)}</div></div>
+      <div class="fm-lt-item" style="border-left:2px solid #fbbf24;padding-left:14px;"><div class="fm-lt-label" style="color:#fbbf24;font-size:11px;font-weight:800;">COST / KG</div><div style="font-size:30px;font-weight:900;color:#fbbf24;font-family:'JetBrains Mono',monospace;letter-spacing:-1px;line-height:1;">${totalQtyKg>0?fmtCurrency(costPerKg):'—'}</div></div>`;
   } else {
     panel.innerHTML=`
       <div class="fm-lt-item"><div class="fm-lt-label">Materials Added</div><div class="fm-lt-value">${lineCount}</div></div>
@@ -2077,6 +2352,8 @@ function saveFormulation(){
   const mfgDateTime=nowDateTime();
   const remarks=document.getElementById('fm-remarks').value.trim();
   const refNo=document.getElementById('fm-refno')?.value.trim()||'';
+  const productType=document.getElementById('fm-ptype')?.value||'';
+  const productFinish=document.getElementById('fm-pfinish')?.value||'';
   const partyId='';  // auto-populated in Google Sheet via VLOOKUP on refNo
   const lots=1;  // lots removed from new formulation form; always saved as 1
   // Admin NEVER debits inventory. Only formulation role users do (when debit setting is ON)
@@ -2116,7 +2393,7 @@ function saveFormulation(){
     });
   }
 
-  const f={id:DB.nextId.formulation++,productName:pname,productCode:pcode,batchNo:batch,mfgDate:mfgDateTime,remarks,refNo,partyId,by:currentUser.username,byName:currentUser.name,createdAt:mfgDateTime,lots,inventoryDebited:debit,items};
+  const f={id:DB.nextId.formulation++,productName:pname,productCode:pcode,productType,productFinish,batchNo:batch,mfgDate:mfgDateTime,remarks,refNo,partyId,by:currentUser.username,byName:currentUser.name,createdAt:mfgDateTime,lots,inventoryDebited:debit,items};
   DB.formulations.push(f);
   const debitNote=debit?' — inventory debited':' — inventory NOT debited (Debit Off)';
   const auditEntry={time:mfgDateTime,user:currentUser.name,action:'Created formulation',detail:`${pcode} — Batch ${batch}${lots>1?' ('+lots+' lots)':''}${debitNote}`};
@@ -2211,7 +2488,7 @@ function viewFormulation(id){
           <tr><td colspan="3"></td><td style="padding:4px 14px;font-size:11px;color:var(--text3);">RM Cost/KG</td><td class="cost-tag" style="padding:4px 14px;font-size:12px;">${fmtCurrency(cost.rmCost/totalQty)}</td></tr>
           <tr><td colspan="3"></td><td style="padding:8px 14px;font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;">Packaging (₹${cost.packagingPerKg}/kg × ${totalQty.toFixed(2)})</td><td class="cost-tag" style="padding:8px 14px;">${fmtCurrency(cost.packaging)}</td></tr>
           <tr style="background:var(--bg3);"><td colspan="3"></td><td style="padding:12px 14px;font-size:13px;font-weight:800;color:var(--text);">FINAL COST</td><td class="cost-tag" style="padding:12px 14px;font-size:18px;font-weight:800;">${fmtCurrency(cost.total)}</td></tr>
-          <tr><td colspan="3"></td><td style="padding:6px 14px;font-size:11px;color:var(--text3);">Cost/KG (incl. Packaging)</td><td class="cost-tag" style="padding:6px 14px;">${fmtCurrency(cost.total/totalQty)}</td></tr>
+          <tr style="background:#0f172a;"><td colspan="3"></td><td style="padding:14px 14px;font-size:12px;font-weight:900;color:#fbbf24;text-transform:uppercase;letter-spacing:1px;">COST / KG</td><td style="padding:14px 14px;font-size:32px;font-weight:900;color:#fbbf24;font-family:'JetBrains Mono',monospace;letter-spacing:-1px;">${fmtCurrency(cost.total/totalQty)}</td></tr>
         </tfoot>`:''}
       </table>
 
@@ -2829,10 +3106,10 @@ async function confirmBulkImport(){
       toSave.push({rm:exists, isNew:false});
       updated++;
     } else {
-      const newRM={id:DB.nextId.rm++,name:item.name,code:item.code,unit:item.unit,rate:item.rate,supplier:item.supplier,updatedDate:nowDate(),minStock:0};
+      const newRMId2=DB.nextId.rm++;
+      const newRM={id:newRMId2,name:item.name,code:item.code,unit:item.unit,rate:item.rate,supplier:item.supplier,updatedDate:nowDate(),minStock:0};
       DB.rawMaterials.push(newRM);
-      DB.inventory.push({id:DB.nextId.rm,rmId:newRM.id,quantity:0});
-      DB.nextId.rm++;
+      DB.inventory.push({id:newRMId2,rmId:newRMId2,quantity:0});
       toSave.push({rm:newRM, isNew:true});
       added++;
     }
@@ -2946,10 +3223,10 @@ function saveRM(id){
       .then(()=>gasCall('addAudit',{entry:DB.auditLog[0]}))
       .then(()=>toast('Material updated ✓','success'));
   } else {
-    const newRM={id:DB.nextId.rm++,name:name,code:code,unit:unit,rate:rate,supplier:supplier,updatedDate:updatedDate,minStock:minStock};
+    const newRMId=DB.nextId.rm++;
+    const newRM={id:newRMId,name:name,code:code,unit:unit,rate:rate,supplier:supplier,updatedDate:updatedDate,minStock:minStock};
     DB.rawMaterials.push(newRM);
-    DB.inventory.push({id:DB.nextId.rm,rmId:newRM.id,quantity:0});
-    DB.nextId.rm++;
+    DB.inventory.push({id:newRMId,rmId:newRMId,quantity:0});
     addAudit('Added raw material',`${code} — ${name}`);
     toast('Saving...','info');
     gasCall('saveRawMaterial',{rm:newRM,isNew:true})
@@ -4165,6 +4442,486 @@ function exportAllBatchPDFs(){
     </div>
   </div></div>`;
   document.body.insertAdjacentHTML('beforeend',m);
+}
+
+// ════════════════════════════════════════════════════════
+//  STANDALONE BATCH SCALER MODAL
+// ════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════
+//  STANDALONE BATCH SCALER — full featured
+//  • Date search to find latest formulation
+//  • Available stock + shortfall + to-purchase columns
+//  • Export Excel + Print PDF
+// ════════════════════════════════════════════════════════
+function openStandaloneScaler(){
+  // Build sorted formulation options (latest date first)
+  const sortedForms=[...DB.formulations].sort((a,b)=>(b.mfgDate||'').localeCompare(a.mfgDate||''));
+  const formOptsHTML=sortedForms.map(f=>`<option value="${f.id}" data-name="${f.productName.toLowerCase()}" data-code="${(f.productCode||'').toLowerCase()}" data-date="${f.mfgDate||''}">${f.productName}${f.productCode?' ('+f.productCode+')':''} — ${f.mfgDate?f.mfgDate.slice(0,10):''} — ${calcTotalQty(f).toFixed(2)} KG</option>`).join('');
+
+  const modal=`<div class="modal-overlay" id="standalone-scaler-modal" onclick="if(event.target.id==='standalone-scaler-modal')closeModal('standalone-scaler-modal')">
+  <div class="modal modal-lg" style="max-width:960px;">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">⚖️ Batch Scaler</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:2px;">Scale formulations to required quantity · check stock availability · export report</div>
+      </div>
+      <button class="close-btn" onclick="closeModal('standalone-scaler-modal')">✕</button>
+    </div>
+    <div class="modal-body" style="padding:20px 24px;">
+      <div class="alert alert-info" style="font-size:12px;margin-bottom:14px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        Planning tool only — no inventory is debited. Shows available stock, shortfall, and purchase quantity for each raw material.
+      </div>
+
+      <!-- Hidden opts store -->
+      <div id="ss-form-opts-store" style="display:none;">${formOptsHTML}</div>
+
+      <div class="scaler-card">
+        <div style="font-size:12px;font-weight:700;color:#1e40af;margin-bottom:12px;text-transform:uppercase;letter-spacing:.7px;">📦 Products to Scale</div>
+        <div id="ss-scaler-products"></div>
+        <button class="btn btn-sm" style="background:#dbeafe;color:#1e40af;border:1.5px dashed #93c5fd;width:100%;justify-content:center;margin-top:6px;" onclick="addSSScalerProduct()">
+          ＋ Add Another Product
+        </button>
+        <div style="margin-top:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+          <button class="btn btn-primary" onclick="runSSScaler()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            Calculate Requirements
+          </button>
+        </div>
+      </div>
+
+      <div id="ss-scaler-result" style="margin-top:18px;"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('standalone-scaler-modal')">Close</button>
+      <button class="btn btn-success btn-sm" id="ss-export-excel-btn" style="display:none;" onclick="ssScalerExportExcel()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Export Excel
+      </button>
+      <button class="btn btn-blue btn-sm" id="ss-export-pdf-btn" style="display:none;" onclick="ssScalerPrintPDF()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> Print / PDF
+      </button>
+    </div>
+  </div></div>`;
+  document.body.insertAdjacentHTML('beforeend',modal);
+  _ssScalerCount=0;
+  window._ssLastResult=null;
+  addSSScalerProduct();
+}
+
+let _ssScalerCount=0;
+
+function _ssGetFormOpts(){
+  // Returns the full sorted options HTML from the hidden store
+  return document.getElementById('ss-form-opts-store')?.innerHTML||'';
+}
+
+function addSSScalerProduct(){
+  _ssScalerCount++;
+  const n=_ssScalerCount;
+  const row=document.createElement('div');
+  row.className='scaler-product-row';
+  row.id='ss-sp-'+n;
+  row.innerHTML=`
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <div style="font-size:12px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:6px;">
+        <span style="background:var(--accent);color:#fff;border-radius:50%;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;">${n}</span>
+        Product ${n}
+      </div>
+      ${n>1?`<button onclick="document.getElementById('ss-sp-${n}').remove()" style="background:var(--red-light);border:1px solid #fca5a5;color:var(--red);border-radius:6px;padding:3px 8px;cursor:pointer;font-size:11px;">✕ Remove</button>`:''}
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 140px 180px;gap:10px;align-items:end;">
+      <div class="form-group" style="margin-bottom:0;">
+        <label style="font-size:11px;">Search & Select Formulation ✱</label>
+        <div style="position:relative;">
+          <input class="form-control" id="ss-sp-search-${n}" placeholder="🔍 Type product name, code or date..." autocomplete="off"
+            oninput="ssFilterFormDrop(${n})" onfocus="ssOpenFormDrop(${n})" onblur="setTimeout(()=>ssCloseFormDrop(${n}),200)"
+            style="font-size:13px;padding-right:30px;">
+          <div id="ss-sp-drop-${n}" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg2);border:1.5px solid var(--accent);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,0.12);z-index:500;max-height:200px;overflow-y:auto;margin-top:2px;"></div>
+          <input type="hidden" id="ss-sp-form-${n}" value="">
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:0;">
+        <label style="font-size:11px;">Date Filter</label>
+        <input class="form-control" id="ss-sp-date-${n}" type="date" oninput="ssFilterFormDrop(${n})" style="font-size:12px;">
+      </div>
+      <div class="form-group" style="margin-bottom:0;">
+        <label style="font-size:11px;">Required Quantity (KG) ✱</label>
+        <input class="form-control" id="ss-sp-qty-${n}" type="number" step="0.01" min="0.01" placeholder="e.g. 500" style="font-size:15px;font-weight:800;color:var(--text);">
+      </div>
+    </div>
+    <div id="ss-sp-base-info-${n}" style="font-size:11px;color:var(--text3);margin-top:6px;min-height:16px;"></div>`;
+  document.getElementById('ss-scaler-products').appendChild(row);
+  ssOpenFormDrop(n);
+}
+
+function _ssBuildDropItems(n, filterText, filterDate){
+  const items=[];
+  DB.formulations.forEach(f=>{
+    const nameMatch=!filterText||(f.productName.toLowerCase().includes(filterText)||((f.productCode||'').toLowerCase().includes(filterText))||((f.mfgDate||'').includes(filterText)));
+    const dateMatch=!filterDate||(f.mfgDate&&f.mfgDate.startsWith(filterDate));
+    if(nameMatch&&dateMatch)items.push(f);
+  });
+  // Sort latest first
+  items.sort((a,b)=>(b.mfgDate||'').localeCompare(a.mfgDate||''));
+  return items;
+}
+
+function ssOpenFormDrop(n){
+  const filterText=(document.getElementById('ss-sp-search-'+n)?.value||'').toLowerCase().trim();
+  const filterDate=document.getElementById('ss-sp-date-'+n)?.value||'';
+  const drop=document.getElementById('ss-sp-drop-'+n);
+  if(!drop)return;
+  const items=_ssBuildDropItems(n,filterText,filterDate);
+  if(items.length===0){
+    drop.innerHTML=`<div style="padding:10px 12px;font-size:12px;color:var(--text3);">No formulations found</div>`;
+  } else {
+    drop.innerHTML=items.map(f=>{
+      const base=calcTotalQty(f).toFixed(2);
+      const dateStr=f.mfgDate?f.mfgDate.slice(0,10):'';
+      const typeBadge=f.productType?`<span style="background:#dbeafe;color:#1e40af;border-radius:4px;padding:1px 5px;font-size:9px;font-weight:700;margin-left:4px;">${f.productType}</span>`:'';
+      const finBadge=f.productFinish?`<span style="background:#fef3c7;color:#92400e;border-radius:4px;padding:1px 5px;font-size:9px;font-weight:700;margin-left:2px;">${f.productFinish}</span>`:'';
+      return`<div onmousedown="ssSelectForm(${n},${f.id})" style="padding:9px 12px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .1s;" onmouseover="this.style.background='var(--accent-light)'" onmouseout="this.style.background=''">
+        <div style="font-size:13px;font-weight:600;color:var(--text);">${f.productName} ${typeBadge}${finBadge}</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px;">${f.productCode?f.productCode+' · ':''}📅 ${dateStr} · ⚗ ${base} KG base · ${f.items.length} materials</div>
+      </div>`;
+    }).join('');
+  }
+  drop.style.display='block';
+}
+
+function ssCloseFormDrop(n){
+  const drop=document.getElementById('ss-sp-drop-'+n);
+  if(drop)drop.style.display='none';
+}
+
+function ssFilterFormDrop(n){
+  ssOpenFormDrop(n);
+}
+
+function ssSelectForm(n,fId){
+  const f=DB.formulations.find(x=>x.id===fId);
+  if(!f)return;
+  document.getElementById('ss-sp-form-'+n).value=fId;
+  document.getElementById('ss-sp-search-'+n).value=`${f.productName}${f.productCode?' ('+f.productCode+')':''}  📅 ${f.mfgDate?f.mfgDate.slice(0,10):''}`;
+  ssCloseFormDrop(n);
+  const base=calcTotalQty(f);
+  const infoEl=document.getElementById('ss-sp-base-info-'+n);
+  if(infoEl){
+    const typeBadge=f.productType?`<span style="background:#dbeafe;color:#1e40af;border-radius:4px;padding:1px 6px;font-size:10px;font-weight:700;">${f.productType}</span> `:'';
+    const finBadge=f.productFinish?`<span style="background:#fef3c7;color:#92400e;border-radius:4px;padding:1px 6px;font-size:10px;font-weight:700;">${f.productFinish}</span> `:'';
+    infoEl.innerHTML=`${typeBadge}${finBadge}<span style="color:var(--accent2);font-weight:600;">Base: ${base.toFixed(3)} KG</span> · ${f.items.length} raw materials · Batch ${f.batchNo||'—'} · ${f.mfgDate||''}`;
+  }
+}
+
+function runSSScaler(){
+  const resultEl=document.getElementById('ss-scaler-result');
+  if(!resultEl)return;
+  const rows=document.querySelectorAll('#ss-scaler-products .scaler-product-row');
+  if(rows.length===0){resultEl.innerHTML='<div class="alert alert-error">Add at least one product.</div>';return;}
+
+  const products=[];
+  let hasError=false;
+  rows.forEach(row=>{
+    const n=row.id.replace('ss-sp-','');
+    const fId=parseInt(document.getElementById('ss-sp-form-'+n)?.value)||0;
+    const reqKg=parseFloat(document.getElementById('ss-sp-qty-'+n)?.value)||0;
+    if(!fId||reqKg<=0){hasError=true;return;}
+    const f=DB.formulations.find(x=>x.id===fId);
+    if(!f||!f.items.length){hasError=true;return;}
+    const baseKg=calcTotalQty(f);
+    if(baseKg<=0){hasError=true;return;}
+    const scaleFactor=reqKg/baseKg;
+    products.push({name:f.productName+(f.productCode?' ('+f.productCode+')':''),reqKg,baseKg,scaleFactor,baseItems:f.items,f});
+  });
+
+  if(hasError||products.length===0){
+    resultEl.innerHTML='<div class="alert alert-error">Please select a formulation and enter a valid quantity for each product row.</div>';
+    return;
+  }
+
+  // Aggregate RM totals with stock data
+  const rmTotals={};
+  let grandCost=0, grandKg=0, totalShortage=0;
+
+  products.forEach(p=>{
+    p.baseItems.forEach(item=>{
+      const rm=getRMById(item.rmId);if(!rm)return;
+      const u=(item.unit||rm.unit||'KG').toUpperCase();
+      const scaledQty=item.qty*p.scaleFactor;
+      const scaledKg=(u==='G'||u==='ML')?scaledQty/1000:scaledQty;
+      const rate=(item.rate!==undefined&&item.rate!==null)?item.rate:(rm.rate||0);
+      const cost=scaledKg*rate;
+      if(!rmTotals[item.rmId]){
+        const inv=getInvByRMId(item.rmId);
+        rmTotals[item.rmId]={
+          rmId:item.rmId,name:rm.name,code:rm.code,unit:u,
+          totalQtyKg:0,totalCost:0,
+          availableKg:inv.quantity,rate
+        };
+      }
+      rmTotals[item.rmId].totalQtyKg+=scaledKg;
+      rmTotals[item.rmId].totalCost+=cost;
+    });
+    grandKg+=p.reqKg;
+  });
+
+  // Compute shortfall & to-purchase
+  Object.values(rmTotals).forEach(r=>{
+    r.shortfallKg=Math.max(0,r.totalQtyKg-r.availableKg);
+    r.toPurchaseKg=r.shortfallKg;
+    if(r.shortfallKg>0)totalShortage++;
+    grandCost+=r.totalCost;
+  });
+
+  const grandPkg=(DB.packagingCost||0)*grandKg;
+  const grandTotal=grandCost+grandPkg;
+  const costPerKg=grandKg>0?grandTotal/grandKg:0;
+
+  // Store result for export
+  window._ssLastResult={products,rmTotals:Object.values(rmTotals),grandKg,grandCost,grandPkg,grandTotal,costPerKg,totalShortage,generatedAt:nowDateTime()};
+
+  // Build product pills
+  const prodPills=products.map(p=>`<div style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:6px 14px;margin-right:8px;margin-bottom:6px;">
+    <span style="font-size:12px;font-weight:700;color:#e2e8f0;">${p.name}</span>
+    <span style="font-size:11px;color:#94a3b8;">${p.reqKg} KG</span>
+    <span style="font-size:10px;color:#64748b;">×${p.scaleFactor.toFixed(3)}</span>
+  </div>`).join('');
+
+  // Build RM rows with stock columns
+  const rmRows=Object.values(rmTotals).map(r=>{
+    const isG=r.unit==='G';
+    const reqDisplay=isG?`${(r.totalQtyKg*1000).toFixed(1)} G`:`${r.totalQtyKg.toFixed(3)} KG`;
+    const availDisplay=isG?`${(r.availableKg*1000).toFixed(1)} G`:`${r.availableKg.toFixed(3)} KG`;
+    const shortage=r.shortfallKg>0;
+    const shortfallDisplay=shortage?(isG?`${(r.shortfallKg*1000).toFixed(1)} G`:`${r.shortfallKg.toFixed(3)} KG`):'—';
+    const purchaseDisplay=shortage?(isG?`<strong style="color:var(--red);">${(r.toPurchaseKg*1000).toFixed(1)} G</strong>`:`<strong style="color:var(--red);">${r.toPurchaseKg.toFixed(3)} KG</strong>`):'<span style="color:var(--green);font-weight:700;">✓ No Purchase Needed</span>';
+    const statusPill=shortage?`<span style="background:var(--red-light);color:var(--red);border-radius:20px;padding:2px 8px;font-size:10px;font-weight:700;">⚠ Short</span>`:`<span style="background:var(--green-light);color:var(--green);border-radius:20px;padding:2px 8px;font-size:10px;font-weight:700;">✓ OK</span>`;
+    return`<tr style="${shortage?'background:#fff8f8;':''}">
+      <td class="td-primary" style="padding:9px 10px;">${r.name}</td>
+      <td class="mono" style="padding:9px 10px;font-size:11px;color:var(--text3);">${r.code}</td>
+      <td style="padding:9px 10px;font-weight:700;">${reqDisplay}</td>
+      <td style="padding:9px 10px;color:${r.availableKg>=r.totalQtyKg?'var(--green)':'var(--red)'};font-weight:600;">${availDisplay}</td>
+      <td style="padding:9px 10px;color:${shortage?'var(--red)':'var(--text3)'};">${shortfallDisplay}</td>
+      <td style="padding:9px 10px;">${purchaseDisplay}</td>
+      <td style="padding:9px 10px;">${statusPill}</td>
+      ${can('viewCost')?`<td class="cost-tag" style="padding:9px 10px;">${fmtCurrency(r.totalCost)}</td>`:''}
+    </tr>`;
+  }).join('');
+
+  const shortageAlert=totalShortage>0
+    ?`<div style="background:#fef2f2;border:1.5px solid #fca5a5;border-radius:10px;padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;gap:10px;font-size:13px;color:var(--red);font-weight:600;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> ${totalShortage} raw material(s) have insufficient stock — see "To Purchase" column.</div>`
+    :`<div style="background:var(--green-light);border:1.5px solid #6ee7b7;border-radius:10px;padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;gap:10px;font-size:13px;color:var(--green);font-weight:600;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> All raw materials are sufficiently stocked — no purchases needed!</div>`;
+
+  resultEl.innerHTML=`
+    ${shortageAlert}
+    <div style="background:var(--bg2);border:1.5px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:var(--shadow-md);">
+      <div style="background:#0f172a;padding:16px 20px;">
+        <div style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;">Production Plan</div>
+        <div style="display:flex;flex-wrap:wrap;">${prodPills}</div>
+      </div>
+      <div style="padding:0;">
+        <div style="overflow-x:auto;">
+          <table style="width:100%;border-collapse:collapse;">
+            <thead>
+              <tr style="background:#1e293b;">
+                <th style="padding:10px 10px;font-size:10px;font-weight:700;color:#94a3b8;text-align:left;text-transform:uppercase;letter-spacing:.6px;white-space:nowrap;">Raw Material</th>
+                <th style="padding:10px 10px;font-size:10px;font-weight:700;color:#94a3b8;text-align:left;text-transform:uppercase;letter-spacing:.6px;">Code</th>
+                <th style="padding:10px 10px;font-size:10px;font-weight:700;color:#fbbf24;text-align:left;text-transform:uppercase;letter-spacing:.6px;white-space:nowrap;">Required</th>
+                <th style="padding:10px 10px;font-size:10px;font-weight:700;color:#34d399;text-align:left;text-transform:uppercase;letter-spacing:.6px;white-space:nowrap;">Available</th>
+                <th style="padding:10px 10px;font-size:10px;font-weight:700;color:#f87171;text-align:left;text-transform:uppercase;letter-spacing:.6px;white-space:nowrap;">Shortfall</th>
+                <th style="padding:10px 10px;font-size:10px;font-weight:700;color:#fb923c;text-align:left;text-transform:uppercase;letter-spacing:.6px;white-space:nowrap;">To Purchase</th>
+                <th style="padding:10px 10px;font-size:10px;font-weight:700;color:#94a3b8;text-align:left;text-transform:uppercase;letter-spacing:.6px;">Status</th>
+                ${can('viewCost')?'<th style="padding:10px 10px;font-size:10px;font-weight:700;color:#94a3b8;text-align:left;text-transform:uppercase;letter-spacing:.6px;">Cost</th>':''}
+              </tr>
+            </thead>
+            <tbody>${rmRows}</tbody>
+            <tfoot>
+              <tr style="background:var(--bg3);border-top:2px solid var(--border);">
+                <td colspan="2" style="padding:12px 10px;font-size:12px;font-weight:800;color:var(--text);">TOTAL — ${grandKg.toFixed(2)} KG</td>
+                <td style="padding:12px 10px;font-weight:800;color:var(--text);">${grandKg.toFixed(3)} KG</td>
+                <td colspan="${can('viewCost')?4:4}"></td>
+                ${can('viewCost')?`<td class="cost-tag" style="padding:12px 10px;font-size:14px;font-weight:800;">${fmtCurrency(grandCost)}</td>`:''}
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+        ${can('viewCost')?`
+        <div style="padding:16px 20px;border-top:1px solid var(--border);">
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
+            <div style="background:var(--green-light);border:1px solid #a7f3d0;border-radius:10px;padding:14px;text-align:center;">
+              <div style="font-size:10px;font-weight:700;color:#065f46;text-transform:uppercase;letter-spacing:.7px;">RM Cost</div>
+              <div class="cost-tag" style="font-size:20px;font-weight:800;margin-top:6px;">${fmtCurrency(grandCost)}</div>
+            </div>
+            <div style="background:var(--blue-light);border:1px solid #93c5fd;border-radius:10px;padding:14px;text-align:center;">
+              <div style="font-size:10px;font-weight:700;color:#1e40af;text-transform:uppercase;letter-spacing:.7px;">+Packaging</div>
+              <div style="font-size:20px;font-weight:800;color:var(--blue);margin-top:6px;">${fmtCurrency(grandPkg)}</div>
+            </div>
+            <div style="background:#0f172a;border-radius:10px;padding:14px;text-align:center;">
+              <div style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.7px;">COST / KG</div>
+              <div style="font-size:32px;font-weight:900;color:#fbbf24;font-family:'JetBrains Mono',monospace;letter-spacing:-1px;margin-top:4px;">${fmtCurrency(costPerKg)}</div>
+            </div>
+          </div>
+          <div style="margin-top:12px;background:var(--bg3);border-radius:10px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;">
+            <span style="font-size:13px;font-weight:700;color:var(--text2);">Grand Total (${grandKg.toFixed(2)} KG production)</span>
+            <span class="cost-tag" style="font-size:22px;font-weight:900;">${fmtCurrency(grandTotal)}</span>
+          </div>
+        </div>`:''}
+      </div>
+    </div>`;
+
+  // Show export buttons
+  const excelBtn=document.getElementById('ss-export-excel-btn');
+  const pdfBtn=document.getElementById('ss-export-pdf-btn');
+  if(excelBtn)excelBtn.style.display='flex';
+  if(pdfBtn)pdfBtn.style.display='flex';
+}
+
+function ssScalerExportExcel(){
+  const d=window._ssLastResult;
+  if(!d){toast('Run calculation first','error');return;}
+  const headers=['Raw Material','Code','Required Qty (KG)','Available Stock (KG)','Shortfall (KG)','To Purchase (KG)','Status'];
+  if(can('viewCost'))headers.push('Cost (₹)');
+  const data=[
+    [`Batch Scaler Report — Generated: ${d.generatedAt}`],
+    [`Products: ${d.products.map(p=>p.name+' '+p.reqKg+'KG').join(' | ')}`],
+    [],
+    headers
+  ];
+  d.rmTotals.forEach(r=>{
+    const row=[r.name,r.code,r.totalQtyKg.toFixed(3),r.availableKg.toFixed(3),r.shortfallKg.toFixed(3),r.toPurchaseKg.toFixed(3),r.shortfallKg>0?'PURCHASE NEEDED':'OK'];
+    if(can('viewCost'))row.push(r.totalCost.toFixed(2));
+    data.push(row);
+  });
+  data.push([]);
+  if(can('viewCost')){
+    data.push(['','','','','','RM Cost (₹)',d.grandCost.toFixed(2)]);
+    data.push(['','','','','','+Packaging (₹)',d.grandPkg.toFixed(2)]);
+    data.push(['','','','','','TOTAL COST (₹)',d.grandTotal.toFixed(2)]);
+    data.push(['','','','','','COST / KG (₹)',(d.grandKg>0?d.grandTotal/d.grandKg:0).toFixed(2)]);
+  }
+  dlExcel(data,`BatchScaler_${nowDate()}`);
+}
+
+function ssScalerPrintPDF(){
+  const d=window._ssLastResult;
+  if(!d){toast('Run calculation first','error');return;}
+  const printDate=new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  const showCost=can('viewCost');
+
+  const prodRows=d.products.map((p,i)=>`<tr><td>${i+1}</td><td><strong>${p.name}</strong></td><td>${p.reqKg} KG</td><td>${p.baseKg.toFixed(3)} KG</td><td>×${p.scaleFactor.toFixed(4)}</td></tr>`).join('');
+
+  const rmRows=d.rmTotals.map((r,i)=>{
+    const shortage=r.shortfallKg>0;
+    return`<tr style="${shortage?'background:#fff5f5;':''}">
+      <td>${i+1}</td>
+      <td><strong>${r.name}</strong></td>
+      <td>${r.code}</td>
+      <td style="font-weight:700;">${r.totalQtyKg.toFixed(3)} KG</td>
+      <td style="color:${r.availableKg>=r.totalQtyKg?'#166534':'#dc2626'};font-weight:600;">${r.availableKg.toFixed(3)} KG</td>
+      <td style="color:${shortage?'#dc2626':'#166534'};">${shortage?r.shortfallKg.toFixed(3)+' KG':'—'}</td>
+      <td style="color:${shortage?'#dc2626':'#166534'};font-weight:800;">${shortage?r.toPurchaseKg.toFixed(3)+' KG':'✓ OK'}</td>
+      <td><span style="background:${shortage?'#fef2f2':'#f0fdf4'};color:${shortage?'#dc2626':'#166534'};padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;">${shortage?'⚠ SHORT':'✓ OK'}</span></td>
+      ${showCost?`<td style="font-weight:600;">₹${r.totalCost.toLocaleString('en-IN',{minimumFractionDigits:2})}</td>`:''}
+    </tr>`;
+  }).join('');
+
+  const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Batch Scaler Report</title>
+<style>
+@page{size:A4 landscape;margin:12mm 14mm;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Segoe UI',Arial,sans-serif;font-size:10pt;color:#1a1a2e;background:#fff;}
+.header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;padding-bottom:10px;border-bottom:3px solid #1e293b;}
+.company{font-size:16pt;font-weight:800;color:#1e293b;letter-spacing:-0.5px;}
+.sub{font-size:9pt;color:#64748b;margin-top:3px;}
+.right{text-align:right;font-size:9pt;color:#64748b;}
+h2{font-size:12pt;font-weight:800;color:#1e293b;margin:14px 0 6px;padding:6px 10px;background:#f1f5f9;border-left:4px solid #2563eb;border-radius:0 6px 6px 0;}
+table{width:100%;border-collapse:collapse;margin-bottom:14px;}
+th{background:#1e293b;color:#fff;padding:7px 8px;text-align:left;font-size:8.5pt;font-weight:700;text-transform:uppercase;letter-spacing:.5px;}
+td{padding:6px 8px;font-size:9pt;border-bottom:1px solid #e2e8f0;}
+tr:nth-child(even) td{background:#f8fafc;}
+.shortage td{background:#fff5f5!important;}
+.alert-ok{background:#f0fdf4;border:1.5px solid #6ee7b7;border-radius:8px;padding:8px 12px;color:#166534;font-weight:700;font-size:10pt;margin-bottom:12px;}
+.alert-err{background:#fef2f2;border:1.5px solid #fca5a5;border-radius:8px;padding:8px 12px;color:#dc2626;font-weight:700;font-size:10pt;margin-bottom:12px;}
+.cost-summary{display:flex;gap:12px;margin-top:14px;}
+.cost-box{border:1px solid #e2e8f0;border-radius:8px;padding:10px 14px;flex:1;text-align:center;}
+.cost-box .label{font-size:8.5pt;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;}
+.cost-box .value{font-size:15pt;font-weight:800;color:#059669;margin-top:4px;}
+.cost-box.highlight{background:#0f172a;}
+.cost-box.highlight .label{color:#64748b;}
+.cost-box.highlight .value{color:#fbbf24;font-size:20pt;}
+@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}
+</style>
+</head>
+<body>
+<div class="header">
+  <div>
+    <div class="company">Surface Paints Pvt. Ltd.</div>
+    <div class="sub">Batch Scaler — Raw Material Requirements Report</div>
+  </div>
+  <div class="right">
+    <div><strong>Generated:</strong> ${printDate}</div>
+    <div><strong>Total Production:</strong> ${d.grandKg.toFixed(2)} KG</div>
+    <div><strong>Products:</strong> ${d.products.length}</div>
+  </div>
+</div>
+
+<div class="${d.totalShortage>0?'alert-err':'alert-ok'}">${d.totalShortage>0?`⚠ ${d.totalShortage} raw material(s) need to be purchased before production can begin.`:'✓ All raw materials are sufficiently stocked — production can begin immediately.'}</div>
+
+<h2>📦 Production Plan</h2>
+<table>
+  <thead><tr><th>#</th><th>Product</th><th>Required (KG)</th><th>Base Batch (KG)</th><th>Scale Factor</th></tr></thead>
+  <tbody>${prodRows}</tbody>
+</table>
+
+<h2>🧪 Raw Material Requirements</h2>
+<table>
+  <thead><tr><th>#</th><th>Raw Material</th><th>Code</th><th>Required</th><th>Available</th><th>Shortfall</th><th>To Purchase</th><th>Status</th>${showCost?'<th>Cost (₹)</th>':''}</tr></thead>
+  <tbody>${rmRows}</tbody>
+  <tfoot>
+    <tr style="background:#1e293b;">
+      <td colspan="3" style="color:#fff;font-weight:800;padding:8px;">TOTAL — ${d.grandKg.toFixed(2)} KG production</td>
+      <td style="color:#fbbf24;font-weight:800;">${d.grandKg.toFixed(3)} KG</td>
+      <td colspan="${showCost?4:4}" style="color:#fff;">${d.totalShortage} shortage(s)</td>
+      ${showCost?`<td style="color:#fbbf24;font-weight:800;">₹${d.grandCost.toLocaleString('en-IN',{minimumFractionDigits:2})}</td>`:''}
+    </tr>
+  </tfoot>
+</table>
+
+${showCost?`
+<h2>💰 Cost Summary</h2>
+<div class="cost-summary">
+  <div class="cost-box"><div class="label">RM Cost</div><div class="value">₹${d.grandCost.toLocaleString('en-IN',{minimumFractionDigits:2})}</div></div>
+  <div class="cost-box"><div class="label">Packaging</div><div class="value" style="color:#2563eb;">₹${d.grandPkg.toLocaleString('en-IN',{minimumFractionDigits:2})}</div></div>
+  <div class="cost-box"><div class="label">Grand Total</div><div class="value" style="color:#1e293b;">₹${d.grandTotal.toLocaleString('en-IN',{minimumFractionDigits:2})}</div></div>
+  <div class="cost-box highlight"><div class="label">Cost / KG</div><div class="value">₹${(d.grandKg>0?d.grandTotal/d.grandKg:0).toLocaleString('en-IN',{minimumFractionDigits:2})}</div></div>
+</div>`:''}
+
+<div style="margin-top:20px;padding-top:10px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;font-size:8.5pt;color:#94a3b8;">
+  <span>Surface Paints Pvt. Ltd. — Batch Scaler Report</span>
+  <span>Generated: ${printDate}</span>
+</div>
+</body></html>`;
+
+  const blob=new Blob([html],{type:'text/html'});
+  const url=URL.createObjectURL(blob);
+  const old=document.getElementById('ss-pdf-overlay');if(old)old.remove();
+  const overlay=document.createElement('div');
+  overlay.id='ss-pdf-overlay';
+  overlay.style.cssText='position:fixed;inset:0;background:#1a1a1a;z-index:9999;display:flex;flex-direction:column;';
+  const toolbar=document.createElement('div');
+  toolbar.style.cssText='background:#111827;padding:12px 18px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #374151;flex-shrink:0;';
+  toolbar.innerHTML=`
+    <span style="color:#f59e0b;font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:700;">⚖️ Batch Scaler Report</span>
+    <span style="flex:1"></span>
+    <button onclick="document.getElementById('ss-pdf-frame').contentWindow.print()" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#000;border:none;padding:9px 22px;font-size:13px;font-family:'Plus Jakarta Sans',sans-serif;cursor:pointer;border-radius:8px;font-weight:700;">🖨 Print / Save as PDF</button>
+    <a href="${url}" download="BatchScaler_${nowDate()}.html" style="background:#3b82f6;color:#fff;border:none;padding:9px 22px;font-size:13px;font-family:'Plus Jakarta Sans',sans-serif;cursor:pointer;border-radius:8px;font-weight:700;text-decoration:none;">↓ Download</a>
+    <button onclick="document.getElementById('ss-pdf-overlay').remove();URL.revokeObjectURL('${url}')" style="background:#374151;color:#fff;border:1px solid #4b5563;padding:9px 16px;font-size:13px;cursor:pointer;border-radius:8px;">✕ Close</button>`;
+  const iframe=document.createElement('iframe');
+  iframe.id='ss-pdf-frame';iframe.src=url;
+  iframe.style.cssText='flex:1;border:none;background:#fff;';
+  overlay.appendChild(toolbar);overlay.appendChild(iframe);
+  document.body.appendChild(overlay);
+  toast('PDF ready — use Print / Save as PDF button','success');
 }
 
 // ════════════════════════════════════════════════════════
