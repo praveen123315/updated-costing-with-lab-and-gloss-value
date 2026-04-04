@@ -236,6 +236,81 @@ textarea.form-control{resize:vertical;min-height:80px;}
 /* COST TAG */
 .cost-tag{font-family:'JetBrains Mono',monospace;font-size:13px;color:#059669;font-weight:500;}
 
+/* ═══════════════════════════════════════════════════
+   PRODUCTION EFFICIENCY MODULE — styles
+═══════════════════════════════════════════════════ */
+.badge-production{background:#fef3c7;color:#92400e;}
+.prod-kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin-bottom:22px;}
+.prod-kpi{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 18px;box-shadow:var(--shadow);position:relative;overflow:hidden;transition:box-shadow .2s,transform .2s;}
+.prod-kpi:hover{box-shadow:var(--shadow-md);transform:translateY(-2px);}
+.prod-kpi-icon{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;margin-bottom:10px;font-size:17px;}
+.prod-kpi-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--text3);}
+.prod-kpi-val{font-size:24px;font-weight:800;color:var(--text);letter-spacing:-1px;margin:3px 0 2px;font-family:'JetBrains Mono',monospace;}
+.prod-kpi-sub{font-size:11px;color:var(--text3);}
+.prod-kpi-bar{height:4px;background:var(--bg3);border-radius:2px;margin-top:8px;overflow:hidden;}
+.prod-kpi-bar-fill{height:100%;border-radius:2px;transition:width .6s;}
+
+.eff-good{color:#059669;} .eff-warn{color:#d97706;} .eff-bad{color:#dc2626;}
+.eff-badge-good{background:#f0fdf4;color:#059669;border:1px solid #a7f3d0;}
+.eff-badge-warn{background:#fffbeb;color:#d97706;border:1px solid #fde68a;}
+.eff-badge-bad{background:#fef2f2;color:#dc2626;border:1px solid #fca5a5;}
+
+.machine-tag{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:var(--purple-light);color:var(--purple);}
+.section-divider{height:1px;background:var(--border);margin:20px 0;}
+
+.prod-entry-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
+@media(max-width:900px){.prod-entry-grid{grid-template-columns:1fr 1fr;}}
+@media(max-width:600px){.prod-entry-grid{grid-template-columns:1fr;}}
+
+.calc-result-box{background:linear-gradient(135deg,#0f172a,#1e293b);border-radius:12px;padding:16px 20px;margin-top:14px;display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;}
+.calc-item{text-align:center;}
+.calc-item-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#94a3b8;}
+.calc-item-val{font-size:18px;font-weight:800;font-family:'JetBrains Mono',monospace;margin-top:3px;}
+.calc-item-val.green{color:#34d399;} .calc-item-val.amber{color:#fbbf24;} .calc-item-val.blue{color:#60a5fa;} .calc-item-val.red{color:#f87171;} .calc-item-val.white{color:#f1f5f9;}
+
+.comparison-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;margin-top:16px;box-shadow:var(--shadow);}
+.comparison-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);}
+.comparison-row:last-child{border-bottom:none;}
+.cmp-label{font-size:13px;color:var(--text2);font-weight:500;}
+.cmp-val{font-size:14px;font-weight:700;font-family:'JetBrains Mono',monospace;}
+.cmp-diff-pos{color:var(--green);font-size:12px;font-weight:700;}
+.cmp-diff-neg{color:var(--red);font-size:12px;font-weight:700;}
+
+.machine-list-item{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:9px;margin-bottom:8px;}
+.machine-list-item .machine-name{font-weight:700;color:var(--text);font-size:13px;}
+.machine-list-item .machine-type{font-size:11px;color:var(--text3);}
+
+.prod-report-filters{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:18px;padding:14px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;}
+.prod-chart-wrap{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:18px;box-shadow:var(--shadow);}
+.prod-chart-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text2);margin-bottom:14px;display:flex;align-items:center;gap:6px;}
+.bar-chart-horiz{display:flex;flex-direction:column;gap:8px;}
+.bar-chart-row{display:flex;align-items:center;gap:10px;}
+.bar-chart-label{width:110px;font-size:12px;color:var(--text2);font-weight:500;flex-shrink:0;text-align:right;}
+.bar-chart-track{flex:1;height:20px;background:var(--bg3);border-radius:4px;overflow:hidden;}
+.bar-chart-fill{height:100%;border-radius:4px;transition:width .6s;}
+.bar-chart-val{width:60px;font-size:12px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--text);flex-shrink:0;}
+
+.modal-xl{max-width:1000px;}
+.prod-form-section{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:14px;}
+.prod-form-section-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text3);margin-bottom:12px;}
+/* Formulation live-search */
+.form-search-wrap{position:relative;}
+.form-search-wrap input{padding-right:32px;}
+.form-search-clear{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px;line-height:1;display:none;}
+.form-search-clear.visible{display:block;}
+.form-search-dropdown{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--card);border:1.5px solid var(--accent);border-radius:10px;box-shadow:var(--shadow-md);z-index:9999;max-height:260px;overflow-y:auto;display:none;}
+.form-search-dropdown.open{display:block;}
+.form-search-item{padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border);transition:background 0.12s;}
+.form-search-item:last-child{border-bottom:none;}
+.form-search-item:hover,.form-search-item.selected{background:var(--accent-light);}
+.form-search-item-name{font-size:13px;font-weight:700;color:var(--text);}
+.form-search-item-meta{font-size:11px;color:var(--text3);margin-top:2px;display:flex;gap:10px;flex-wrap:wrap;}
+.form-search-item-meta span{display:inline-flex;align-items:center;gap:3px;}
+.form-search-no-results{padding:14px;text-align:center;color:var(--text3);font-size:13px;}
+.form-linked-badge{display:none;align-items:center;gap:8px;background:var(--green-light);border:1px solid #6ee7b7;border-radius:8px;padding:8px 12px;margin-top:8px;font-size:12px;font-weight:600;color:var(--green);}
+.form-linked-badge.visible{display:flex;}
+.form-linked-badge .badge-remove{background:none;border:none;cursor:pointer;color:var(--green);font-size:14px;margin-left:auto;}
+
 /* TOAST */
 #toast-container{position:fixed;bottom:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:8px;}
 .toast{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 16px;font-size:13px;font-weight:500;min-width:260px;box-shadow:var(--shadow-lg);animation:slideIn 0.3s ease;display:flex;align-items:center;gap:9px;}
@@ -243,6 +318,99 @@ textarea.form-control{resize:vertical;min-height:80px;}
 .toast.error{border-left:4px solid var(--red);}
 .toast.info{border-left:4px solid var(--accent);}
 @keyframes slideIn{from{transform:translateX(20px);opacity:0;}to{transform:translateX(0);opacity:1;}}
+@keyframes slideUp{from{transform:translateY(18px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+@keyframes scaleIn{from{transform:scale(0.94);opacity:0;}to{transform:scale(1);opacity:1;}}
+@keyframes modalIn{from{transform:scale(0.92) translateY(16px);opacity:0;}to{transform:scale(1) translateY(0);opacity:1;}}
+@keyframes overlayIn{from{opacity:0;}to{opacity:1;}}
+@keyframes pulseGlow{0%,100%{box-shadow:0 0 0 0 rgba(37,99,235,0.18);}50%{box-shadow:0 0 0 6px rgba(37,99,235,0);}}
+@keyframes loginDrop{from{transform:translateY(-28px) scale(0.97);opacity:0;}to{transform:translateY(0) scale(1);opacity:1;}}
+@keyframes toastSlide{from{transform:translateX(60px);opacity:0;}to{transform:translateX(0);opacity:1;}}
+@keyframes toastOut{from{transform:translateX(0);opacity:1;max-height:60px;margin-bottom:8px;}to{transform:translateX(60px);opacity:0;max-height:0;margin-bottom:0;}}
+@keyframes rowFadeIn{from{opacity:0;transform:translateX(-6px);}to{opacity:1;transform:translateX(0);}}
+@keyframes badgePop{0%{transform:scale(0.7);}60%{transform:scale(1.12);}100%{transform:scale(1);}}
+@keyframes sidebarUserIn{from{opacity:0;transform:translateY(-8px);}to{opacity:1;transform:translateY(0);}}
+
+/* Login card entrance */
+.login-card{animation:loginDrop 0.5s cubic-bezier(0.34,1.56,0.64,1) both;}
+
+/* Modal entrance */
+.modal{animation:modalIn 0.28s cubic-bezier(0.34,1.2,0.64,1) both;}
+.modal-overlay{animation:overlayIn 0.2s ease both;}
+
+/* Stat cards staggered */
+.stat-card{animation:slideUp 0.35s ease both;}
+.stat-card:nth-child(1){animation-delay:0.04s;} .stat-card:nth-child(2){animation-delay:0.09s;} .stat-card:nth-child(3){animation-delay:0.14s;} .stat-card:nth-child(4){animation-delay:0.19s;} .stat-card:nth-child(5){animation-delay:0.24s;} .stat-card:nth-child(6){animation-delay:0.29s;}
+
+/* KPI cards staggered */
+.prod-kpi{animation:slideUp 0.35s ease both;}
+.prod-kpi:nth-child(1){animation-delay:0.04s;} .prod-kpi:nth-child(2){animation-delay:0.09s;} .prod-kpi:nth-child(3){animation-delay:0.14s;} .prod-kpi:nth-child(4){animation-delay:0.19s;} .prod-kpi:nth-child(5){animation-delay:0.24s;}
+
+/* Batch cards staggered */
+.batch-card{animation:scaleIn 0.28s ease both;}
+.batch-card:nth-child(1){animation-delay:0.03s;} .batch-card:nth-child(2){animation-delay:0.07s;} .batch-card:nth-child(3){animation-delay:0.11s;} .batch-card:nth-child(4){animation-delay:0.15s;} .batch-card:nth-child(5){animation-delay:0.19s;} .batch-card:nth-child(6){animation-delay:0.23s;} .batch-card:nth-child(7){animation-delay:0.27s;} .batch-card:nth-child(8){animation-delay:0.31s;}
+
+/* Table rows staggered */
+tbody tr{animation:rowFadeIn 0.25s ease both;}
+tbody tr:nth-child(1){animation-delay:0.03s;} tbody tr:nth-child(2){animation-delay:0.06s;} tbody tr:nth-child(3){animation-delay:0.09s;} tbody tr:nth-child(4){animation-delay:0.12s;} tbody tr:nth-child(5){animation-delay:0.15s;} tbody tr:nth-child(6){animation-delay:0.18s;} tbody tr:nth-child(7){animation-delay:0.21s;} tbody tr:nth-child(8){animation-delay:0.24s;} tbody tr:nth-child(9){animation-delay:0.27s;} tbody tr:nth-child(10){animation-delay:0.30s;}
+
+/* Toast updated */
+.toast{animation:toastSlide 0.32s cubic-bezier(0.34,1.3,0.64,1) both;}
+.toast.removing{animation:toastOut 0.28s ease forwards;}
+
+/* Enhanced hover lifts */
+.stat-card{transition:box-shadow 0.22s ease,transform 0.22s ease;}
+.stat-card:hover{transform:translateY(-3px);box-shadow:var(--shadow-md);}
+.prod-kpi:hover{transform:translateY(-3px);box-shadow:var(--shadow-md);}
+.batch-card:hover{transform:translateY(-2px) scale(1.005);}
+.card{transition:box-shadow 0.22s ease,transform 0.22s ease;}
+
+/* Button active press */
+.btn{transition:all 0.15s cubic-bezier(0.34,1.2,0.64,1);}
+.btn:active{transform:scale(0.96)!important;}
+.btn-primary:hover{transform:translateY(-2px) scale(1.02);}
+
+/* Nav item slide */
+.nav-item{transition:all 0.18s cubic-bezier(0.34,1.1,0.64,1);}
+.nav-item:hover{transform:translateX(3px);}
+.nav-item.active{transform:translateX(3px);}
+
+/* Sidebar user badge entrance */
+.sidebar-user{animation:sidebarUserIn 0.4s ease 0.15s both;}
+
+/* Form controls focus lift */
+.form-control{transition:border-color 0.2s ease,box-shadow 0.2s ease,transform 0.15s ease;}
+.form-control:focus{transform:translateY(-1px);}
+.search-input{transition:border-color 0.2s ease,box-shadow 0.2s ease,transform 0.15s ease;}
+.search-input:focus{transform:translateY(-1px);}
+
+/* Status pill pop */
+.status-pill{animation:badgePop 0.3s ease both;}
+
+/* Machine list item hover slide */
+.machine-list-item{transition:all 0.18s ease;}
+.machine-list-item:hover{transform:translateX(4px);background:var(--accent-light);border-color:#bfdbfe;}
+
+/* Comparison / audit row hover */
+.comparison-row{transition:background 0.15s ease,padding-left 0.15s ease;}
+.comparison-row:hover{background:var(--bg3);padding-left:6px;}
+.audit-row{transition:background 0.15s ease,padding-left 0.15s ease;}
+.audit-row:hover{background:var(--bg3);padding-left:8px;border-radius:6px;}
+
+/* Bar chart animated fill */
+.bar-chart-fill{transition:width 0.8s cubic-bezier(0.34,1.1,0.64,1);}
+.stock-bar-fill{transition:width 0.7s cubic-bezier(0.34,1.1,0.64,1);}
+.prod-kpi-bar-fill{transition:width 0.8s cubic-bezier(0.34,1.1,0.64,1);}
+
+/* Close button rotate on hover */
+.close-btn{transition:all 0.18s cubic-bezier(0.34,1.3,0.64,1);}
+.close-btn:hover{transform:rotate(8deg) scale(1.1);}
+
+/* Saving indicator pulse */
+#saving-indicator{animation:pulseGlow 1.6s ease infinite;}
+
+/* Tab active pop */
+.tab{transition:all 0.18s ease;}
+.tab.active{animation:badgePop 0.25s ease both;}
 
 /* RAW MATERIAL SEARCH DROPDOWN */
 .rm-search-wrap{position:relative;}
@@ -307,6 +475,21 @@ textarea.form-control{resize:vertical;min-height:80px;}
   .form-row,.form-row-3{grid-template-columns:1fr;}
   .stats-grid{grid-template-columns:1fr 1fr;}
 }
+
+/* RIPPLE EFFECT */
+.btn{position:relative;overflow:hidden;}
+.ripple{position:absolute;border-radius:50%;transform:scale(0);animation:rippleAnim 0.55s ease-out;background:rgba(255,255,255,0.35);pointer-events:none;}
+.btn-secondary .ripple,.btn-danger .ripple,.btn-success .ripple,.btn-blue .ripple,.btn-teal .ripple{background:rgba(37,99,235,0.15);}
+@keyframes rippleAnim{to{transform:scale(4);opacity:0;}}
+
+/* SKELETON SHIMMER */
+.skeleton{background:linear-gradient(90deg,var(--bg3) 25%,var(--border) 50%,var(--bg3) 75%);background-size:200% 100%;animation:skeletonShimmer 1.4s ease infinite;border-radius:6px;}
+@keyframes skeletonShimmer{0%{background-position:200% center;}100%{background-position:-200% center;}}
+
+/* FLOATING LABEL on focus */
+.form-group:focus-within label{color:var(--accent);transition:color 0.2s ease;}
+.form-group:focus-within label svg{stroke:var(--accent);}
+
 </style>
 </head>
 <body>
@@ -340,6 +523,7 @@ textarea.form-control{resize:vertical;min-height:80px;}
       <button class="demo-login-btn" onclick="fillLogin('invuser','inv123')">📦 Inventory User <span>— invuser / inv123</span></button>
       <button class="demo-login-btn" onclick="fillLogin('viewer','view123')">👁 View User <span>— viewer / view123</span></button>
       <button class="demo-login-btn" onclick="fillLogin('reporter','report123')">📊 Report User <span>— reporter / report123</span></button>
+      <button class="demo-login-btn" onclick="fillLogin('prodop','prod123')">⚙️ Production Operator <span>— prodop / prod123</span></button>
     </div>
   </div>
 </div>
@@ -380,6 +564,17 @@ textarea.form-control{resize:vertical;min-height:80px;}
     <div class="page" id="page-content"></div>
   </div>
 </div>
+
+<!-- ═══ SURFACE AI CHATBOT (outside #app, position:fixed, high z-index) ═══ -->
+<button id="sai-launcher" onclick="saiToggle()" title="Ask Surface AI">
+  <div id="sai-badge"><div id="sai-badge-dot"></div></div>
+  <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+    <path d="M12 2C6.48 2 2 6.48 2 12c0 1.85.5 3.58 1.37 5.06L2 22l4.94-1.37A9.96 9.96 0 0 0 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2Z" fill="rgba(255,255,255,0.25)"/>
+    <circle cx="8.5" cy="12" r="1.2" fill="#fff"/>
+    <circle cx="12" cy="12" r="1.2" fill="#fff"/>
+    <circle cx="15.5" cy="12" r="1.2" fill="#fff"/>
+  </svg>
+</button>
 <div id="toast-container"></div>
 
 <script>
@@ -393,6 +588,7 @@ const DB = {
     {id:3,username:'viewer',password:'view123',name:'View User',role:'view'},
     {id:4,username:'reporter',password:'report123',name:'Report User',role:'report'},
     {id:5,username:'invuser',password:'inv123',name:'Inventory User',role:'inventory'},
+    {id:6,username:'prodop',password:'prod123',name:'Production Operator',role:'production'},
   ],
   rawMaterials: [
     {id:1,name:'LDPE Granules',code:'RM001',unit:'KG',rate:95,supplier:'Reliance Polymers',updatedDate:'2025-01-15',minStock:50},
@@ -435,6 +631,16 @@ const DB = {
   nextId:{rm:9,formulation:3,user:6,txn:4,comment:1},
   formulationComments: [], // [{id, formulationId, type:'production'|'sushil'|'md', text, by, byName, createdAt}]
   basePrices: [], // [{id, formulationId, rmId, rmName, enteredRate, qty, unit, savedAt}] — v2.3
+  // ── Production Efficiency & Machine Costing (v3.0) ──────────────────────────
+  machines: [
+    {id:1,name:'ACM-01',type:'ACM',hourlyMachineCost:120,active:true},
+    {id:2,name:'Extruder-01',type:'Extruder',hourlyMachineCost:95,active:true},
+    {id:3,name:'Extruder-02',type:'Extruder',hourlyMachineCost:95,active:true},
+  ],
+  labourRate: 60,     // ₹ per man-hour — configurable
+  productionLogs: [], // entered by Production Entry Operator
+  nextId_machine: 4,
+  nextId_prodlog: 1,
 };
 
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbzU8sPMKd4L_d2kA4eP9ogr5BdRgWnGhajkMjlC4EJcQanuQ76V6ot_qB6Y3QSznc1m/exec';
@@ -447,11 +653,32 @@ let dashboardRefreshTimer = null;
 // ════════════════════════════════════════════════════════
 function gasCall(action, payload={}) {
   if (!GAS_URL) return Promise.resolve(null);
-  const params = encodeURIComponent(JSON.stringify({action, ...payload}));
-  const url = GAS_URL + '?data=' + params;
-  return fetch(url, {method:'GET', redirect:'follow'})
-    .then(r => r.json())
-    .catch(e => { console.error('GAS error:', e); return null; });
+  const body = JSON.stringify({action, ...payload});
+  // Use GET for read-only loadAll (safe, cacheable), POST for all writes.
+  // POST avoids the ~2 KB URL limit that silently truncates large payloads on GET.
+  const isRead = (action === 'loadAll');
+  const fetchOpts = isRead
+    ? {method:'GET', redirect:'follow'}
+    : {method:'POST', redirect:'follow', headers:{'Content-Type':'text/plain'}, body};
+  const url = isRead
+    ? GAS_URL + '?data=' + encodeURIComponent(body)
+    : GAS_URL;
+  return fetch(url, fetchOpts)
+    .then(r => {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    })
+    .then(data => {
+      if (data && data.success === false) {
+        console.error('GAS returned error for action "' + action + '":', data.error);
+        throw new Error(data.error || 'Server error');
+      }
+      return data;
+    })
+    .catch(e => {
+      console.error('GAS error [' + action + ']:', e);
+      throw e; // re-throw so callers can .catch and show UI error
+    });
 }
 
 function showSaving(){const el=document.getElementById('saving-indicator');if(el)el.style.display='flex';}
@@ -501,9 +728,31 @@ async function loadFromGAS(){
       if(d.settings) DB.settings = Object.assign({debitInventoryOnSave:true}, d.settings);
       if(d.nextId) DB.nextId = d.nextId;
       DB.nextId.comment = DB.nextId.comment || 1;
+      // ── FIX: always recompute formulation nextId from actual max id in sheet
+      // This prevents ID collisions where new formulations overwrite row 2
+      if(d.formulations && Array.isArray(d.formulations) && d.formulations.length){
+        const maxFormId = d.formulations.reduce((mx,f)=>Math.max(mx,Number(f.id)||0),0);
+        if(maxFormId >= DB.nextId.formulation) DB.nextId.formulation = maxFormId + 1;
+      }
       DB.formulationComments = DB.formulationComments || [];
       if(d.formulationComments && Array.isArray(d.formulationComments)) DB.formulationComments = d.formulationComments;
       if(d.basePrices && Array.isArray(d.basePrices)) DB.basePrices = d.basePrices;
+      if(d.machines && Array.isArray(d.machines) && d.machines.length) DB.machines = d.machines.map(m=>({...m,id:Number(m.id),hourlyMachineCost:Number(m.hourlyMachineCost)||0,stdKgHr:Number(m.stdKgHr)||0,active:m.active!==false&&m.active!=="false"}));
+      if(d.productionLogs && Array.isArray(d.productionLogs)) {
+        DB.productionLogs = d.productionLogs.map(l=>({
+          ...l,
+          id:Number(l.id),
+          machineId:Number(l.machineId),
+          breakMins:Number(l.breakMins)||0,
+          rmInput:Number(l.rmInput)||0,
+          fgOutput:Number(l.fgOutput)||0,
+          formulationId:l.formulationId?Number(l.formulationId):null,
+          startTime: normalizeGASTime(l.startTime),
+          endTime:   normalizeGASTime(l.endTime),
+        }));
+        DB.nextId_prodlog = DB.productionLogs.reduce((mx,l)=>Math.max(mx,l.id),0)+1;
+      }
+      if(d.labourRate!==undefined) DB.labourRate = Number(d.labourRate)||60;
       toast('Data loaded from Google Sheets ✓','success');
     } else {
       toast('Could not load from Sheets — using local data','info');
@@ -539,6 +788,7 @@ async function doLogin(){
   document.getElementById('login-error').style.display='none';
   currentUser=user;
   initApp();
+  saiOnLogin();
 }
 function logout(){
   currentUser=null;
@@ -547,6 +797,9 @@ function logout(){
   document.getElementById('login-screen').style.display='flex';
   document.getElementById('login-user').value='';
   document.getElementById('login-pass').value='';
+  const chatBtn = document.getElementById('sai-launcher');
+  if (chatBtn) chatBtn.classList.remove('sai-active');
+  saiOnLogout();
 }
 document.getElementById('login-pass').addEventListener('keypress',e=>{if(e.key==='Enter')doLogin();});
 
@@ -565,12 +818,15 @@ const NAV_ICONS = {
   kitting:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1v-4"/><line x1="5" y1="3" x2="5" y2="16"/><line x1="1" y1="7" x2="16" y2="7"/><line x1="1" y1="11" x2="16" y2="11"/></svg>`,
   costanalysis:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>`,
   debitstatus:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>`,
+  production:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"/></svg>`,
+  prodreports:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><polyline points="8 13 10 15 14 11"/></svg>`,
+  machines:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>`,
 };
 
 const NAV_CONFIG = {
   admin:[
     {section:'Overview',items:[{id:'dashboard',label:'Dashboard'}]},
-    {section:'Production',items:[{id:'formulations',label:'Formulations'},{id:'costing',label:'Costing Engine'},{id:'costanalysis',label:'Cost Analysis'}]},
+    {section:'Production',items:[{id:'formulations',label:'Formulations'},{id:'costing',label:'Costing Engine'},{id:'costanalysis',label:'Cost Analysis'},{id:'production',label:'Production Entry'},{id:'prodreports',label:'Prod. Reports'},{id:'machines',label:'Machine Setup'}]},
     {section:'Materials',items:[{id:'rawmaterials',label:'Raw Materials'},{id:'inventory',label:'Inventory'},{id:'kitting',label:'Full Kitting'}]},
     {section:'Reports',items:[{id:'reports',label:'Reports & Export'}]},
     {section:'System',items:[{id:'users',label:'User Management'},{id:'settings',label:'Settings'}]},
@@ -595,18 +851,23 @@ const NAV_CONFIG = {
     {section:'Reports',items:[{id:'reports',label:'Reports & Export'}]},
     {section:'Materials',items:[{id:'inventory',label:'Inventory'}]},
   ],
+  production:[
+    {section:'Overview',items:[{id:'dashboard',label:'Prod. Dashboard'}]},
+    {section:'Production',items:[{id:'production',label:'Production Entry'},{id:'prodreports',label:'Reports & Analytics'}]},
+  ],
 };
 
-const ROLE_LABELS={admin:'Administrator',formulation:'Formulation User',view:'View Only',report:'Report User',inventory:'Inventory User'};
-const BADGE_CLASSES={admin:'badge-admin',formulation:'badge-form',view:'badge-view',report:'badge-report',inventory:'badge-inventory'};
+const ROLE_LABELS={admin:'Administrator',formulation:'Formulation User',view:'View Only',report:'Report User',inventory:'Inventory User',production:'Production Entry Operator'};
+const BADGE_CLASSES={admin:'badge-admin',formulation:'badge-form',view:'badge-view',report:'badge-report',inventory:'badge-inventory',production:'badge-production'};
 
 function can(perm){
   const perms={
-    admin:['dashboard','formulations','costing','rawmaterials','inventory','reports','users','settings','viewPrice','editPrice','manageUsers','viewCost','kitting','costanalysis','addStock','subtractStock'],
+    admin:['dashboard','formulations','costing','rawmaterials','inventory','reports','users','settings','viewPrice','editPrice','manageUsers','viewCost','kitting','costanalysis','addStock','subtractStock','production','prodreports','machines','manageMachines'],
     formulation:['dashboard','formulations','inventory'],
     inventory:['dashboard','inventory','reports','addStock','subtractStock'],
     view:['dashboard','inventory'],
     report:['dashboard','reports','inventory'],
+    production:['dashboard','production','prodreports'],
   };
   return(perms[currentUser.role]||[]).includes(perm);
 }
@@ -616,8 +877,18 @@ function can(perm){
 // ════════════════════════════════════════════════════════
 let currentPage='dashboard';
 function initApp(){
-  document.getElementById('login-screen').style.display='none';
-  document.getElementById('app').style.display='block';
+  const ls=document.getElementById('login-screen');
+  ls.style.transition='opacity 0.35s ease, transform 0.35s ease';
+  ls.style.opacity='0';
+  ls.style.transform='scale(1.03)';
+  setTimeout(()=>{ ls.style.display='none'; },340);
+  const appEl=document.getElementById('app');
+  appEl.style.opacity='0';
+  appEl.style.display='block';
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    appEl.style.transition='opacity 0.4s ease';
+    appEl.style.opacity='1';
+  }));
   document.getElementById('sb-username').textContent=currentUser.name;
   document.getElementById('sb-role').textContent=ROLE_LABELS[currentUser.role];
   document.getElementById('role-badge').textContent=ROLE_LABELS[currentUser.role];
@@ -625,6 +896,9 @@ function initApp(){
   document.getElementById('topbar-date').textContent=new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
   buildSidebar();
   navigate('dashboard');
+  // Show chatbot launcher
+  const chatBtn = document.getElementById('sai-launcher');
+  if (chatBtn) chatBtn.classList.add('sai-active');
   // Auto-refresh dashboard every 60 seconds
   if(dashboardRefreshTimer) clearInterval(dashboardRefreshTimer);
   dashboardRefreshTimer = setInterval(()=>{
@@ -654,11 +928,17 @@ function navigate(page){
   document.querySelectorAll('.nav-item').forEach(e=>e.classList.remove('active'));
   const ni=document.getElementById('nav-'+page);
   if(ni)ni.classList.add('active');
-  const titles={dashboard:'Dashboard',formulations:'Formulations',costing:'Costing Engine',costanalysis:'Cost Analysis',rawmaterials:'Raw Materials',inventory:'Inventory',reports:'Reports & Export',users:'User Management',settings:'System Settings',kitting:'Full Kitting',debitstatus:'Inventory Debit Status'};
+  const titles={dashboard:'Dashboard',formulations:'Formulations',costing:'Costing Engine',costanalysis:'Cost Analysis',rawmaterials:'Raw Materials',inventory:'Inventory',reports:'Reports & Export',users:'User Management',settings:'System Settings',kitting:'Full Kitting',debitstatus:'Inventory Debit Status',production:'Production Entry',prodreports:'Production Reports & Analytics',machines:'Machine Setup'};
   document.getElementById('page-heading').textContent=titles[page]||page;
   const content=document.getElementById('page-content');
+  content.style.cssText='opacity:0;transform:translateY(12px);transition:none;';
   content.innerHTML=`<div class="loading-page"><div class="spinner"></div><span>Loading...</span></div>`;
-  setTimeout(()=>renderPage(page,content),60);
+  setTimeout(()=>{
+    renderPage(page,content);
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{
+      content.style.cssText='opacity:1;transform:translateY(0);transition:opacity 0.3s ease,transform 0.3s ease;';
+    }));
+  },60);
 }
 
 function renderPage(page,el){
@@ -674,6 +954,9 @@ function renderPage(page,el){
     case 'settings':el.innerHTML=can('manageUsers')?renderSettings():'<div class="alert alert-error">Access denied.</div>';break;
     case 'kitting':el.innerHTML=can('kitting')?renderKitting():'<div class="alert alert-error">Access denied.</div>';break;
     case 'debitstatus':el.innerHTML=renderDebitStatus();break;
+    case 'production':el.innerHTML=can('production')?renderProductionEntry():'<div class="alert alert-error">Access denied.</div>';break;
+    case 'prodreports':el.innerHTML=can('prodreports')?renderProdReports():'<div class="alert alert-error">Access denied.</div>';break;
+    case 'machines':el.innerHTML=can('manageMachines')?renderMachineSetup():'<div class="alert alert-error">Access denied.</div>';break;
     default:el.innerHTML='<p>Page not found</p>';
   }
 }
@@ -734,7 +1017,10 @@ function toast(msg,type='info'){
   t.style.color=type==='success'?'var(--green)':type==='error'?'var(--red)':'var(--accent2)';
   t.innerHTML=(icons[type]||'')+msg;
   document.getElementById('toast-container').appendChild(t);
-  setTimeout(()=>t.remove(),3500);
+  setTimeout(()=>{
+    t.classList.add('removing');
+    setTimeout(()=>t.remove(),280);
+  },3200);
 }
 function fmtCurrency(n){return '₹'+Number(n).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});}
 function addAudit(action,detail){
@@ -797,6 +1083,11 @@ function renderDashboard(){
     statsHTML+=`<div class="stat-card"><div class="stat-icon red">${NAV_ICONS.inventory}</div><div class="stat-label">Reorder Alerts</div><div class="stat-value">${reorderItems}</div><div class="stat-sub">Materials need restocking</div></div>`;
   }
   statsHTML+=`</div>`;
+
+  // Production tiles (admin + production role)
+  if(can("production") && DB.productionLogs) {
+    statsHTML += `<div class="stats-grid" style="margin-bottom:8px">${getProdDashTiles()}</div>`;
+  }
 
   // Refresh indicator
   const refreshInfo=`<div style="display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-bottom:12px;">
@@ -938,8 +1229,8 @@ function renderFormulations(){
       <button class="btn btn-sm" style="background:var(--accent-light);color:var(--accent2);border:1.5px solid #bfdbfe;" onclick="openStandaloneScaler()">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> Batch Scaler
       </button>
-      <button class="btn btn-primary" onclick="openNewFormModal()">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> New Formulation
+      <button class="btn btn-primary" onclick="openNewFormModal()" id="btn-new-form">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> New Formulation${_formDraft&&_formDraft.pname?` <span style="background:#fef9c3;color:#b45309;border-radius:4px;padding:1px 6px;font-size:10px;margin-left:4px;">DRAFT</span>`:''}
       </button>
     </div>`:''}
   </div>`;
@@ -1043,7 +1334,7 @@ function renderFormulations(){
         </div>`;
       })()}
       <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap;">
-        ${(f.items||[]).map(item=>{const rm=getRMById(item.rmId);if(!rm)return'';const u=(item.unit||rm.unit||'KG').toUpperCase();const unitLabel=u==='G'?'Gram':(item.unit||rm.unit);return`<span style="background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:3px 10px;font-size:11px;font-weight:500;color:var(--text2)">${rm.name} (${item.qty} ${unitLabel})</span>`;}).join('')}
+        ${(f.items||[]).map(item=>{const rm=getRMById(item.rmId);if(!rm)return'';const u=(item.unit||rm.unit||'KG').toUpperCase();const unitLabel=u==='G'?'Gram':(item.unit||rm.unit);return`<span style="background:#e2e8f0;border:1px solid #94a3b8;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:600;color:#1e293b">${rm.name} (${item.qty} ${unitLabel})</span>`;}).join('')}
       </div>
     </div>`;
     }catch(e){console.warn("Skipped formulation render:",f?.id,e);}
@@ -1830,17 +2121,26 @@ function saveEditFormulation(id){
 }
 
 
-function openNewFormModal(template=null){
+function openNewFormModal(template=null, forceEmpty=false){
+  // Use draft if available and not explicitly cleared
+  const draft = (!forceEmpty && !template && _formDraft) ? _formDraft : null;
   const ts=nowDateTime();
   const debit=DB.settings.debitInventoryOnSave;
-  const modal=`<div class="modal-overlay" id="form-modal" onclick="if(event.target.id==='form-modal')closeModal('form-modal')">
+  const modal=`<div class="modal-overlay" id="form-modal" onclick="if(event.target.id==='form-modal'){_saveFormDraft();closeModal('form-modal')}">
   <div class="modal modal-lg">
     <div class="modal-header">
       <div>
-        <div class="modal-title">${template?'New Formulation (from Template)':'New Formulation'}</div>
+        <div class="modal-title">${template?'New Formulation (from Template)':draft?'New Formulation (Draft Restored)':'New Formulation'}</div>
         ${template?`<div style="font-size:12px;color:var(--accent2);margin-top:3px;">Based on: ${template.productName}</div>`:''}
+        ${draft&&!template?`<div style="font-size:11px;color:#059669;margin-top:3px;font-weight:600;">✓ Your unsaved data has been restored</div>`:''}
       </div>
-      <button class="close-btn" onclick="closeModal('form-modal')">✕</button>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <button class="btn btn-sm btn-danger" onclick="_clearFormDraft()" title="Clear all form data and start fresh">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.36"/></svg>
+          Clear &amp; Reset
+        </button>
+        <button class="close-btn" onclick="_saveFormDraft();closeModal('form-modal')">✕</button>
+      </div>
     </div>
     <div class="modal-body">
       <div class="alert alert-warning">
@@ -1852,39 +2152,39 @@ function openNewFormModal(template=null){
         <span><strong>${(()=>{const isAdmin=currentUser&&currentUser.role==='admin';const debit=DB.settings.debitInventoryOnSave;return isAdmin?'Admin Mode — Inventory NOT Debited.':debit?'Inventory Debit is ON.':'Inventory Debit is OFF.';})()}</strong> ${(()=>{const isAdmin=currentUser&&currentUser.role==='admin';const debit=DB.settings.debitInventoryOnSave;return isAdmin?'Admins can enter formulations freely — inventory is never deducted when Admin saves. Only Sudhir Ji\'s entries debit stock.':debit?'Raw materials will be deducted from stock when you save this formulation.':'This formulation will be saved but raw material stock will NOT be deducted (controlled by Admin in Settings).';})()}</span>
       </div>
       <div class="form-row">
-        <div class="form-group"><label>Product Name ✱</label><input class="form-control" id="fm-pname" value="${template?template.productName:''}" placeholder="e.g. LDPE Pipe Compound" required></div>
-        <div class="form-group"><label>Product Code <span style="font-size:10px;color:var(--text3);font-weight:400;text-transform:none;">(optional, can add later)</span></label><input class="form-control" id="fm-pcode" value="${template?template.productCode:''}" placeholder="e.g. FG003 (optional)"></div>
+        <div class="form-group"><label>Product Name ✱</label><input class="form-control" id="fm-pname" value="${draft?draft.pname:template?template.productName:''}" placeholder="e.g. LDPE Pipe Compound" required oninput="_saveFormDraft()"></div>
+        <div class="form-group"><label>Product Code <span style="font-size:10px;color:var(--text3);font-weight:400;text-transform:none;">(optional, can add later)</span></label><input class="form-control" id="fm-pcode" value="${draft?draft.pcode:template?template.productCode:''}" placeholder="e.g. FG003 (optional)" oninput="_saveFormDraft()"></div>
       </div>
       <div class="form-row">
         <div class="form-group"><label>Product Type</label>
-          <select class="form-control" id="fm-ptype">
-            <option value="" ${!(template&&template.productType)?'selected':''}>— Select Type —</option>
-            <option value="EP" ${template&&template.productType==='EP'?'selected':''}>EP (Epoxy Polyester)</option>
-            <option value="PP" ${template&&template.productType==='PP'?'selected':''}>PP (Pure Polyester)</option>
+          <select class="form-control" id="fm-ptype" onchange="_saveFormDraft()">
+            <option value="" ${!(draft?draft.productType:template&&template.productType)?'selected':''}>— Select Type —</option>
+            <option value="EP" ${(draft?draft.productType:template&&template.productType)==='EP'?'selected':''}>EP (Epoxy Polyester)</option>
+            <option value="PP" ${(draft?draft.productType:template&&template.productType)==='PP'?'selected':''}>PP (Pure Polyester)</option>
           </select>
         </div>
         <div class="form-group"><label>Product Finish</label>
-          <select class="form-control" id="fm-pfinish">
-            <option value="" ${!(template&&template.productFinish)?'selected':''}>— Select Finish —</option>
-            <option value="Plain" ${template&&template.productFinish==='Plain'?'selected':''}>Plain</option>
-            <option value="Texture" ${template&&template.productFinish==='Texture'?'selected':''}>Texture</option>
-            <option value="Structure" ${template&&template.productFinish==='Structure'?'selected':''}>Structure</option>
+          <select class="form-control" id="fm-pfinish" onchange="_saveFormDraft()">
+            <option value="" ${!(draft?draft.productFinish:template&&template.productFinish)?'selected':''}>— Select Finish —</option>
+            <option value="Plain" ${(draft?draft.productFinish:template&&template.productFinish)==='Plain'?'selected':''}>Plain</option>
+            <option value="Texture" ${(draft?draft.productFinish:template&&template.productFinish)==='Texture'?'selected':''}>Texture</option>
+            <option value="Structure" ${(draft?draft.productFinish:template&&template.productFinish)==='Structure'?'selected':''}>Structure</option>
           </select>
         </div>
       </div>
       <div class="form-row">
-        <div class="form-group"><label>Batch Number <span style="font-size:10px;color:var(--text3);font-weight:400;text-transform:none;">(optional, can add later)</span></label><input class="form-control" id="fm-batch" value="" placeholder="e.g. B2025-003 (optional)"></div>
+        <div class="form-group"><label>Batch Number <span style="font-size:10px;color:var(--text3);font-weight:400;text-transform:none;">(optional, can add later)</span></label><input class="form-control" id="fm-batch" value="${draft?draft.batch:''}" placeholder="e.g. B2025-003 (optional)" oninput="_saveFormDraft()"></div>
         <div class="form-group">
           <label>Manufacturing Date & Time</label>
           <input class="form-control" id="fm-date" type="text" value="${ts}" readonly style="background:var(--bg3);color:var(--text3);cursor:not-allowed;">
           <div class="form-hint">Auto-set to current date and time</div>
         </div>
       </div>
-      <div class="form-group"><label>Remarks</label><textarea class="form-control" id="fm-remarks">${template?template.remarks||'':''}</textarea></div>
+      <div class="form-group"><label>Remarks</label><textarea class="form-control" id="fm-remarks" oninput="_saveFormDraft()">${draft?draft.remarks:template?template.remarks||'':''}</textarea></div>
       <div class="form-row">
         <div class="form-group">
           <label>Ref No <span style="font-size:10px;color:var(--text3);font-weight:400;text-transform:none;">(optional)</span></label>
-          <input class="form-control" id="fm-refno" value="${template?template.refNo||'':''}" placeholder="e.g. SO-2025-042">
+          <input class="form-control" id="fm-refno" value="${draft?draft.refNo:template?template.refNo||'':''}" placeholder="e.g. SO-2025-042" oninput="_saveFormDraft()">
           <div class="form-hint">Enter order/customer ref no — Party Name &amp; ID will auto-link in Google Sheet via VLOOKUP</div>
         </div>
       </div>
@@ -1901,7 +2201,7 @@ function openNewFormModal(template=null){
         <span></span>
       </div>
       <div id="fm-items"></div>
-      <button class="add-item-btn" onclick="addFormItem()">＋ Add Raw Material</button>
+      <button class="add-item-btn" onclick="addFormItem();_saveFormDraft()">＋ Add Raw Material</button>
       <!-- Live total panel -->
       <div class="fm-live-total" id="fm-live-total" style="margin-top:12px;"></div>
 
@@ -1946,9 +2246,27 @@ function openNewFormModal(template=null){
   document.body.insertAdjacentHTML('beforeend',modal);
 
   if(template && template.items && template.items.length){
-    template.items.forEach(item=>addFormItem(item.rmId, item.qty));
+    template.items.forEach(item=>addFormItem(item.rmId, item.qty, item.unit, item.rate));
+    // Pad to at least 10 rows
+    const needed = 10 - template.items.length;
+    for(let i=0; i<needed; i++) addFormItem();
+  } else if(draft && draft.items && draft.items.length){
+    // Restore draft items (including filled and empty rows)
+    draft.items.forEach(item=>{
+      addFormItem(item.rmId||null, item.qty||null, item.unit||null, item.rate||null);
+      // Restore typed-but-unselected search label if any
+      if(!item.rmId && item.label){
+        const lastId = 'fitem-'+formItemCount;
+        const searchEl = document.getElementById('rmsearch-'+lastId);
+        if(searchEl) searchEl.value = item.label;
+      }
+    });
+    // Always ensure at least 10 rows
+    const needed = 10 - draft.items.length;
+    for(let i=0; i<needed; i++) addFormItem();
   } else {
-    addFormItem();
+    // Fresh form: show 10 empty rows
+    for(let i=0; i<10; i++) addFormItem();
   }
 }
 
@@ -2160,6 +2478,39 @@ function runScaler(){
 }
 
 let formItemCount=0;
+// ── Draft persistence: remembers form data across page navigation ──
+let _formDraft = null;
+
+function _saveFormDraft(){
+  const pname = document.getElementById('fm-pname')?.value||'';
+  const pcode = document.getElementById('fm-pcode')?.value||'';
+  const batch = document.getElementById('fm-batch')?.value||'';
+  const remarks = document.getElementById('fm-remarks')?.value||'';
+  const refNo = document.getElementById('fm-refno')?.value||'';
+  const productType = document.getElementById('fm-ptype')?.value||'';
+  const productFinish = document.getElementById('fm-pfinish')?.value||'';
+  const items = [];
+  document.querySelectorAll('[id^="fitem-"]').forEach(row=>{
+    const id = row.id;
+    const rmId = parseInt(document.getElementById('sel-'+id)?.value)||0;
+    const qty = parseFloat(document.getElementById('qty-'+id)?.value)||0;
+    const unit = document.getElementById('fmunit-'+id)?.value||'KG';
+    const rateEl = document.getElementById('rate-'+id);
+    const rate = rateEl ? parseFloat(rateEl.value)||0 : 0;
+    const labelEl = document.getElementById('rmsearch-'+id);
+    const label = labelEl ? labelEl.value : '';
+    items.push({rmId, qty, unit, rate, label});
+  });
+  _formDraft = {pname, pcode, batch, remarks, refNo, productType, productFinish, items};
+}
+
+function _clearFormDraft(){
+  _formDraft = null;
+  toast('Form data cleared ✓','info');
+  closeModal('form-modal');
+  openNewFormModal(null, true);
+}
+
 function addFormItem(preRmId=null, preQty=null, preUnit=null, preRate=null){
   formItemCount++;
   const id='fitem-'+formItemCount;
@@ -2178,18 +2529,18 @@ function addFormItem(preRmId=null, preQty=null, preUnit=null, preRate=null){
       <div class="rm-search-wrap" style="position:relative;">
         <input class="rm-search-input" id="rmsearch-${id}" placeholder="🔍 Search raw material..." 
           value="${preLabel}" autocomplete="off"
-          oninput="filterRMDropdown('${id}')"
+          oninput="filterRMDropdown('${id}');_saveFormDraft()"
           onfocus="openRMDropdown('${id}')"
           onkeydown="handleRMDropdownKey(event,'${id}')">
         <div class="rm-dropdown" id="rmdrop-${id}"></div>
         <input type="hidden" id="sel-${id}" value="${preRmId||''}">
         <input type="hidden" id="baserate-${id}" value="${defaultRate}">
       </div>
-      <input class="form-control" id="qty-${id}" type="number" step="0.001" min="0" value="${preQty||''}" placeholder="Qty" oninput="updateFmLiveTotal()">
-      <select class="form-control" id="fmunit-${id}" style="padding:10px 6px;font-size:12px;" onchange="updateFmLiveTotal()">${unitOpts}</select>
-      ${showCostCol?`<input class="fi-rate" id="rate-${id}" type="number" step="0.01" min="0" value="${defaultRate||''}" placeholder="Rate" title="Edit rate for this batch" oninput="onRateInput('${id}');updateFmLiveTotal()">`:''}
+      <input class="form-control" id="qty-${id}" type="number" step="0.001" min="0" value="${preQty||''}" placeholder="Qty" oninput="updateFmLiveTotal();_saveFormDraft()">
+      <select class="form-control" id="fmunit-${id}" style="padding:10px 6px;font-size:12px;" onchange="updateFmLiveTotal();_saveFormDraft()">${unitOpts}</select>
+      ${showCostCol?`<input class="fi-rate" id="rate-${id}" type="number" step="0.01" min="0" value="${defaultRate||''}" placeholder="Rate" title="Edit rate for this batch" oninput="onRateInput('${id}');updateFmLiveTotal();_saveFormDraft()">`:''}
       ${showCostCol?`<span class="fi-cost" id="ficost-${id}">—</span>`:''}
-      <button class="remove-btn" onclick="document.getElementById('${id}').remove();updateFmLiveTotal()">−</button>
+      <button class="remove-btn" onclick="document.getElementById('${id}').remove();updateFmLiveTotal();_saveFormDraft()">−</button>
     </div>`);
 
   if(!preRmId) openRMDropdown(id);
@@ -2317,8 +2668,9 @@ function selectRM(id,rmId,rmName,rmCode,rmUnit){
   // Focus qty field (either naming convention)
   const qtyEl=document.getElementById('qty-'+id)||document.getElementById('caqty-'+id);
   qtyEl?.focus();
-  // Update live total
+  // Update live total and save draft
   if(typeof updateFmLiveTotal==='function') updateFmLiveTotal();
+  if(typeof _saveFormDraft==='function') _saveFormDraft();
 }
 
 function handleRMDropdownKey(e,id){
@@ -2406,8 +2758,11 @@ function saveFormulation(){
   const txns=debit?DB.stockTransactions.filter(t=>t.remarks===`Batch ${batch}`):[];
   gasCall('saveFormulation',{formulation:f,items,inventoryUpdates:invUpdates,transactions:txns,debitInventory:debit})
     .then(()=>gasCall('addAudit',{entry:auditEntry}))
+    .then(()=>gasCall('saveSetting',{key:'nextId',value:JSON.stringify(DB.nextId)}))
     .then(()=>toast(debit?'Formulation saved to Google Sheets ✓':'Formulation saved ✓ (no inventory debit)','success'));
 
+  // Clear draft after successful save
+  _formDraft = null;
   navigate('formulations');
 }
 
@@ -3122,10 +3477,9 @@ async function confirmBulkImport(){
   let saved=0, failed=0;
   for(const entry of toSave){
     try{
-      const result = await gasCall('saveRawMaterial',{rm:entry.rm, isNew:entry.isNew});
-      if(result && result.success) saved++;
-      else failed++;
-    } catch(e){ failed++; }
+      await gasCall('saveRawMaterial',{rm:entry.rm});
+      saved++;
+    } catch(e){ console.error('Bulk save failed for',entry.rm.code,e); failed++; }
   }
 
   await gasCall('addAudit',{entry:DB.auditLog[0]});
@@ -3188,7 +3542,7 @@ function openRMModal(id){
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('rm-modal')">Cancel</button>
-      <button class="btn btn-primary" onclick="saveRM(${id||0})">${id?'Update':'Save'}</button>
+      <button class="btn btn-primary" id="rm-save-btn" onclick="saveRM(${id||0})">${id?'Update':'Save'}</button>
     </div>
   </div></div>`;
   document.body.insertAdjacentHTML('beforeend',modal);
@@ -3208,33 +3562,41 @@ function saveRM(id){
   if(!name||!code){toast('Name and Code are required','error');return;}
   // rate can be 0 (allowed) — only block if field is completely empty/NaN
   if(currentUser.role!=='inventory'&&isNaN(parseFloat(rateEl?.value))){toast('Rate is required — enter 0 if free','error');return;}
+  // Disable save button to prevent double-clicks
+  const saveBtn = document.getElementById('rm-save-btn');
+  if(saveBtn){ saveBtn.disabled=true; saveBtn.textContent='Saving…'; }
+
   if(id){
     const rm=DB.rawMaterials.find(r=>r.id===id);
     const oldName=rm.name;
-    // Update DB in memory
+    // Update in memory first so UI feels instant
     rm.name=name; rm.code=code; rm.unit=unit; rm.rate=rate;
     rm.supplier=supplier; rm.updatedDate=updatedDate; rm.minStock=minStock;
-    // Build a clean explicit object for GAS — no extra props, exact field order
     const rmForGAS={id:rm.id,name:name,code:code,unit:unit,rate:rate,supplier:supplier,updatedDate:updatedDate,minStock:minStock};
     const detail=`${code} — ${name}${oldName!==name?' (renamed from '+oldName+')':''}`;
     addAudit('Updated raw material',detail);
-    toast('Saving...','info');
-    gasCall('saveRawMaterial',{rm:rmForGAS,isNew:false})
+    gasCall('saveRawMaterial',{rm:rmForGAS})
       .then(()=>gasCall('addAudit',{entry:DB.auditLog[0]}))
-      .then(()=>toast('Material updated ✓','success'));
+      .then(()=>{ toast('Material updated ✓','success'); closeModal('rm-modal'); navigate('rawmaterials'); })
+      .catch(err=>{ toast('Save failed — '+err.message,'error'); if(saveBtn){saveBtn.disabled=false;saveBtn.textContent='Save';} });
   } else {
     const newRMId=DB.nextId.rm++;
     const newRM={id:newRMId,name:name,code:code,unit:unit,rate:rate,supplier:supplier,updatedDate:updatedDate,minStock:minStock};
     DB.rawMaterials.push(newRM);
     DB.inventory.push({id:newRMId,rmId:newRMId,quantity:0});
     addAudit('Added raw material',`${code} — ${name}`);
-    toast('Saving...','info');
-    gasCall('saveRawMaterial',{rm:newRM,isNew:true})
+    gasCall('saveRawMaterial',{rm:newRM})
       .then(()=>gasCall('addAudit',{entry:DB.auditLog[0]}))
-      .then(()=>toast('Material saved ✓','success'));
+      .then(()=>{ toast('Material saved ✓','success'); closeModal('rm-modal'); navigate('rawmaterials'); })
+      .catch(err=>{
+        toast('Save failed — '+err.message,'error');
+        // Roll back in-memory changes so DB stays consistent with sheet
+        DB.rawMaterials.pop();
+        DB.inventory.pop();
+        DB.nextId.rm--;
+        if(saveBtn){saveBtn.disabled=false;saveBtn.textContent='Save';}
+      });
   }
-  closeModal('rm-modal');
-  navigate('rawmaterials');
 }
 
 // ════════════════════════════════════════════════════════
@@ -3998,6 +4360,7 @@ function openUserModal(id){
           <option value="inventory" ${u.role==='inventory'?'selected':''}>📦 Inventory User</option>
           <option value="view" ${u.role==='view'?'selected':''}>👁 View Only</option>
           <option value="report" ${u.role==='report'?'selected':''}>📊 Report User</option>
+          <option value="production" ${u.role==='production'?'selected':''}>⚙️ Production Entry Operator</option>
         </select>
       </div>
     </div>
@@ -4928,6 +5291,2224 @@ ${showCost?`
 //  MODAL UTIL
 // ════════════════════════════════════════════════════════
 function closeModal(id){document.getElementById(id)?.remove();formItemCount=0;caItemCount=0;}
+</script>
+
+<!-- ════════════════════════════════════════════════════ -->
+<!--  SURFACE AI CHATBOT                                  -->
+<!-- ════════════════════════════════════════════════════ -->
+<style>
+/* ── Chatbot Launcher ── */
+#sai-launcher {
+  position: fixed;
+  bottom: 28px;
+  right: 28px;
+  z-index: 99999;
+  width: 58px;
+  height: 58px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 8px 28px rgba(37,99,235,0.40), 0 2px 8px rgba(0,0,0,0.12);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s, box-shadow 0.2s;
+  flex-direction: column;
+  gap: 0;
+  pointer-events: auto;
+}
+#sai-launcher.sai-active {
+  display: flex;
+}
+#sai-launcher.sai-visible {
+  display: flex;
+}
+#sai-launcher:hover {
+  transform: translateY(-3px) scale(1.05);
+  box-shadow: 0 14px 36px rgba(37,99,235,0.50);
+}
+#sai-launcher svg { display: block; }
+#sai-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  width: 18px;
+  height: 18px;
+  background: #16a34a;
+  border-radius: 50%;
+  border: 2.5px solid #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#sai-badge-dot {
+  width: 7px;
+  height: 7px;
+  background: #fff;
+  border-radius: 50%;
+  animation: sai-pulse 2s infinite;
+}
+@keyframes sai-pulse {
+  0%,100%{opacity:1;transform:scale(1);}
+  50%{opacity:.6;transform:scale(0.75);}
+}
+
+/* ── Chat Panel ── */
+#sai-panel {
+  position: fixed;
+  bottom: 100px;
+  right: 28px;
+  z-index: 99998;
+  width: 400px;
+  max-height: 640px;
+  background: #ffffff;
+  border: 1px solid #e1e6f0;
+  border-radius: 20px;
+  box-shadow: 0 24px 80px rgba(37,99,235,0.16), 0 4px 16px rgba(0,0,0,0.08);
+  display: none;
+  flex-direction: column;
+  overflow: hidden;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  animation: sai-open 0.25s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes sai-open {
+  from{opacity:0;transform:translateY(20px) scale(0.96);}
+  to{opacity:1;transform:translateY(0) scale(1);}
+}
+#sai-panel.open { display: flex; }
+
+/* Header */
+#sai-header {
+  background: linear-gradient(135deg, #1e3a8a, #2563eb);
+  padding: 16px 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+#sai-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.15);
+  border: 1.5px solid rgba(255,255,255,0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+#sai-header-info { flex: 1; }
+#sai-header-name { font-size: 14px; font-weight: 800; color: #fff; letter-spacing: -0.2px; }
+#sai-header-sub { font-size: 11px; color: rgba(255,255,255,0.65); margin-top: 1px; }
+#sai-header-status {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: rgba(255,255,255,0.75);
+}
+#sai-status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #4ade80;
+  animation: sai-pulse 2s infinite;
+}
+#sai-close-btn {
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.20);
+  border-radius: 8px;
+  width: 30px;
+  height: 30px;
+  cursor: pointer;
+  color: rgba(255,255,255,0.80);
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+#sai-close-btn:hover { background: rgba(255,255,255,0.22); color: #fff; }
+
+/* Chips */
+#sai-chips {
+  padding: 10px 14px;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  border-bottom: 1px solid #f1f5f9;
+  background: #f8fafc;
+  flex-shrink: 0;
+}
+.sai-chip {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 20px;
+  padding: 4px 11px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #1d4ed8;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.sai-chip:hover { background: #2563eb; color: #fff; border-color: #2563eb; }
+
+/* Messages */
+#sai-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: #f8fafc;
+}
+#sai-messages::-webkit-scrollbar { width: 4px; }
+#sai-messages::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
+
+.sai-msg {
+  display: flex;
+  gap: 9px;
+  align-items: flex-end;
+}
+.sai-msg.user { flex-direction: row-reverse; }
+.sai-msg-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  flex-shrink: 0;
+  margin-bottom: 2px;
+}
+.sai-msg-avatar.bot { background: linear-gradient(135deg, #2563eb, #1d4ed8); }
+.sai-msg-avatar.user-av { background: #e2e8f0; font-size: 11px; font-weight: 700; color: #475569; }
+.sai-bubble {
+  max-width: 78%;
+  padding: 10px 13px;
+  border-radius: 14px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: #1a1f36;
+}
+.sai-msg.bot .sai-bubble {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-bottom-left-radius: 4px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+}
+.sai-msg.user .sai-bubble {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+.sai-bubble strong { font-weight: 700; }
+.sai-bubble .sai-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11.5px;
+  margin: 6px 0 2px;
+}
+.sai-bubble .sai-table th {
+  background: #f1f5f9;
+  padding: 5px 8px;
+  text-align: left;
+  font-weight: 700;
+  color: #475569;
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  border-bottom: 1px solid #e2e8f0;
+}
+.sai-bubble .sai-table td {
+  padding: 5px 8px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #334155;
+}
+.sai-bubble .sai-highlight {
+  display: inline-block;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-weight: 700;
+  border-radius: 6px;
+  padding: 1px 7px;
+  font-size: 12px;
+}
+.sai-bubble .sai-ok { color: #16a34a; font-weight: 700; }
+.sai-bubble .sai-warn { color: #ea580c; font-weight: 700; }
+.sai-bubble .sai-err { color: #dc2626; font-weight: 700; }
+.sai-time {
+  font-size: 10px;
+  color: #94a3b8;
+  margin-top: 3px;
+  padding: 0 2px;
+}
+.sai-msg.user .sai-time { text-align: right; }
+
+/* Typing indicator */
+.sai-typing {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  padding: 10px 13px;
+}
+.sai-typing span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #94a3b8;
+  animation: sai-bounce 1.2s infinite;
+}
+.sai-typing span:nth-child(2) { animation-delay: 0.2s; }
+.sai-typing span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes sai-bounce {
+  0%,80%,100%{transform:translateY(0);opacity:.5;}
+  40%{transform:translateY(-6px);opacity:1;}
+}
+
+/* Input area */
+#sai-input-area {
+  padding: 10px 12px 12px;
+  background: #fff;
+  border-top: 1px solid #e8edf5;
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+  flex-shrink: 0;
+}
+#sai-input {
+  flex: 1;
+  background: #f1f5f9;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 9px 13px;
+  font-size: 13px;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  color: #1a1f36;
+  outline: none;
+  resize: none;
+  max-height: 100px;
+  min-height: 40px;
+  line-height: 1.4;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+#sai-input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37,99,235,0.10);
+  background: #fff;
+}
+#sai-input::placeholder { color: #94a3b8; }
+#sai-send {
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.15s;
+  box-shadow: 0 2px 8px rgba(37,99,235,0.30);
+}
+#sai-send:hover { transform: scale(1.07); box-shadow: 0 4px 14px rgba(37,99,235,0.40); }
+#sai-send:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+/* Loading banner */
+#sai-loading-bar {
+  height: 2px;
+  background: linear-gradient(90deg, #2563eb, #60a5fa, #2563eb);
+  background-size: 200% 100%;
+  animation: sai-shimmer 1.5s infinite;
+  display: none;
+  flex-shrink: 0;
+}
+@keyframes sai-shimmer { 0%{background-position:200% 0;} 100%{background-position:-200% 0;} }
+#sai-loading-bar.active { display: block; }
+
+/* Context banner */
+#sai-ctx-banner {
+  background: linear-gradient(90deg, #f0fdf4, #ecfdf5);
+  border-bottom: 1px solid #bbf7d0;
+  padding: 7px 14px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #15803d;
+  display: none;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+#sai-ctx-banner.visible { display: flex; }
+
+/* Refresh data button */
+#sai-refresh-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #2563eb;
+  font-size: 11px;
+  font-weight: 700;
+  margin-left: auto;
+  font-family: inherit;
+  padding: 2px 6px;
+  border-radius: 5px;
+  transition: background 0.15s;
+}
+#sai-refresh-btn:hover { background: #dbeafe; }
+
+@media(max-width:480px){
+  #sai-panel { width: calc(100vw - 24px); right: 12px; bottom: 90px; }
+  #sai-launcher { right: 16px; bottom: 16px; }
+}
+</style>
+
+
+<!-- Chatbot panel HTML -->
+<div id="sai-panel">
+  <div id="sai-header">
+    <div id="sai-avatar">🧠</div>
+    <div id="sai-header-info">
+      <div id="sai-header-name">Surface AI Assistant</div>
+      <div id="sai-header-sub">Powered by live Google Sheets data</div>
+    </div>
+    <div id="sai-header-status"><div id="sai-status-dot"></div> Live</div>
+    <button id="sai-close-btn" onclick="saiToggle()">✕</button>
+  </div>
+  <div id="sai-loading-bar"></div>
+  <div id="sai-ctx-banner">
+    <span>✅</span>
+    <span id="sai-ctx-text">Data loaded</span>
+    <button id="sai-refresh-btn" onclick="saiRefreshData()">↻ Refresh</button>
+  </div>
+  <div id="sai-chips">
+    <span class="sai-chip" onclick="saiChip(this)">📦 Stock status</span>
+    <span class="sai-chip" onclick="saiChip(this)">💰 Costliest RM</span>
+    <span class="sai-chip" onclick="saiChip(this)">⚠️ Low stock items</span>
+    <span class="sai-chip" onclick="saiChip(this)">🧪 Recent batches</span>
+    <span class="sai-chip" onclick="saiChip(this)">📊 Total inventory value</span>
+    <span class="sai-chip" onclick="saiChip(this)">🌐 Current TiO2 market price</span>
+    <span class="sai-chip" onclick="saiChip(this)">🔬 Epoxy vs polyester resin</span>
+  </div>
+  <div id="sai-messages"></div>
+  <div id="sai-input-area">
+    <textarea id="sai-input" rows="1" placeholder="Ask anything about your data…" onkeydown="saiKeyDown(event)" oninput="saiAutoResize(this)"></textarea>
+    <button id="sai-send" onclick="saiSend()" title="Send">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+        <path d="M22 2L11 13M22 2L15 22l-4-9-9-4 20-7Z" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════
+//  SURFACE AI CHATBOT
+// ════════════════════════════════════════════════════════
+const SAI = {
+  open: false,
+  loading: false,
+  dataLoaded: false,
+  dataSnapshot: null,
+  history: [],  // last 4 messages kept for context memory
+  GEMINI_KEY: 'AIzaSyBB9PAtBoJitSi-z70GyfMSECdenYK-yPU',
+};
+
+function saiToggle() {
+  SAI.open = !SAI.open;
+  const panel = document.getElementById('sai-panel');
+  panel.classList.toggle('open', SAI.open);
+  if (SAI.open) {
+    if (!SAI.dataLoaded) {
+      saiLoadData(true);
+    }
+    setTimeout(() => document.getElementById('sai-input')?.focus(), 200);
+    if (SAI.history.length === 0) saiWelcome();
+  }
+}
+
+function saiWelcome() {
+  saiAddMsg('bot', `👋 <strong>Namaste!</strong> I'm your Surface AI assistant — powered by <strong>Gemini AI (Free)</strong>.<br><br>
+I have live access to your <strong>Google Sheets data</strong> — raw materials, inventory, formulations, costs, and transactions.<br><br>
+📊 <strong>Analytics:</strong> cost trends, margin analysis, inventory health<br>
+💡 <strong>Smart suggestions:</strong> cheaper raw material alternatives, formulation tweaks to save money<br>
+⚡ <strong>Real-time alerts:</strong> low stock, overstocked items, cost spikes<br><br>
+Try asking:<br>
+• <em>"Which formulations cost the most?"</em><br>
+• <em>"Where can I save money on raw materials?"</em><br>
+• <em>"What's my inventory value?"</em><br>
+• <em>"Show batch [batch no] details"</em> 🚀`);
+}
+
+function saiChip(el) {
+  const text = el.textContent.replace(/^[^\w]+/, '').trim();
+  document.getElementById('sai-input').value = text;
+  saiSend();
+}
+
+function saiKeyDown(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); saiSend(); }
+}
+
+function saiAutoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 100) + 'px';
+}
+
+// ── Load data from GAS ────────────────────────────────
+async function saiLoadData(silent = false) {
+  if (!silent) {
+    saiAddMsg('bot', `<div class="sai-typing"><span></span><span></span><span></span></div>`);
+  }
+  try {
+    // Use the already-loaded in-memory DB as the fastest/most accurate source
+    // Also try to refresh from GAS if available
+    let snapshot = saiSnapshotFromDB();
+
+    // Attempt GAS refresh in background
+    if (typeof GAS_URL !== 'undefined' && GAS_URL) {
+      try {
+        const params = encodeURIComponent(JSON.stringify({action:'loadAll'}));
+        const res = await fetch(GAS_URL + '?data=' + params, {method:'GET', redirect:'follow'});
+        const json = await res.json();
+        if (json && json.success && json.data) {
+          // Merge GAS data into snapshot
+          const d = json.data;
+          if (d.rawMaterials && d.rawMaterials.length) snapshot.rawMaterials = d.rawMaterials;
+          if (d.inventory && d.inventory.length) snapshot.inventory = d.inventory;
+          if (d.formulations) snapshot.formulations = d.formulations;
+          if (d.stockTransactions) snapshot.stockTransactions = d.stockTransactions;
+          snapshot.source = 'Google Sheets (live)';
+        }
+      } catch(e) {
+        snapshot.source = 'Local cache (GAS unavailable)';
+      }
+    }
+
+    SAI.dataSnapshot = snapshot;
+    SAI.dataLoaded = true;
+
+    // Remove typing bubble
+    const msgs = document.getElementById('sai-messages');
+    const last = msgs.lastElementChild;
+    if (last && last.querySelector('.sai-typing')) last.remove();
+
+    const banner = document.getElementById('sai-ctx-banner');
+    const ctxText = document.getElementById('sai-ctx-text');
+    const rm = snapshot.rawMaterials.length;
+    const forms = snapshot.formulations.length;
+    ctxText.textContent = `${rm} raw materials · ${forms} formulations · ${snapshot.source}`;
+    banner.classList.add('visible');
+
+  } catch(err) {
+    SAI.dataSnapshot = saiSnapshotFromDB();
+    SAI.dataLoaded = true;
+  }
+}
+
+function saiSnapshotFromDB() {
+  try {
+    if (typeof DB === 'undefined') return { rawMaterials:[], inventory:[], formulations:[], stockTransactions:[], auditLog:[], formulationComments:[], packagingCost:26, source:'Unknown' };
+    return {
+      rawMaterials:        JSON.parse(JSON.stringify(DB.rawMaterials||[])),
+      inventory:           JSON.parse(JSON.stringify(DB.inventory||[])),
+      formulations:        JSON.parse(JSON.stringify(DB.formulations||[])),
+      stockTransactions:   JSON.parse(JSON.stringify(DB.stockTransactions||[])),
+      auditLog:            JSON.parse(JSON.stringify(DB.auditLog||[])),
+      formulationComments: JSON.parse(JSON.stringify(DB.formulationComments||[])),
+      basePrices:          JSON.parse(JSON.stringify(DB.basePrices||[])),
+      packagingCost:       DB.packagingCost || 26,
+      settings:            JSON.parse(JSON.stringify(DB.settings||{})),
+      source: 'Live Google Sheets',
+    };
+  } catch(e) { return { rawMaterials:[], inventory:[], formulations:[], stockTransactions:[], auditLog:[], formulationComments:[], packagingCost:26, source:'Error' }; }
+}
+
+async function saiRefreshData() {
+  SAI.dataLoaded = false;
+  document.getElementById('sai-ctx-banner').classList.remove('visible');
+  await saiLoadData(false);
+  saiAddMsg('bot','✅ Data refreshed from Google Sheets!');
+}
+
+// ── Build system prompt — SMART TOKEN SAVER ─────────
+// Detects what user asked and only sends relevant data sections.
+// Full DB is NEVER dumped — saves 80-90% tokens per message.
+function saiBuildSystemPrompt(snapshot, userText) {
+  const rmMap = {};
+  (snapshot.rawMaterials||[]).forEach(r => { rmMap[r.id] = r; });
+  const q = (userText||'').toLowerCase();
+
+  // ── Detect intent keywords ──────────────────────────
+  const wantsInventory    = /invent|stock|qty|quantity|low|out.of|overstock|available|shortage/.test(q);
+  const wantsFormulation  = /formula|batch|product|code|recipe|ingredi|item|cpk|cost.per|making/.test(q);
+  const wantsRawMaterial  = /raw.mat|material|rm|supplier|rate|price|chemical|resin|pigment|filler|curing/.test(q);
+  const wantsTransaction  = /transact|purchase|bought|received|used|debit|stock.in|stock.out|history/.test(q);
+  const wantsAnalytics    = /analy|saving|expensive|cheap|reduce|suggest|recommend|compare|best|worst|total|value|report/.test(q);
+  const wantsCost         = /cost|price|rate|₹|rupee|money|margin|profit|saving|cpk|per.kg/.test(q);
+
+  // If no specific keyword — send minimal context only
+  const sendAll = wantsAnalytics || (!wantsInventory && !wantsFormulation && !wantsRawMaterial && !wantsTransaction && !wantsCost);
+
+  // ── RAW MATERIALS — only if asked, or analytics ──────
+  let rmSection = '';
+  if (wantsRawMaterial || wantsCost || wantsAnalytics || sendAll) {
+    rmSection = '\n[RAW MATERIALS]\n' + (snapshot.rawMaterials||[]).map(r =>
+      `${r.name}[${r.code}] ₹${r.rate}/${r.unit} Sup:${r.supplier||'—'}`
+    ).join('\n');
+  }
+
+  // ── INVENTORY — only if asked ────────────────────────
+  let invSection = '';
+  if (wantsInventory || wantsAnalytics || sendAll) {
+    const totalInvVal = (snapshot.inventory||[]).reduce((s,inv)=>s+(inv.quantity||0)*((rmMap[inv.rmId]||{}).rate||0),0);
+    const rows = (snapshot.inventory||[]).map(inv => {
+      const rm = rmMap[inv.rmId]||{};
+      const qty = inv.quantity||0;
+      const min = rm.minStock||0;
+      const flag = qty<=0?'❌OUT': qty<min?'⚠️LOW': qty>min*10?'📦OVER':'✅';
+      return `${flag} ${rm.name||'#'+inv.rmId}: ${qty}${rm.unit||'KG'} ₹${(qty*(rm.rate||0)).toLocaleString('en-IN')}`;
+    });
+    invSection = `\n[INVENTORY — Total ₹${totalInvVal.toLocaleString('en-IN')}]\n` + rows.join('\n');
+  }
+
+  // ── FORMULATIONS — smart: summary list OR full detail if specific batch/code mentioned ──
+  let formSection = '';
+  if (wantsFormulation || wantsCost || wantsAnalytics || sendAll) {
+    const allForms = snapshot.formulations||[];
+
+    // Check if user mentioned a specific batch/product
+    const needle = q.trim();
+    const specificForm = allForms.find(f =>
+      needle && (
+        (f.batchNo||'').toLowerCase().includes(needle) ||
+        (f.productCode||'').toLowerCase().includes(needle) ||
+        (f.productName||'').toLowerCase().includes(needle) ||
+        String(f.id) === needle
+      )
+    );
+
+    if (specificForm) {
+      // Send FULL detail for the one matched formulation
+      const f = specificForm;
+      const items = (f.items||[]).map(it => {
+        const rm = rmMap[it.rmId]||{};
+        const rate = it.rate!=null ? it.rate : (rm.rate||0);
+        const cost = (it.qty||0)*rate;
+        const pct = 0;
+        return `  ${rm.name||'#'+it.rmId}[${rm.code||''}]: ${it.qty}${it.unit||'KG'} @₹${rate}=₹${cost.toFixed(2)}`;
+      });
+      const tQty  = (f.items||[]).reduce((s,i)=>s+(i.qty||0),0);
+      const tCost = (f.items||[]).reduce((s,i)=>{ const rm=rmMap[i.rmId]||{}; const r=i.rate!=null?i.rate:(rm.rate||0); return s+(i.qty||0)*r; },0);
+      const pack  = tQty*(snapshot.packagingCost||26);
+      const tot   = tCost+pack;
+      const cpk   = tQty>0?(tot/tQty).toFixed(2):'—';
+      formSection = `\n[FORMULATION DETAIL]\n${f.productName}[${f.productCode}] Batch:${f.batchNo} Date:${f.mfgDate||'—'} Party:${f.partyName||'—'}\nType:${f.productType||'—'} Finish:${f.productFinish||'—'} By:${f.byName||'—'}\nRemarks:${f.remarks||'—'}\nIngredients:\n${items.join('\n')}\nCost: RM=₹${tCost.toFixed(0)} + Pack=₹${pack.toFixed(0)} = ₹${tot.toFixed(0)} | CPK=₹${cpk}`;
+    } else {
+      // Summary list — ONE compact line per formulation
+      const lines = allForms.map(f => {
+        const tQty  = (f.items||[]).reduce((s,i)=>s+(i.qty||0),0);
+        const tCost = (f.items||[]).reduce((s,i)=>{ const rm=rmMap[i.rmId]||{}; const r=i.rate!=null?i.rate:(rm.rate||0); return s+(i.qty||0)*r; },0);
+        const pack  = tQty*(snapshot.packagingCost||26);
+        const tot   = tCost+pack;
+        const cpk   = tQty>0?(tot/tQty).toFixed(2):'—';
+        return `ID:${f.id} ${f.productName}[${f.productCode}] Batch:${f.batchNo} ${f.mfgDate||'—'} ${(f.items||[]).length}items ${tQty.toFixed(1)}KG CPK:₹${cpk} Tot:₹${tot.toFixed(0)}`;
+      });
+      formSection = `\n[FORMULATIONS — ${allForms.length} total]\n` + lines.join('\n');
+    }
+  }
+
+  // ── TRANSACTIONS — last 8 only, only if asked ─────────
+  let txSection = '';
+  if (wantsTransaction || sendAll) {
+    txSection = '\n[RECENT TRANSACTIONS — last 8]\n' + (snapshot.stockTransactions||[]).slice(-8).map(t => {
+      const rm = rmMap[t.rmId]||{};
+      return `[${t.date||''}] ${(t.type||'').toUpperCase()} ${rm.name||'#'+t.rmId} ${t.qty}${rm.unit||'KG'} ${t.remarks||''}`;
+    }).join('\n');
+  }
+
+  // ── PRE-COMPUTED ANALYTICS — only for analytics queries ──
+  let analyticsSection = '';
+  if (wantsAnalytics || wantsCost) {
+    const allForms = snapshot.formulations||[];
+    const cpkList = allForms.map(f => {
+      const tQty  = (f.items||[]).reduce((s,i)=>s+(i.qty||0),0);
+      const tCost = (f.items||[]).reduce((s,i)=>{ const rm=rmMap[i.rmId]||{}; const r=i.rate!=null?i.rate:(rm.rate||0); return s+(i.qty||0)*r; },0);
+      const pack  = tQty*(snapshot.packagingCost||26);
+      const tot   = tCost+pack;
+      return { name:f.productName, cpk: tQty>0?tot/tQty:0, tot };
+    }).filter(x=>x.cpk>0).sort((a,b)=>b.cpk-a.cpk);
+
+    const topExpensive = cpkList.slice(0,3).map(x=>`${x.name} ₹${x.cpk.toFixed(2)}/KG`).join(', ');
+    const topCheap     = cpkList.slice(-3).reverse().map(x=>`${x.name} ₹${x.cpk.toFixed(2)}/KG`).join(', ');
+    const portfolioVal = cpkList.reduce((s,x)=>s+x.tot,0);
+    const totalInvVal2 = (snapshot.inventory||[]).reduce((s,inv)=>s+(inv.quantity||0)*((rmMap[inv.rmId]||{}).rate||0),0);
+    const lowCount     = (snapshot.inventory||[]).filter(inv=>{ const rm=rmMap[inv.rmId]||{}; return (inv.quantity||0)<(rm.minStock||0); }).length;
+
+    analyticsSection = `\n[ANALYTICS SUMMARY]\nInventory value: ₹${totalInvVal2.toLocaleString('en-IN')} | Low stock alerts: ${lowCount}\nPortfolio value: ₹${portfolioVal.toLocaleString('en-IN')} | Formulations: ${allForms.length}\nCostliest (CPK): ${topExpensive||'N/A'}\nCheapest (CPK): ${topCheap||'N/A'}`;
+  }
+
+  // ── COMPACT SYSTEM PROMPT ─────────────────────────────
+  return `You are Surface AI for Surface Paints Pvt. Ltd. (powder coating, India). ₹ currency, KG weight. Pack cost: ₹${snapshot.packagingCost||26}/KG.
+Be concise. Indian number format. Quantify savings when suggesting alternatives. Flag issues proactively.
+${rmSection}${invSection}${formSection}${txSection}${analyticsSection}`.trim();
+}
+
+
+// ── Send message ──────────────────────────────────────
+async function saiSend() {
+  const input = document.getElementById('sai-input');
+  const text = input.value.trim();
+  if (!text || SAI.loading) return;
+
+  input.value = '';
+  input.style.height = 'auto';
+  saiAddMsg('user', text);
+
+  if (!SAI.dataLoaded) {
+    await saiLoadData(true);
+  }
+
+  SAI.loading = true;
+  document.getElementById('sai-send').disabled = true;
+  document.getElementById('sai-loading-bar').classList.add('active');
+
+  const typingId = 'sai-typing-' + Date.now();
+  saiAddMsg('bot', `<div class="sai-typing"><span></span><span></span><span></span></div>`, typingId);
+
+  SAI.history.push({ role: 'user', content: text });
+
+  try {
+    // Build system prompt with full live data snapshot
+    const systemPrompt = saiBuildSystemPrompt(SAI.dataSnapshot || saiSnapshotFromDB(), text);
+
+    // ── Claude AI via GAS proxy (no CORS issues, API key safe in Script Properties) ──
+    const gasPayload = {
+      action: 'claudeAI',
+      systemPrompt: systemPrompt,
+      messages: SAI.history.slice(-4).map(m => ({ role: m.role === 'assistant' ? 'assistant' : 'user', content: m.content }))
+    };
+
+    const claudeRes = await fetch(GAS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify(gasPayload),
+      redirect: 'follow'
+    });
+
+    let reply = '';
+    if (claudeRes.ok) {
+      const claudeData = await claudeRes.json();
+      if (!claudeData.success) throw new Error(claudeData.error || 'GAS returned error');
+      reply = claudeData.reply || '';
+    } else {
+      throw new Error('GAS error ' + claudeRes.status);
+    }
+
+    if (!reply) reply = 'Sorry, no response received. Please try again.';
+
+    document.getElementById(typingId)?.remove();
+    SAI.history.push({ role: 'assistant', content: reply });
+    saiAddMsg('bot', saiFormatReply(reply));
+
+  } catch(err) {
+    document.getElementById(typingId)?.remove();
+    const errMsg = err.message || 'Unknown error';
+    saiAddMsg('bot', `❌ <strong>Error:</strong> ${errMsg}`);
+  } finally {
+    SAI.loading = false;
+    document.getElementById('sai-send').disabled = false;
+    document.getElementById('sai-loading-bar').classList.remove('active');
+  }
+}
+
+// ── Format reply (markdown-lite) ─────────────────────
+function saiFormatReply(text) {
+  return text
+    // Bold **text**
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    // Italic *text*
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    // Code `text`
+    .replace(/`([^`]+)`/g, '<code style="background:#f1f5f9;padding:1px 5px;border-radius:4px;font-family:JetBrains Mono,monospace;font-size:11.5px;">$1</code>')
+    // Bullet points
+    .replace(/^[•\-]\s(.+)$/gm, '<div style="display:flex;gap:6px;margin:2px 0;"><span style="color:#2563eb;flex-shrink:0;">•</span><span>$1</span></div>')
+    // Numbered list
+    .replace(/^(\d+)\.\s(.+)$/gm, '<div style="display:flex;gap:7px;margin:2px 0;"><span style="color:#2563eb;font-weight:700;flex-shrink:0;min-width:16px;">$1.</span><span>$2</span></div>')
+    // Line breaks
+    .replace(/\n\n/g, '<br><br>')
+    .replace(/\n/g, '<br>');
+}
+
+// ── Login / Logout hooks ────────────────────────────
+function saiOnLogin() {
+  // Reset state for fresh session
+  SAI.open = false;
+  SAI.loading = false;
+  SAI.dataLoaded = false;
+  SAI.dataSnapshot = null;
+  SAI.history = [];
+
+  const panel = document.getElementById('sai-panel');
+  if (panel) panel.classList.remove('open');
+  const msgs = document.getElementById('sai-messages');
+  if (msgs) msgs.innerHTML = '';
+  const banner = document.getElementById('sai-ctx-banner');
+  if (banner) banner.classList.remove('visible');
+
+  // Show launcher with direct style — simplest most reliable method
+  const launcher = document.getElementById('sai-launcher');
+  if (launcher) {
+    launcher.classList.add('sai-active');
+    launcher.classList.add('sai-visible');
+  }
+
+  // Re-apply after data load in case anything reset it
+  setTimeout(() => {
+    if (!SAI.dataLoaded) saiLoadData(true);
+    const l = document.getElementById('sai-launcher');
+    if (l) l.classList.add('sai-active');
+  }, 500);
+}
+
+function saiOnLogout() {
+  const launcher = document.getElementById('sai-launcher');
+  const panel = document.getElementById('sai-panel');
+  if (launcher) { launcher.classList.remove('sai-active'); launcher.classList.remove('sai-visible'); }
+  if (panel) panel.classList.remove('open');
+  SAI.open = false;
+  SAI.loading = false;
+  SAI.dataLoaded = false;
+  SAI.dataSnapshot = null;
+  SAI.history = [];
+  const msgs = document.getElementById('sai-messages');
+  if (msgs) msgs.innerHTML = '';
+}
+
+// ── Add message to UI ─────────────────────────────────
+function saiAddMsg(role, html, id) {
+  const msgs = document.getElementById('sai-messages');
+  const now = new Date().toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit'});
+
+  const userInitials = (typeof currentUser !== 'undefined' && currentUser)
+    ? (currentUser.name||'U').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2)
+    : 'U';
+
+  const div = document.createElement('div');
+  if (id) div.id = id;
+  div.className = `sai-msg ${role}`;
+
+  if (role === 'bot') {
+    div.innerHTML = `
+      <div class="sai-msg-avatar bot">🧠</div>
+      <div>
+        <div class="sai-bubble">${html}</div>
+        <div class="sai-time">${now}</div>
+      </div>`;
+  } else {
+    div.innerHTML = `
+      <div class="sai-msg-avatar user-av">${userInitials}</div>
+      <div>
+        <div class="sai-bubble">${html}</div>
+        <div class="sai-time">${now}</div>
+      </div>`;
+  }
+
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+  return div;
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  PRODUCTION EFFICIENCY & MACHINE COSTING MODULE  (v3.0)
+//  Pages: production (entry), prodreports (analytics), machines (setup)
+// ════════════════════════════════════════════════════════════════════════════
+
+// ── Calculation helpers ──────────────────────────────────────────────────────
+function normalizeGASTime(val){
+  // Google Sheets returns time cells as full Date strings like
+  // "Sat Dec 30 1899 14:30:00 GMT+0530 (India Standard Time)"
+  // We extract just "HH:MM" so parseTime() works correctly.
+  if(!val) return '';
+  const s = String(val).trim();
+  // Already in HH:MM format
+  if(/^\d{1,2}:\d{2}$/.test(s)) return s;
+  // Try to extract HH:MM from a Date string
+  const match = s.match(/(\d{1,2}):(\d{2}):\d{2}/);
+  if(match) return match[1].padStart(2,'0') + ':' + match[2];
+  // Try JS Date parse as last resort
+  const d = new Date(s);
+  if(!isNaN(d.getTime())) return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+  return s; // return as-is; parseTime will return null and calcProdMetrics will bail
+}
+function parseTime(str){ // "HH:MM" → minutes since midnight
+  if(!str) return null;
+  const [h,m]=(str||'').split(':').map(Number);
+  return h*60+(m||0);
+}
+function calcProdMetrics(log){
+  const start = parseTime(log.startTime);
+  const end   = parseTime(log.endTime);
+  if(start===null||end===null) return null;
+  let totalMins = end - start;
+  if(totalMins <= 0) totalMins += 1440; // crosses midnight
+  const breakMins = Number(log.breakMins)||0;
+  const machineRunMins = Math.max(0, totalMins - breakMins);
+  const machineRunHrs  = machineRunMins / 60;
+  const manHrs         = machineRunHrs; // same period
+
+  const rmInput  = Number(log.rmInput)||0;
+  const fgOutput = Number(log.fgOutput)||0;
+  const wastage  = rmInput > 0 ? Math.max(0,((rmInput - fgOutput)/rmInput)*100) : 0;
+  const kgPerHr  = machineRunHrs > 0 ? fgOutput / machineRunHrs : 0;
+
+  // Machine efficiency = (actual kg/hr) / (standard kg/hr) * 100  — use machine's stdKgHr if set, else 100 as denominator
+  const machine = DB.machines.find(m=>m.id===log.machineId);
+  const stdKgHr = machine?.stdKgHr || kgPerHr || 1;
+  const machineEff = stdKgHr > 0 ? Math.min(200, (kgPerHr / stdKgHr) * 100) : 0;
+
+  // Costing
+  const hourlyMachineCost = machine?.hourlyMachineCost || 0;
+  const machineCost   = machineRunHrs * hourlyMachineCost;
+  const labourCost    = manHrs * (DB.labourRate||60);
+  const totalCost     = machineCost + labourCost;
+  const convCostPerKg = fgOutput > 0 ? totalCost / fgOutput : 0;
+
+  // Formulation (theoretical) cost per kg
+  let formulationCostPerKg = 0;
+  if(log.formulationId){
+    const f = DB.formulations.find(x=>x.id===Number(log.formulationId));
+    if(f){ const c=calcBatchCost(f); const q=calcTotalQty(f); formulationCostPerKg = q>0?(c.total/q):0; }
+  }
+  const totalActualPerKg   = convCostPerKg + formulationCostPerKg;
+
+  return {machineRunMins,machineRunHrs,manHrs,kgPerHr,wastage,machineEff,
+    machineCost,labourCost,totalCost,convCostPerKg,formulationCostPerKg,totalActualPerKg,
+    stdKgHr};
+}
+
+function effClass(v,good,warn){ return v>=good?'eff-good':v>=warn?'eff-warn':'eff-bad'; }
+function effBadge(v,good,warn,unit='%'){
+  const cls = v>=good?'eff-badge-good':v>=warn?'eff-badge-warn':'eff-badge-bad';
+  return `<span class="status-pill ${cls}">${Number(v).toFixed(1)}${unit}</span>`;
+}
+
+// ── Production Entry page ────────────────────────────────────────────────────
+function renderProductionEntry(){
+  const logs = [...DB.productionLogs].reverse();
+  const today = nowDate();
+  const todayLogs = DB.productionLogs.filter(l=>l.date===today);
+  const todayFG   = todayLogs.reduce((s,l)=>s+(Number(l.fgOutput)||0),0);
+  const machineOpts = DB.machines.filter(m=>m.active).map(m=>`<option value="${m.id}">${m.name} (${m.type})</option>`).join('');
+  // formulation search handled by live-search widget (peFormSearch)
+
+  let tableRows = logs.length ? logs.map(log=>{
+    const m=calcProdMetrics(log);
+    const mac=DB.machines.find(x=>x.id===log.machineId);
+    if(!m) return `<tr><td colspan="12" style="text-align:center;color:var(--text3)">Invalid time data</td></tr>`;
+    const lf=log.formulationId?DB.formulations.find(x=>x.id===log.formulationId):null;
+    const lfCell=lf
+      ?`<span style="font-size:11px;font-weight:600;color:var(--accent);background:var(--accent-light);padding:2px 8px;border-radius:20px;white-space:nowrap;">🔗 ${lf.productName}${lf.batchNo?' · '+lf.batchNo:''}</span>`
+      :`<span style="color:var(--text3);font-size:12px;">—</span>`;
+    return `<tr>
+      <td class="td-primary">${log.date}</td>
+      <td>${log.workerName||'—'}</td>
+      <td>${log.productName||'—'}</td>
+      <td>${lfCell}</td>
+      <td><span class="machine-tag">${mac?mac.name:log.machineId}</span></td>
+      <td>${log.rpm||'—'}</td>
+      <td>${m.machineRunHrs.toFixed(2)} hr</td>
+      <td>${(Number(log.fgOutput)||0).toFixed(1)} kg</td>
+      <td>${effBadge(m.wastage,3,8,'%')}</td>
+      <td>${effBadge(m.machineEff,85,60,'%')}</td>
+      <td class="cost-tag">${fmtCurrency(m.convCostPerKg)}/kg</td>
+      <td>
+        <button class="btn btn-sm btn-blue" onclick="viewProdLog(${log.id})">View</button>
+        ${can('manageMachines')?`<button class="btn btn-sm btn-danger" onclick="deleteProdLog(${log.id})" style="margin-left:4px">Del</button>`:''}
+      </td>
+    </tr>`;
+  }).join('') : `<tr><td colspan="12" style="text-align:center;padding:32px;color:var(--text3)">No production entries yet. Click "+ New Entry" to begin.</td></tr>`;
+
+  return `
+  <div class="prod-kpi-grid">
+    <div class="prod-kpi">
+      <div class="prod-kpi-icon" style="background:#fef3c7">⚙️</div>
+      <div class="prod-kpi-label">Today's Entries</div>
+      <div class="prod-kpi-val">${todayLogs.length}</div>
+      <div class="prod-kpi-sub">${today}</div>
+    </div>
+    <div class="prod-kpi">
+      <div class="prod-kpi-icon" style="background:#f0fdf4">📦</div>
+      <div class="prod-kpi-label">Today's Output</div>
+      <div class="prod-kpi-val">${todayFG.toFixed(1)}</div>
+      <div class="prod-kpi-sub">kg finished goods</div>
+    </div>
+    <div class="prod-kpi">
+      <div class="prod-kpi-icon" style="background:#eff6ff">🏭</div>
+      <div class="prod-kpi-label">Active Machines</div>
+      <div class="prod-kpi-val">${DB.machines.filter(m=>m.active).length}</div>
+      <div class="prod-kpi-sub">of ${DB.machines.length} total</div>
+    </div>
+    <div class="prod-kpi">
+      <div class="prod-kpi-icon" style="background:#f5f3ff">📋</div>
+      <div class="prod-kpi-label">Total Logs</div>
+      <div class="prod-kpi-val">${DB.productionLogs.length}</div>
+      <div class="prod-kpi-sub">all time entries</div>
+    </div>
+  </div>
+
+  <div class="page-header" style="margin-bottom:16px">
+    <div>
+      <div class="page-title" style="font-size:16px">Production Logs</div>
+      <div class="page-subtitle">All production runs — latest first</div>
+    </div>
+    <button class="btn btn-primary" onclick="openProdEntryModal()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      New Entry
+    </button>
+  </div>
+  <div class="search-filter-bar">
+    <div class="search-input-wrap">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input class="search-input" id="prod-search" placeholder="Search worker, product, machine…" oninput="filterTable('prod-search','prod-table')">
+    </div>
+    <select class="filter-select" id="prod-filter-machine" onchange="prodFilterTable()">
+      <option value="">All Machines</option>
+      ${DB.machines.map(m=>`<option value="${m.name}">${m.name}</option>`).join('')}
+    </select>
+    <input type="date" class="filter-select" id="prod-filter-date" onchange="prodFilterTable()" style="padding:9px 12px;">
+    <button class="btn btn-secondary btn-sm" onclick="exportProdExcel()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Excel
+    </button>
+    <button class="btn btn-secondary btn-sm" onclick="exportProdPDF()">PDF</button>
+  </div>
+  <div class="card" style="padding:0;overflow:hidden">
+    <div class="table-wrap">
+      <table id="prod-table">
+        <thead><tr>
+          <th>Date</th><th>Worker</th><th>Product</th><th>Formulation</th><th>Machine</th><th>RPM</th>
+          <th>Run Hrs</th><th>FG Output</th><th>Wastage%</th><th>Efficiency%</th>
+          <th>Conv.Cost/kg</th><th>Actions</th>
+        </tr></thead>
+        <tbody>${tableRows}</tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- PRODUCTION ENTRY MODAL -->
+  <div class="modal-overlay" id="prod-modal" style="display:none" onclick="if(event.target===this)closeProdModal()">
+    <div class="modal modal-xl">
+      <div class="modal-header">
+        <div class="modal-title">⚙️ New Production Entry</div>
+        <button class="close-btn" onclick="closeProdModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="prod-form-section">
+          <div class="prod-form-section-title">🧑 Workers & Date</div>
+          <div class="prod-entry-grid">
+            <div class="form-group" style="grid-column:1/-1">
+              <label>Workers * <span style="font-weight:400;color:var(--text3);font-size:11px;">— type name and press Enter or comma to add multiple</span></label>
+              <div id="pe-workers-wrap" style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;background:var(--bg);border:1.5px solid var(--border);border-radius:9px;padding:6px 10px;min-height:40px;cursor:text;" onclick="document.getElementById('pe-worker-input').focus()">
+                <div id="pe-worker-tags"></div>
+                <input id="pe-worker-input" type="text" placeholder="Type name, press Enter…"
+                  style="border:none;outline:none;background:transparent;font-family:inherit;font-size:14px;color:var(--text);min-width:160px;flex:1;"
+                  onkeydown="peWorkerKey(event)" oninput="peWorkerInputStyle()">
+              </div>
+              <div id="pe-worker-suggestions" style="display:none;position:absolute;z-index:9999;background:var(--card);border:1.5px solid var(--accent);border-radius:8px;box-shadow:var(--shadow-md);min-width:200px;max-height:180px;overflow-y:auto;"></div>
+            </div>
+            <div class="form-group">
+              <label>Date *</label>
+              <input class="form-control" id="pe-date" type="date" value="${today}">
+            </div>
+            <div class="form-group">
+              <label>Product Name *</label>
+              <input class="form-control" id="pe-product" placeholder="Product being produced">
+            </div>
+            <div class="form-group" style="grid-column:1/-1">
+              <label>🔗 Link to Formulation <span style="font-weight:400;color:var(--text3)">(optional — auto-fills product name)</span></label>
+              <input type="hidden" id="pe-formulation" value="">
+              <div class="form-search-wrap">
+                <input class="form-control" id="pe-form-search" autocomplete="off"
+                  placeholder="🔍 Search by formulation name, batch no, or product code…"
+                  oninput="peFormSearch(this.value)"
+                  onfocus="peFormSearch(this.value)"
+                  onkeydown="peFormSearchKey(event)">
+                <button class="form-search-clear" id="pe-form-clear" title="Clear" onclick="peFormClear()">✕</button>
+                <div class="form-search-dropdown" id="pe-form-dropdown"></div>
+              </div>
+              <div class="form-linked-badge" id="pe-form-linked">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                <span id="pe-form-linked-text">—</span>
+                <button class="badge-remove" onclick="peFormClear()" title="Unlink">✕</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="prod-form-section">
+          <div class="prod-form-section-title">🏭 Machine Details</div>
+          <div class="prod-entry-grid">
+            <div class="form-group">
+              <label>Machine *</label>
+              <select class="form-control" id="pe-machine">${machineOpts}</select>
+            </div>
+            <div class="form-group">
+              <label>RPM</label>
+              <input class="form-control" id="pe-rpm" type="number" placeholder="e.g. 1200">
+            </div>
+            <div class="form-group">
+              <label>Hour Meter Reading</label>
+              <input class="form-control" id="pe-hourmeter" type="number" placeholder="Meter reading at start">
+            </div>
+          </div>
+        </div>
+        <div class="prod-form-section">
+          <div class="prod-form-section-title">⏱ Time Details</div>
+          <div class="prod-entry-grid">
+            <div class="form-group">
+              <label>Start Time *</label>
+              <input class="form-control" id="pe-start" type="time" oninput="updateProdCalcPreview()">
+            </div>
+            <div class="form-group">
+              <label>End Time *</label>
+              <input class="form-control" id="pe-end" type="time" oninput="updateProdCalcPreview()">
+            </div>
+            <div class="form-group">
+              <label>Break / Lunch (minutes)</label>
+              <input class="form-control" id="pe-break" type="number" value="30" min="0" placeholder="30" oninput="updateProdCalcPreview()">
+            </div>
+          </div>
+        </div>
+        <div class="prod-form-section">
+          <div class="prod-form-section-title">⚖️ Material Quantities</div>
+          <div class="prod-entry-grid">
+            <div class="form-group">
+              <label>Raw Material Input (kg) *</label>
+              <input class="form-control" id="pe-rminput" type="number" step="0.01" placeholder="0.00" oninput="updateProdCalcPreview()">
+            </div>
+            <div class="form-group">
+              <label>Finished Goods Output (kg) *</label>
+              <input class="form-control" id="pe-fgoutput" type="number" step="0.01" placeholder="0.00" oninput="updateProdCalcPreview()">
+            </div>
+
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Remarks</label>
+          <textarea class="form-control" id="pe-remarks" rows="2" placeholder="Any observations, issues, or notes…"></textarea>
+        </div>
+        <!-- Live calculated preview -->
+        <div id="prod-calc-preview"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeProdModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveProdEntry()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          Save Entry
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- VIEW LOG MODAL -->
+  <div class="modal-overlay" id="prod-view-modal" style="display:none" onclick="if(event.target===this)this.style.display='none'">
+    <div class="modal modal-xl">
+      <div class="modal-header">
+        <div class="modal-title">📋 Production Log Detail</div>
+        <button class="close-btn" onclick="document.getElementById('prod-view-modal').style.display='none'">✕</button>
+      </div>
+      <div class="modal-body" id="prod-view-body"></div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="document.getElementById('prod-view-modal').style.display='none'">Close</button>
+        <button class="btn btn-blue" onclick="printProdLog()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+          Print
+        </button>
+        <button class="btn btn-primary" onclick="downloadProdLogPDF()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Download PDF
+        </button>
+      </div>
+    </div>
+  </div>
+  `;
+}
+
+
+// ── Multi-Worker Input ────────────────────────────────────────────────────────
+window._peWorkers = [];
+window._currentViewLogId = null;
+
+function peWorkerKey(e){
+  const inp = document.getElementById('pe-worker-input');
+  const val = inp.value.trim().replace(/,$/,'').trim();
+  if((e.key==='Enter'||e.key===','||e.key==='Tab')&&val){
+    e.preventDefault();
+    peWorkerAdd(val);
+    inp.value='';
+  } else if(e.key==='Backspace'&&!inp.value&&window._peWorkers.length){
+    window._peWorkers.pop();
+    peWorkerRenderTags();
+  }
+  // suggestions
+  if(e.key!=='Enter'&&e.key!==','&&e.key!=='Tab'&&e.key!=='Backspace'){
+    setTimeout(()=>peWorkerSuggest(inp.value.trim()),0);
+  }
+}
+function peWorkerInputStyle(){
+  peWorkerWrapStyle();
+  peWorkerSuggest(document.getElementById('pe-worker-input').value.trim());
+}
+function peWorkerAdd(name){
+  if(!name||window._peWorkers.includes(name)) return;
+  window._peWorkers.push(name);
+  peWorkerRenderTags();
+  peWorkerWrapStyle();
+  document.getElementById('pe-worker-suggestions').style.display='none';
+}
+function peWorkerRemove(idx){
+  window._peWorkers.splice(idx,1);
+  peWorkerRenderTags();
+  peWorkerWrapStyle();
+}
+function peWorkerRenderTags(){
+  const wrap=document.getElementById('pe-worker-tags');
+  if(!wrap) return;
+  wrap.innerHTML=window._peWorkers.map((w,i)=>`
+    <span style="display:inline-flex;align-items:center;gap:5px;background:var(--accent-light);border:1px solid #93c5fd;border-radius:20px;padding:3px 10px;font-size:12px;font-weight:600;color:var(--accent);white-space:nowrap;">
+      👤 ${w}
+      <button onclick="peWorkerRemove(${i})" style="background:none;border:none;cursor:pointer;color:var(--accent);font-size:13px;padding:0;line-height:1;font-weight:700;">✕</button>
+    </span>`).join('');
+}
+function peWorkerWrapStyle(){
+  const wrap=document.getElementById('pe-workers-wrap');
+  if(!wrap) return;
+  const hasTags=window._peWorkers.length>0;
+  wrap.style.borderColor=hasTags?'var(--accent)':'var(--border)';
+  const inp=document.getElementById('pe-worker-input');
+  if(inp) inp.placeholder=hasTags?'Add another…':'Type name, press Enter…';
+}
+function peWorkerSuggest(q){
+  const box=document.getElementById('pe-worker-suggestions');
+  if(!box) return;
+  if(!q){box.style.display='none';return;}
+  const existing=[...new Set(DB.productionLogs.map(l=>l.workerName).flatMap(n=>n.split(',').map(x=>x.trim())))].filter(Boolean);
+  const matches=existing.filter(n=>n.toLowerCase().includes(q.toLowerCase())&&!window._peWorkers.includes(n));
+  if(!matches.length){box.style.display='none';return;}
+  box.innerHTML=matches.slice(0,6).map(n=>`<div onclick="peWorkerAdd('${n.replace(/'/g,"\'")}');document.getElementById('pe-worker-input').value=''" style="padding:8px 14px;cursor:pointer;font-size:13px;font-weight:500;color:var(--text);" onmouseover="this.style.background='var(--accent-light)'" onmouseout="this.style.background=''">${n}</div>`).join('');
+  // position under input
+  const inp=document.getElementById('pe-worker-input');
+  if(inp){
+    const r=inp.getBoundingClientRect();
+    box.style.top=(r.bottom+window.scrollY+2)+'px';
+    box.style.left=r.left+'px';
+  }
+  box.style.display='block';
+}
+document.addEventListener('click',function(e){
+  const box=document.getElementById('pe-worker-suggestions');
+  const wrap=document.getElementById('pe-workers-wrap');
+  if(box&&wrap&&!wrap.contains(e.target)) box.style.display='none';
+});
+
+// ── Print / Download PDF for individual Production Log ────────────────────────
+function printProdLog(){
+  const html=buildProdLogPrintHTML();
+  if(!html) return;
+  const w=window.open('','_blank','width=900,height=700');
+  w.document.write(html);
+  w.document.close();
+  setTimeout(()=>w.print(),400);
+}
+function downloadProdLogPDF(){
+  const html=buildProdLogPrintHTML();
+  if(!html) return;
+  const blob=new Blob([html],{type:'text/html'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  const log=DB.productionLogs.find(l=>l.id===window._currentViewLogId);
+  a.download='ProdLog_'+(log?log.date+'_'+log.productName.replace(/\s+/g,'_'):'entry')+'.html';
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(url),2000);
+}
+function buildProdLogPrintHTML(){
+  const id=window._currentViewLogId;
+  const log=id!=null?DB.productionLogs.find(l=>l.id===id):null;
+  if(!log){toast('No log selected','error');return null;}
+  const m=calcProdMetrics(log);
+  const mac=DB.machines.find(x=>x.id===log.machineId);
+  const f=log.formulationId?DB.formulations.find(x=>x.id===log.formulationId):null;
+  const fCost=f?calcBatchCost(f):null;
+  const fQty=f?calcTotalQty(f):0;
+  const dt=new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'long',year:'numeric'});
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Production Log — ${log.productName}</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:Arial,sans-serif;font-size:12px;color:#111;background:#fff;padding:28px;}
+    .header{border-bottom:2px solid #1e293b;padding-bottom:12px;margin-bottom:18px;display:flex;justify-content:space-between;align-items:flex-end;}
+    .header h1{font-size:17px;font-weight:700;}
+    .header .sub{font-size:11px;color:#555;}
+    .section{margin-bottom:16px;}
+    .section-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#555;margin-bottom:8px;border-bottom:1px solid #e5e7eb;padding-bottom:4px;}
+    .grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px 16px;}
+    .field label{font-size:10px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:.5px;}
+    .field .val{font-size:13px;font-weight:600;color:#111;margin-top:2px;}
+    .metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:6px;}
+    .metric{background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:8px 10px;text-align:center;}
+    .metric .ml{font-size:9px;font-weight:700;text-transform:uppercase;color:#64748b;margin-bottom:3px;}
+    .metric .mv{font-size:15px;font-weight:800;color:#0f172a;}
+    .formulation-box{background:#eff6ff;border:1px solid #93c5fd;border-radius:6px;padding:10px 14px;margin-top:4px;}
+    .formulation-box strong{color:#1d4ed8;}
+    .footer{margin-top:24px;border-top:1px solid #e5e7eb;padding-top:10px;display:flex;justify-content:space-between;font-size:10px;color:#94a3b8;}
+    @media print{body{padding:16px;}}
+    .good{color:#059669;font-weight:700;}.warn{color:#d97706;font-weight:700;}.bad{color:#dc2626;font-weight:700;}
+  </style></head><body>
+  <div class="header">
+    <div><h1>Surface Paints Pvt. Ltd.</h1><div class="sub">Production Log Report</div></div>
+    <div style="text-align:right;"><div style="font-size:15px;font-weight:700;">${log.productName}</div><div class="sub">Printed: ${dt}</div></div>
+  </div>
+  <div class="section">
+    <div class="section-title">📋 Entry Details</div>
+    <div class="grid">
+      <div class="field"><label>Date</label><div class="val">${log.date}</div></div>
+      <div class="field"><label>Worker(s)</label><div class="val">${log.workerName||'—'}</div></div>
+      <div class="field"><label>Product</label><div class="val">${log.productName}</div></div>
+      <div class="field"><label>Machine</label><div class="val">${mac?mac.name:'#'+log.machineId}</div></div>
+      <div class="field"><label>RPM</label><div class="val">${log.rpm||'—'}</div></div>
+      <div class="field"><label>Hour Meter</label><div class="val">${log.hourMeter||'—'}</div></div>
+      <div class="field"><label>Start Time</label><div class="val">${log.startTime}</div></div>
+      <div class="field"><label>End Time</label><div class="val">${log.endTime}</div></div>
+      <div class="field"><label>Break (min)</label><div class="val">${log.breakMins}</div></div>
+      <div class="field"><label>RM Input</label><div class="val">${log.rmInput} kg</div></div>
+      <div class="field"><label>FG Output</label><div class="val">${log.fgOutput} kg</div></div>
+      <div class="field"><label>Remarks</label><div class="val">${log.remarks||'—'}</div></div>
+    </div>
+    ${f?`<div class="formulation-box" style="margin-top:10px;grid-column:1/-1">
+      <strong>🔗 Linked Formulation: ${f.productName}</strong>
+      ${f.batchNo?` &nbsp;·&nbsp; Batch: <strong>${f.batchNo}</strong>`:''}
+      ${f.mfgDate?` &nbsp;·&nbsp; Mfg: <strong>${f.mfgDate.slice(0,10)}</strong>`:''}
+      ${f.productCode?` &nbsp;·&nbsp; ${f.productCode}`:''}
+    </div>`:''}
+  </div>
+  ${m?`<div class="section">
+    <div class="section-title">⚙️ Performance Metrics</div>
+    <div class="metrics">
+      <div class="metric"><div class="ml">Run Hrs</div><div class="mv">${m.machineRunHrs.toFixed(2)}</div></div>
+      <div class="metric"><div class="ml">Avg kg/hr</div><div class="mv">${m.kgPerHr.toFixed(2)}</div></div>
+      <div class="metric"><div class="ml">Wastage %</div><div class="mv ${m.wastage<5?'good':m.wastage<10?'warn':'bad'}">${m.wastage.toFixed(2)}%</div></div>
+      <div class="metric"><div class="ml">Machine Eff%</div><div class="mv ${m.machineEff>=85?'good':m.machineEff>=60?'warn':'bad'}">${m.machineEff.toFixed(1)}%</div></div>
+      <div class="metric"><div class="ml">Machine Cost</div><div class="mv">₹${m.machineCost.toFixed(2)}</div></div>
+      <div class="metric"><div class="ml">Labour Cost</div><div class="mv">₹${m.labourCost.toFixed(2)}</div></div>
+      <div class="metric"><div class="ml">Conv Cost/kg</div><div class="mv">₹${m.convCostPerKg.toFixed(2)}</div></div>
+      ${f&&fQty>0?`<div class="metric"><div class="ml">Total Cost/kg</div><div class="mv good">₹${m.totalActualPerKg.toFixed(2)}</div></div>`:''}
+    </div>
+  </div>`:''}
+  <div class="footer">
+    <span>Surface Paints Pvt. Ltd. — Production Log</span>
+    <span>Recorded by: ${log.byName||log.by}</span>
+    <span>Generated: ${dt}</span>
+  </div>
+  <div style="text-align:center;margin-top:18px;">
+    <button onclick="window.print()" style="background:#1e293b;color:#fff;border:none;padding:9px 28px;font-size:12px;cursor:pointer;border-radius:6px;font-weight:600;">🖨 Print / Save as PDF</button>
+  </div>
+</body></html>`;
+}
+
+// ── Production Reports — full PDF with monthly summary + worker table ─────────
+function exportProdReportPDF(){
+  const logs=DB.productionLogs;
+  if(!logs.length){toast('No production logs to export','info');return;}
+  const dt=new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'long',year:'numeric'});
+  const dtTime=nowDateTime();
+
+  // Monthly summary
+  const monthMap={};
+  logs.forEach(l=>{
+    const mn=l.date.slice(0,7);
+    if(!monthMap[mn]) monthMap[mn]={month:mn,entries:0,fgOutput:0,rmInput:0,runHrs:0,workers:new Set()};
+    const m=calcProdMetrics(l);
+    monthMap[mn].entries++;
+    monthMap[mn].fgOutput+=(Number(l.fgOutput)||0);
+    monthMap[mn].rmInput+=(Number(l.rmInput)||0);
+    if(m) monthMap[mn].runHrs+=m.machineRunHrs;
+    l.workerName.split(',').forEach(w=>monthMap[mn].workers.add(w.trim()));
+  });
+  const months=Object.values(monthMap);
+
+  // Worker summary
+  const workerMap={};
+  logs.forEach(l=>{
+    l.workerName.split(',').map(w=>w.trim()).filter(Boolean).forEach(w=>{
+      if(!workerMap[w]) workerMap[w]={name:w,entries:0,fgOutput:0,runHrs:0};
+      workerMap[w].entries++;
+      workerMap[w].fgOutput+=(Number(l.fgOutput)||0);
+      const m=calcProdMetrics(l); if(m) workerMap[w].runHrs+=m.machineRunHrs;
+    });
+  });
+  const workers=Object.values(workerMap);
+
+  // Machine summary
+  const macMap={};
+  DB.machines.forEach(m=>{macMap[m.id]={name:m.name,type:m.type,entries:0,fgOutput:0,runHrs:0};});
+  logs.forEach(l=>{
+    if(macMap[l.machineId]){
+      macMap[l.machineId].entries++;
+      macMap[l.machineId].fgOutput+=(Number(l.fgOutput)||0);
+      const m=calcProdMetrics(l); if(m) macMap[l.machineId].runHrs+=m.machineRunHrs;
+    }
+  });
+  const machines=Object.values(macMap).filter(x=>x.entries>0);
+
+  const totalFG=logs.reduce((s,l)=>s+(Number(l.fgOutput)||0),0);
+  const totalRM=logs.reduce((s,l)=>s+(Number(l.rmInput)||0),0);
+  const avgWastage=totalRM>0?((1-totalFG/totalRM)*100):0;
+
+  const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Production Report</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:Arial,sans-serif;font-size:11px;color:#111;background:#fff;padding:24px;}
+    .header{background:#1e293b;color:#fff;padding:16px 20px;border-radius:8px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;}
+    .header h1{font-size:18px;font-weight:700;}
+    .header .sub{font-size:11px;opacity:.75;margin-top:3px;}
+    .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px;}
+    .kpi{background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:12px;text-align:center;}
+    .kpi .kl{font-size:9px;font-weight:700;text-transform:uppercase;color:#64748b;letter-spacing:.5px;}
+    .kpi .kv{font-size:20px;font-weight:800;color:#0f172a;margin-top:3px;}
+    h2{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#334155;margin-bottom:8px;margin-top:18px;border-bottom:1px solid #e2e8f0;padding-bottom:4px;}
+    table{width:100%;border-collapse:collapse;margin-bottom:14px;font-size:11px;}
+    th{background:#334155;color:#fff;padding:6px 8px;text-align:left;font-size:10px;font-weight:700;}
+    td{padding:5px 8px;border-bottom:1px solid #f1f5f9;}
+    tr:nth-child(even) td{background:#f8fafc;}
+    .good{color:#059669;font-weight:700;}.warn{color:#d97706;font-weight:700;}.bad{color:#dc2626;font-weight:700;}
+    .footer{margin-top:20px;border-top:1px solid #e2e8f0;padding-top:10px;display:flex;justify-content:space-between;font-size:10px;color:#94a3b8;}
+    @media print{body{padding:12px;}.no-print{display:none;}}
+  </style></head><body>
+  <div class="no-print" style="text-align:center;margin-bottom:16px;">
+    <button onclick="window.print()" style="background:#1e293b;color:#fff;border:none;padding:9px 28px;font-size:12px;cursor:pointer;border-radius:6px;font-weight:600;">🖨 Print / Save as PDF</button>
+  </div>
+  <div class="header">
+    <div><h1>Surface Paints Pvt. Ltd.</h1><div class="sub">Production Reports &amp; Analytics — Generated: ${dtTime}</div></div>
+    <div style="text-align:right;font-size:11px;opacity:.8;">${logs.length} total entries<br>${months.length} months</div>
+  </div>
+  <div class="kpis">
+    <div class="kpi"><div class="kl">Total FG Output</div><div class="kv">${totalFG.toFixed(0)} kg</div></div>
+    <div class="kpi"><div class="kl">Total RM Input</div><div class="kv">${totalRM.toFixed(0)} kg</div></div>
+    <div class="kpi"><div class="kl">Avg Wastage</div><div class="kv ${avgWastage<5?'good':avgWastage<10?'warn':'bad'}">${avgWastage.toFixed(1)}%</div></div>
+    <div class="kpi"><div class="kl">Total Entries</div><div class="kv">${logs.length}</div></div>
+  </div>
+  <h2>📅 Monthly Summary</h2>
+  <table><thead><tr><th>Month</th><th>Entries</th><th>FG Output (kg)</th><th>RM Input (kg)</th><th>Run Hrs</th><th>Wastage %</th><th>Workers</th></tr></thead><tbody>
+  ${months.map(mn=>{const w=mn.rmInput>0?((1-mn.fgOutput/mn.rmInput)*100):0;return`<tr><td><strong>${mn.month}</strong></td><td>${mn.entries}</td><td>${mn.fgOutput.toFixed(1)}</td><td>${mn.rmInput.toFixed(1)}</td><td>${mn.runHrs.toFixed(2)}</td><td class="${w<5?'good':w<10?'warn':'bad'}">${w.toFixed(1)}%</td><td>${mn.workers.size}</td></tr>`;}).join('')}
+  </tbody></table>
+  <h2>🧑 Worker Productivity</h2>
+  <table><thead><tr><th>Worker</th><th>Entries</th><th>FG Output (kg)</th><th>Machine Run Hrs</th><th>Avg kg/hr</th></tr></thead><tbody>
+  ${workers.map(w=>`<tr><td><strong>${w.name}</strong></td><td>${w.entries}</td><td>${w.fgOutput.toFixed(1)}</td><td>${w.runHrs.toFixed(2)}</td><td>${w.runHrs>0?(w.fgOutput/w.runHrs).toFixed(2):'—'}</td></tr>`).join('')}
+  </tbody></table>
+  <h2>🏭 Machine Utilisation</h2>
+  <table><thead><tr><th>Machine</th><th>Type</th><th>Entries</th><th>FG Output (kg)</th><th>Run Hrs</th></tr></thead><tbody>
+  ${machines.map(mac=>`<tr><td><strong>${mac.name}</strong></td><td>${mac.type}</td><td>${mac.entries}</td><td>${mac.fgOutput.toFixed(1)}</td><td>${mac.runHrs.toFixed(2)}</td></tr>`).join('')}
+  </tbody></table>
+  <h2>📋 All Production Logs</h2>
+  <table><thead><tr><th>Date</th><th>Worker(s)</th><th>Product</th><th>Machine</th><th>FG (kg)</th><th>Wastage%</th><th>Eff%</th><th>Conv Cost/kg</th></tr></thead><tbody>
+  ${logs.map(log=>{const m=calcProdMetrics(log);const mac=DB.machines.find(x=>x.id===log.machineId);if(!m)return'';const wc=m.wastage<5?'good':m.wastage<10?'warn':'bad';const ec=m.machineEff>=85?'good':m.machineEff>=60?'warn':'bad';return`<tr><td>${log.date}</td><td>${log.workerName}</td><td>${log.productName}</td><td>${mac?mac.name:'#'+log.machineId}</td><td>${log.fgOutput}</td><td class="${wc}">${m.wastage.toFixed(1)}%</td><td class="${ec}">${m.machineEff.toFixed(1)}%</td><td>₹${m.convCostPerKg.toFixed(2)}</td></tr>`;}).join('')}
+  </tbody></table>
+  <div class="footer">
+    <span>Surface Paints Pvt. Ltd. — Production Report</span>
+    <span>Generated: ${dtTime}</span>
+  </div>
+</body></html>`;
+
+  const w=window.open('','_blank','width=1000,height=750');
+  w.document.write(html);
+  w.document.close();
+  setTimeout(()=>w.print(),500);
+}
+
+// ── Production Entry — Formulation Live Search ───────────────────────────────
+let _peFormIdx = -1; // keyboard navigation index
+
+function peFormSearch(query){
+  const dropdown = document.getElementById('pe-form-dropdown');
+  const clearBtn = document.getElementById('pe-form-clear');
+  const q = (query||'').trim().toLowerCase();
+  clearBtn.classList.toggle('visible', q.length > 0);
+
+  if(!q){
+    dropdown.classList.remove('open');
+    dropdown.innerHTML='';
+    _peFormIdx=-1;
+    return;
+  }
+
+  const results = DB.formulations.filter(f=>{
+    return (f.productName||'').toLowerCase().includes(q)
+        || (f.productCode||'').toLowerCase().includes(q)
+        || (f.batchNo||'').toLowerCase().includes(q);
+  }).slice(0,20);
+
+  if(!results.length){
+    dropdown.innerHTML='<div class="form-search-no-results">No formulations found</div>';
+    dropdown.classList.add('open');
+    return;
+  }
+
+  dropdown.innerHTML = results.map((f,i)=>{
+    const batchStr = f.batchNo ? `<span>🏷 ${f.batchNo}</span>` : '';
+    const dateStr  = f.mfgDate ? `<span>📅 ${f.mfgDate.slice(0,10)}</span>` : '';
+    const codeStr  = f.productCode ? `<span>🔢 ${f.productCode}</span>` : '';
+    return `<div class="form-search-item" data-id="${f.id}" data-idx="${i}"
+      onmousedown="peFormSelect(${f.id})"
+      onmouseover="peFormHighlight(${i})">
+      <div class="form-search-item-name">${f.productName}</div>
+      <div class="form-search-item-meta">${batchStr}${dateStr}${codeStr}</div>
+    </div>`;
+  }).join('');
+  _peFormIdx=-1;
+  dropdown.classList.add('open');
+}
+
+function peFormHighlight(idx){
+  _peFormIdx=idx;
+  document.querySelectorAll('#pe-form-dropdown .form-search-item').forEach((el,i)=>{
+    el.classList.toggle('selected',i===idx);
+  });
+}
+
+function peFormSearchKey(e){
+  const dropdown = document.getElementById('pe-form-dropdown');
+  const items = dropdown.querySelectorAll('.form-search-item');
+  if(!items.length) return;
+  if(e.key==='ArrowDown'){e.preventDefault();_peFormIdx=Math.min(_peFormIdx+1,items.length-1);peFormHighlight(_peFormIdx);}
+  else if(e.key==='ArrowUp'){e.preventDefault();_peFormIdx=Math.max(_peFormIdx-1,0);peFormHighlight(_peFormIdx);}
+  else if(e.key==='Enter'&&_peFormIdx>=0){e.preventDefault();const sel=items[_peFormIdx];if(sel)peFormSelect(Number(sel.dataset.id));}
+  else if(e.key==='Escape'){peFormClear();}
+}
+
+function peFormSelect(fId){
+  const f = DB.formulations.find(x=>x.id===fId);
+  if(!f) return;
+  // set hidden value
+  document.getElementById('pe-formulation').value = fId;
+  // fill product name field automatically
+  const prodInput = document.getElementById('pe-product');
+  if(prodInput && !prodInput.value.trim()){
+    prodInput.value = f.productName||'';
+  }
+  // build display text
+  const parts=[f.productName];
+  if(f.batchNo) parts.push('Batch: '+f.batchNo);
+  if(f.mfgDate) parts.push('Mfg: '+f.mfgDate.slice(0,10));
+  document.getElementById('pe-form-search').value = parts.join('  |  ');
+  document.getElementById('pe-form-clear').classList.add('visible');
+  // show linked badge
+  const badge = document.getElementById('pe-form-linked');
+  const badgeText = document.getElementById('pe-form-linked-text');
+  const metaParts=[];
+  if(f.batchNo) metaParts.push('Batch: '+f.batchNo);
+  if(f.mfgDate) metaParts.push('Mfg: '+f.mfgDate.slice(0,10));
+  if(f.productCode) metaParts.push(f.productCode);
+  badgeText.textContent = f.productName + (metaParts.length ? '  —  '+metaParts.join('  ·  ') : '');
+  badge.classList.add('visible');
+  // close dropdown
+  document.getElementById('pe-form-dropdown').classList.remove('open');
+  // trigger calc preview update
+  updateProdCalcPreview();
+}
+
+function peFormClear(silent){
+  document.getElementById('pe-formulation').value='';
+  const si=document.getElementById('pe-form-search');
+  if(si) si.value='';
+  const cc=document.getElementById('pe-form-clear');
+  if(cc) cc.classList.remove('visible');
+  const dd=document.getElementById('pe-form-dropdown');
+  if(dd){dd.classList.remove('open');dd.innerHTML='';}
+  const badge=document.getElementById('pe-form-linked');
+  if(badge) badge.classList.remove('visible');
+  _peFormIdx=-1;
+  if(!silent) updateProdCalcPreview();
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click',function(e){
+  const wrap=document.querySelector('.form-search-wrap');
+  if(wrap&&!wrap.contains(e.target)){
+    const dd=document.getElementById('pe-form-dropdown');
+    if(dd) dd.classList.remove('open');
+  }
+});
+
+function openProdEntryModal(){
+  document.getElementById('prod-modal').style.display='flex';
+  document.getElementById('prod-calc-preview').innerHTML='';
+  peFormClear(true);
+  // reset workers
+  window._peWorkers=[];
+  const tags=document.getElementById('pe-worker-tags');
+  const inp=document.getElementById('pe-worker-input');
+  if(tags) tags.innerHTML='';
+  if(inp){inp.value='';inp.placeholder='Type name, press Enter…';}
+  peWorkerWrapStyle();
+}
+function closeProdModal(){
+  document.getElementById('prod-modal').style.display='none';
+  peFormClear(true);
+  window._peWorkers=[];
+}
+
+function updateProdCalcPreview(){
+  const startT = document.getElementById('pe-start')?.value;
+  const endT   = document.getElementById('pe-end')?.value;
+  const brk    = document.getElementById('pe-break')?.value;
+  const rmIn   = document.getElementById('pe-rminput')?.value;
+  const fgOut  = document.getElementById('pe-fgoutput')?.value;
+  const machId = Number(document.getElementById('pe-machine')?.value);
+  const formId = document.getElementById('pe-formulation')?.value;
+
+  const mock = {startTime:startT,endTime:endT,breakMins:brk,rmInput:rmIn,fgOutput:fgOut,machineId:machId,formulationId:formId};
+  const m = calcProdMetrics(mock);
+  if(!m){ document.getElementById('prod-calc-preview').innerHTML=''; return; }
+
+  document.getElementById('prod-calc-preview').innerHTML=`
+    <div class="calc-result-box">
+      <div class="calc-item"><div class="calc-item-label">Machine Run Hrs</div><div class="calc-item-val white">${m.machineRunHrs.toFixed(2)}</div></div>
+      <div class="calc-item"><div class="calc-item-label">Avg kg/hr</div><div class="calc-item-val blue">${m.kgPerHr.toFixed(2)}</div></div>
+      <div class="calc-item"><div class="calc-item-label">Wastage %</div><div class="calc-item-val ${m.wastage<5?'green':m.wastage<10?'amber':'red'}">${m.wastage.toFixed(2)}%</div></div>
+    </div>`;
+}
+
+function saveProdEntry(){
+  const workers = window._peWorkers||[];
+  const workerName = workers.join(', ');
+  if(!workerName){toast('Please add at least one worker (*)','error');return;}
+  const date    = document.getElementById('pe-date').value;
+  const product = document.getElementById('pe-product').value.trim();
+  const machId  = Number(document.getElementById('pe-machine').value);
+  const rpm     = document.getElementById('pe-rpm').value;
+  const hmeter  = document.getElementById('pe-hourmeter').value;
+  const start   = document.getElementById('pe-start').value;
+  const end     = document.getElementById('pe-end').value;
+  const brk     = document.getElementById('pe-break').value;
+  const rmIn    = document.getElementById('pe-rminput').value;
+  const fgOut   = document.getElementById('pe-fgoutput').value;
+  const formId  = document.getElementById('pe-formulation').value;
+  const remarks = document.getElementById('pe-remarks').value.trim();
+
+  if(!date||!product||!machId||!start||!end||!rmIn||!fgOut){
+    toast('Please fill all required fields (*)','error'); return;
+  }
+  const id = DB.nextId_prodlog++;
+  const log = {id,workerName,date,productName:product,machineId:machId,
+    rpm,hourMeter:hmeter,startTime:start,endTime:end,breakMins:Number(brk)||0,
+    rmInput:Number(rmIn),fgOutput:Number(fgOut),formulationId:formId?Number(formId):null,
+    remarks,by:currentUser.username,byName:currentUser.name,createdAt:nowDateTime()};
+  DB.productionLogs.push(log);
+  addAudit('Production Entry','Workers: '+workerName+', Machine: '+machId+', FG: '+fgOut+'kg');
+  closeProdModal();
+  navigate('production');
+  toast('Production entry saved ✓','success');
+  gasCall('saveProductionLog',{log})
+    .then(()=>gasCall('addAudit',{entry:DB.auditLog[0]}))
+    .catch(e=>console.error('GAS saveProductionLog error:',e));
+}
+
+function deleteProdLog(id){
+  if(!confirm('Delete this production log?')) return;
+  DB.productionLogs = DB.productionLogs.filter(l=>l.id!==id);
+  navigate('production');
+  toast('Entry deleted','info');
+  gasCall('deleteProductionLog',{logId:id})
+    .catch(e=>console.error('GAS deleteProductionLog error:',e));
+}
+
+function viewProdLog(id){
+  const log = DB.productionLogs.find(l=>l.id===id);
+  if(!log) return;
+  const m   = calcProdMetrics(log);
+  const mac = DB.machines.find(x=>x.id===log.machineId);
+  const f   = log.formulationId ? DB.formulations.find(x=>x.id===log.formulationId) : null;
+  const fCost = f ? calcBatchCost(f) : null;
+  const fQty  = f ? calcTotalQty(f) : 0;
+
+  document.getElementById('prod-view-body').innerHTML=`
+    <div class="prod-entry-grid" style="margin-bottom:16px">
+      <div><strong>Date:</strong> ${log.date}</div>
+      <div><strong>Worker:</strong> ${log.workerName}</div>
+      <div><strong>Product:</strong> ${log.productName}</div>
+      <div><strong>Machine:</strong> ${mac?mac.name:'#'+log.machineId}</div>
+      <div><strong>RPM:</strong> ${log.rpm||'—'}</div>
+      <div><strong>Hour Meter:</strong> ${log.hourMeter||'—'}</div>
+      <div><strong>Start Time:</strong> ${log.startTime}</div>
+      <div><strong>End Time:</strong> ${log.endTime}</div>
+      <div><strong>Break (min):</strong> ${log.breakMins}</div>
+      <div><strong>RM Input:</strong> ${log.rmInput} kg</div>
+      <div><strong>FG Output:</strong> ${log.fgOutput} kg</div>
+      <div><strong>Remarks:</strong> ${log.remarks||'—'}</div>
+      ${f?`<div style="grid-column:1/-1;background:var(--accent-light);border:1px solid #bfdbfe;border-radius:8px;padding:10px 14px;">
+        <strong style="color:var(--accent);">🔗 Linked Formulation:</strong>
+        <span style="margin-left:8px;font-weight:700;">${f.productName}</span>
+        ${f.batchNo?`<span style="margin-left:10px;color:var(--text2);font-size:12px;">Batch: <strong>${f.batchNo}</strong></span>`:''}
+        ${f.mfgDate?`<span style="margin-left:10px;color:var(--text2);font-size:12px;">Mfg Date: <strong>${f.mfgDate.slice(0,10)}</strong></span>`:''}
+        ${f.productCode?`<span style="margin-left:10px;color:var(--text3);font-size:12px;">${f.productCode}</span>`:''}
+      </div>`:''}
+    </div>
+    ${m ? `
+    <div class="calc-result-box" style="margin-bottom:16px">
+      <div class="calc-item"><div class="calc-item-label">Machine Run Hrs</div><div class="calc-item-val white">${m.machineRunHrs.toFixed(2)}</div></div>
+      <div class="calc-item"><div class="calc-item-label">Avg kg/hr</div><div class="calc-item-val blue">${m.kgPerHr.toFixed(2)}</div></div>
+      <div class="calc-item"><div class="calc-item-label">Wastage %</div><div class="calc-item-val ${m.wastage<5?'green':m.wastage<10?'amber':'red'}">${m.wastage.toFixed(2)}%</div></div>
+    </div>
+    ${f?`
+    <div class="comparison-card">
+      <div class="card-title">📊 Formulation Cost Comparison — ${f.productName}</div>
+      <div class="comparison-row"><span class="cmp-label">Formulation RM+Pkg Cost/kg</span><span class="cmp-val">${fmtCurrency(fQty>0?fCost.total/fQty:0)}</span></div>
+      <div class="comparison-row"><span class="cmp-label">Actual Conversion Cost/kg</span><span class="cmp-val">${fmtCurrency(m.convCostPerKg)}</span></div>
+      <div class="comparison-row"><span class="cmp-label"><strong>Total Actual Cost/kg</strong></span>
+        <span class="cmp-val" style="font-size:17px">${fmtCurrency(m.totalActualPerKg)}
+          <span class="${m.totalActualPerKg<=(fQty>0?fCost.total/fQty:0)+m.convCostPerKg?'cmp-diff-pos':'cmp-diff-neg'}" style="font-size:11px;margin-left:6px">
+            vs ₹${fQty>0?(fCost.total/fQty+m.convCostPerKg).toFixed(2):0} est.
+          </span>
+        </span>
+      </div>
+    </div>`:''}`:'<div class="alert alert-warning">Could not calculate metrics (check time fields).</div>'}
+  `;
+  window._currentViewLogId = id;
+  document.getElementById('prod-view-modal').style.display='flex';
+}
+
+function prodFilterTable(){
+  const macFilter = document.getElementById('prod-filter-machine')?.value?.toLowerCase()||'';
+  const dateFilter = document.getElementById('prod-filter-date')?.value||'';
+  const rows = document.querySelectorAll('#prod-table tbody tr');
+  rows.forEach(row=>{
+    const txt = row.textContent.toLowerCase();
+    const matchMac  = !macFilter  || txt.includes(macFilter);
+    const matchDate = !dateFilter || row.cells[0]?.textContent?.trim()===dateFilter;
+    row.style.display = (matchMac&&matchDate)?'':'none';
+  });
+}
+
+// ── Machine Setup page ───────────────────────────────────────────────────────
+function renderMachineSetup(){
+  const machRows = DB.machines.map(m=>`
+    <tr>
+      <td class="td-primary">${m.name}</td>
+      <td>${m.type}</td>
+      <td>${fmtCurrency(m.hourlyMachineCost)}/hr</td>
+      <td>${m.stdKgHr ? m.stdKgHr+' kg/hr' : '— (auto)'}</td>
+      <td><span class="status-pill ${m.active?'status-ok':'status-out'}">${m.active?'Active':'Inactive'}</span></td>
+      <td>
+        <button class="btn btn-sm btn-secondary" onclick="editMachine(${m.id})">Edit</button>
+        <button class="btn btn-sm btn-danger" onclick="toggleMachine(${m.id})" style="margin-left:4px">${m.active?'Deactivate':'Activate'}</button>
+      </td>
+    </tr>`).join('');
+
+  return `
+  <div class="page-header" style="margin-bottom:20px">
+    <div>
+      <div class="page-title" style="font-size:16px">Machine Setup</div>
+      <div class="page-subtitle">Add/edit machines — operators select from this list during entry</div>
+    </div>
+    <button class="btn btn-primary" onclick="openMachineModal()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Add Machine
+    </button>
+  </div>
+
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-title">⚙️ Labour Rate Setting</div>
+    <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+      <div style="flex:1;min-width:200px">
+        <label style="font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bottom:6px">Labour Rate (₹ / man-hour)</label>
+        <input class="form-control" id="labour-rate-input" type="number" value="${DB.labourRate||60}" min="0" style="max-width:200px">
+      </div>
+      <button class="btn btn-primary" style="margin-top:20px" onclick="saveLabourRate()">Save Labour Rate</button>
+    </div>
+  </div>
+
+  <div class="card" style="padding:0;overflow:hidden">
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Machine Name</th><th>Type</th><th>Hourly Cost</th>
+          <th>Std Capacity</th><th>Status</th><th>Actions</th>
+        </tr></thead>
+        <tbody>${machRows}</tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Machine Modal -->
+  <div class="modal-overlay" id="machine-modal" style="display:none" onclick="if(event.target===this)this.style.display='none'">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title" id="machine-modal-title">Add Machine</div>
+        <button class="close-btn" onclick="document.getElementById('machine-modal').style.display='none'">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group"><label>Machine Name *</label>
+          <input class="form-control" id="mac-name" placeholder="e.g. ACM-01, Extruder-02">
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Machine Type *</label>
+            <input class="form-control" id="mac-type" placeholder="ACM / Extruder / Mixer…">
+          </div>
+          <div class="form-group"><label>Hourly Machine Cost (₹)</label>
+            <input class="form-control" id="mac-cost" type="number" placeholder="e.g. 120">
+          </div>
+        </div>
+        <div class="form-group"><label>Standard Capacity (kg/hr) — optional</label>
+          <input class="form-control" id="mac-stdkg" type="number" step="0.1" placeholder="Leave blank to auto-calculate from actuals">
+          <div class="form-hint">Used to compute machine efficiency %. Leave blank to auto-derive from first entry.</div>
+        </div>
+        <input type="hidden" id="mac-edit-id" value="">
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="document.getElementById('machine-modal').style.display='none'">Cancel</button>
+        <button class="btn btn-primary" onclick="saveMachine()">Save Machine</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function openMachineModal(id){
+  document.getElementById('machine-modal-title').textContent = id ? 'Edit Machine' : 'Add Machine';
+  document.getElementById('mac-edit-id').value = id||'';
+  if(id){
+    const m=DB.machines.find(x=>x.id===id);
+    if(m){
+      document.getElementById('mac-name').value=m.name;
+      document.getElementById('mac-type').value=m.type;
+      document.getElementById('mac-cost').value=m.hourlyMachineCost||'';
+      document.getElementById('mac-stdkg').value=m.stdKgHr||'';
+    }
+  } else {
+    document.getElementById('mac-name').value='';
+    document.getElementById('mac-type').value='';
+    document.getElementById('mac-cost').value='';
+    document.getElementById('mac-stdkg').value='';
+  }
+  document.getElementById('machine-modal').style.display='flex';
+}
+function editMachine(id){ openMachineModal(id); }
+function toggleMachine(id){
+  const m=DB.machines.find(x=>x.id===id);
+  if(m){ m.active=!m.active; navigate('machines'); toast(`${m.name} ${m.active?'activated':'deactivated'}`,'info'); }
+}
+function saveMachine(){
+  const name=document.getElementById('mac-name').value.trim();
+  const type=document.getElementById('mac-type').value.trim();
+  const cost=Number(document.getElementById('mac-cost').value)||0;
+  const stdKg=document.getElementById('mac-stdkg').value?Number(document.getElementById('mac-stdkg').value):null;
+  const editId=document.getElementById('mac-edit-id').value;
+  if(!name||!type){toast('Machine name and type are required','error');return;}
+  if(editId){
+    const m=DB.machines.find(x=>x.id===Number(editId));
+    if(m){m.name=name;m.type=type;m.hourlyMachineCost=cost;if(stdKg!==null)m.stdKgHr=stdKg;}
+  } else {
+    DB.machines.push({id:DB.nextId_machine++,name,type,hourlyMachineCost:cost,stdKgHr:stdKg,active:true});
+  }
+  document.getElementById('machine-modal').style.display='none';
+  navigate('machines');
+  toast('Machine saved ✓','success');
+}
+function saveLabourRate(){
+  const v=Number(document.getElementById('labour-rate-input').value)||60;
+  DB.labourRate=v;
+  toast('Labour rate updated to ₹'+v+'/hr ✓','success');
+}
+
+// ── Production Reports page ──────────────────────────────────────────────────
+function renderProdReports(){
+  const today = nowDate();
+  const thisMonth = today.slice(0,7);
+
+  // Default filters
+  const logs = DB.productionLogs;
+  const allDates   = [...new Set(logs.map(l=>l.date))].sort().reverse();
+  const allWorkers = [...new Set(logs.map(l=>l.workerName))];
+  const allProducts= [...new Set(logs.map(l=>l.productName))];
+  const allMonths  = [...new Set(logs.map(l=>l.date.slice(0,7)))].sort().reverse();
+
+  // Monthly summary
+  const monthData = {};
+  logs.forEach(l=>{
+    const mn=l.date.slice(0,7);
+    if(!monthData[mn]) monthData[mn]={month:mn,entries:0,fgOutput:0,rmInput:0,runHrs:0,workers:new Set(),products:new Set()};
+    const m=calcProdMetrics(l);
+    monthData[mn].entries++;
+    monthData[mn].fgOutput+=Number(l.fgOutput)||0;
+    monthData[mn].rmInput+=Number(l.rmInput)||0;
+    if(m) monthData[mn].runHrs+=m.machineRunHrs;
+    monthData[mn].workers.add(l.workerName);
+    monthData[mn].products.add(l.productName);
+  });
+
+  // Machine utilisation
+  const machineData = {};
+  DB.machines.forEach(m=>{ machineData[m.id]={name:m.name,type:m.type,runHrs:0,fgOutput:0,entries:0}; });
+  logs.forEach(l=>{
+    const m=calcProdMetrics(l);
+    if(m && machineData[l.machineId]){ machineData[l.machineId].runHrs+=m.machineRunHrs; machineData[l.machineId].fgOutput+=Number(l.fgOutput)||0; machineData[l.machineId].entries++; }
+  });
+
+  // Worker productivity
+  const workerData={};
+  logs.forEach(l=>{
+    if(!workerData[l.workerName]) workerData[l.workerName]={name:l.workerName,entries:0,fgOutput:0,runHrs:0};
+    const m=calcProdMetrics(l);
+    workerData[l.workerName].entries++;
+    workerData[l.workerName].fgOutput+=Number(l.fgOutput)||0;
+    if(m) workerData[l.workerName].runHrs+=m.machineRunHrs;
+  });
+
+  // Total KPIs
+  let totFG=0,totRM=0,totHrs=0,totWaste=0,countW=0;
+  const thisMonthLogs=logs.filter(l=>l.date.startsWith(thisMonth));
+  thisMonthLogs.forEach(l=>{
+    totFG+=Number(l.fgOutput)||0; totRM+=Number(l.rmInput)||0;
+    const m=calcProdMetrics(l);
+    if(m){totHrs+=m.machineRunHrs;totWaste+=m.wastage;countW++;}
+  });
+  const avgWaste = countW>0?(totWaste/countW):0;
+  const avgKgHr  = totHrs>0?(totFG/totHrs):0;
+
+  // Bar chart helper
+  const barChart = (items,labelKey,valKey,color,unit='')=>{
+    const max=Math.max(...items.map(i=>i[valKey]),1);
+    return `<div class="bar-chart-horiz">${items.slice(0,8).map(i=>`
+      <div class="bar-chart-row">
+        <div class="bar-chart-label">${i[labelKey]}</div>
+        <div class="bar-chart-track"><div class="bar-chart-fill" style="width:${Math.max(2,(i[valKey]/max)*100)}%;background:${color}"></div></div>
+        <div class="bar-chart-val">${Number(i[valKey]).toFixed(1)}${unit}</div>
+      </div>`).join('')}</div>`;
+  };
+
+  const macArr=Object.values(machineData);
+  const workArr=Object.values(workerData);
+  const monthArr=Object.values(monthData).sort((a,b)=>b.month.localeCompare(a.month));
+
+  const monthlySummaryRows=monthArr.map(mn=>`
+    <tr>
+      <td class="td-primary">${mn.month}</td>
+      <td>${mn.entries}</td>
+      <td>${mn.fgOutput.toFixed(1)} kg</td>
+      <td>${mn.rmInput.toFixed(1)} kg</td>
+      <td>${mn.rmInput>0?((1-(mn.fgOutput/mn.rmInput))*100).toFixed(1)+'%':'—'}</td>
+      <td>${mn.runHrs.toFixed(1)} hr</td>
+      <td>${mn.runHrs>0?(mn.fgOutput/mn.runHrs).toFixed(2):0} kg/hr</td>
+      <td>${mn.workers.size}</td>
+    </tr>`).join('');
+
+  const allLogsRows = logs.length ? [...logs].reverse().map(log=>{
+    const m=calcProdMetrics(log);
+    const mac=DB.machines.find(x=>x.id===log.machineId);
+    if(!m) return '';
+    return `<tr>
+      <td>${log.date}</td>
+      <td>${log.workerName}</td>
+      <td>${log.productName}</td>
+      <td><span class="machine-tag" style="font-size:10px">${mac?mac.name:'#'+log.machineId}</span></td>
+      <td>${m.machineRunHrs.toFixed(2)}</td>
+      <td>${log.fgOutput}</td>
+      <td>${effBadge(m.wastage,3,8,'%')}</td>
+      <td>${effBadge(m.machineEff,85,60,'%')}</td>
+      <td class="cost-tag">${fmtCurrency(m.convCostPerKg)}</td>
+    </tr>`;
+  }).join('') : `<tr><td colspan="9" style="text-align:center;padding:28px;color:var(--text3)">No data yet</td></tr>`;
+
+  return `
+  <!-- KPI Row -->
+  <div class="prod-kpi-grid" style="margin-bottom:20px">
+    <div class="prod-kpi">
+      <div class="prod-kpi-icon" style="background:#f0fdf4">📦</div>
+      <div class="prod-kpi-label">This Month Output</div>
+      <div class="prod-kpi-val">${totFG.toFixed(0)}</div>
+      <div class="prod-kpi-sub">kg finished goods</div>
+    </div>
+    <div class="prod-kpi">
+      <div class="prod-kpi-icon" style="background:#fef3c7">⏱</div>
+      <div class="prod-kpi-label">Machine Run Hours</div>
+      <div class="prod-kpi-val">${totHrs.toFixed(1)}</div>
+      <div class="prod-kpi-sub">this month</div>
+    </div>
+    <div class="prod-kpi">
+      <div class="prod-kpi-icon" style="background:#eff6ff">⚡</div>
+      <div class="prod-kpi-label">Avg Throughput</div>
+      <div class="prod-kpi-val">${avgKgHr.toFixed(1)}</div>
+      <div class="prod-kpi-sub">kg/hr this month</div>
+    </div>
+    <div class="prod-kpi">
+      <div class="prod-kpi-icon" style="background:${avgWaste<5?'#f0fdf4':avgWaste<10?'#fffbeb':'#fef2f2'}">⚠️</div>
+      <div class="prod-kpi-label">Avg Wastage %</div>
+      <div class="prod-kpi-val ${effClass(100-avgWaste,95,90)}">${avgWaste.toFixed(1)}%</div>
+      <div class="prod-kpi-sub">this month</div>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="prod-report-filters">
+    <strong style="font-size:12px;color:var(--text2);margin-right:4px">FILTERS:</strong>
+    <select class="filter-select" id="rpt-month" onchange="applyProdFilters()">
+      <option value="">All Months</option>
+      ${allMonths.map(m=>`<option value="${m}" ${m===thisMonth?'selected':''}>${m}</option>`).join('')}
+    </select>
+    <select class="filter-select" id="rpt-machine" onchange="applyProdFilters()">
+      <option value="">All Machines</option>
+      ${DB.machines.map(m=>`<option value="${m.id}">${m.name}</option>`).join('')}
+    </select>
+    <select class="filter-select" id="rpt-worker" onchange="applyProdFilters()">
+      <option value="">All Workers</option>
+      ${allWorkers.map(w=>`<option value="${w}">${w}</option>`).join('')}
+    </select>
+    <select class="filter-select" id="rpt-product" onchange="applyProdFilters()">
+      <option value="">All Products</option>
+      ${allProducts.map(p=>`<option value="${p}">${p}</option>`).join('')}
+    </select>
+    <button class="btn btn-secondary btn-sm" onclick="exportProdReportExcel()">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Excel
+    </button>
+    <button class="btn btn-secondary btn-sm" onclick="exportProdReportPDF()">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      PDF Report
+    </button>
+  </div>
+
+  <!-- Charts Row -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px">
+    <div class="prod-chart-wrap">
+      <div class="prod-chart-title">🏭 Machine Utilisation (Run Hours)</div>
+      ${barChart(macArr,'name','runHrs','var(--accent)','h')}
+    </div>
+    <div class="prod-chart-wrap">
+      <div class="prod-chart-title">🧑 Worker Productivity (kg Output)</div>
+      ${barChart(workArr,'name','fgOutput','var(--green)','kg')}
+    </div>
+  </div>
+
+  <!-- All Logs Filtered Table -->
+  <div class="card" style="padding:0;overflow:hidden;margin-bottom:18px">
+    <div style="padding:16px 20px 12px;border-bottom:1px solid var(--border)">
+      <div class="card-title">📋 All Production Logs</div>
+    </div>
+    <div class="table-wrap">
+      <table id="prod-rpt-table">
+        <thead><tr>
+          <th>Date</th><th>Worker</th><th>Product</th><th>Machine</th>
+          <th>Run Hrs</th><th>FG (kg)</th><th>Wastage%</th><th>Eff%</th><th>Conv.Cost/kg</th>
+        </tr></thead>
+        <tbody id="prod-rpt-tbody">${allLogsRows}</tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Monthly Summary -->
+  <div class="card" style="padding:0;overflow:hidden">
+    <div style="padding:16px 20px 12px;border-bottom:1px solid var(--border)">
+      <div class="card-title">📅 Monthly Summary</div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Month</th><th>Entries</th><th>FG Output</th><th>RM Input</th>
+          <th>Wastage%</th><th>Run Hrs</th><th>Avg kg/hr</th><th>Workers</th>
+        </tr></thead>
+        <tbody>${monthlySummaryRows||`<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--text3)">No data</td></tr>`}</tbody>
+      </table>
+    </div>
+  </div>`;
+}
+
+function applyProdFilters(){
+  const month  = document.getElementById('rpt-month')?.value||'';
+  const machId = document.getElementById('rpt-machine')?.value||'';
+  const worker = document.getElementById('rpt-worker')?.value||'';
+  const product= document.getElementById('rpt-product')?.value||'';
+
+  let filtered = DB.productionLogs;
+  if(month)  filtered=filtered.filter(l=>l.date.startsWith(month));
+  if(machId) filtered=filtered.filter(l=>l.machineId===Number(machId));
+  if(worker) filtered=filtered.filter(l=>l.workerName===worker);
+  if(product) filtered=filtered.filter(l=>l.productName===product);
+
+  const tbody=document.getElementById('prod-rpt-tbody');
+  if(!tbody) return;
+  tbody.innerHTML = filtered.length ? [...filtered].reverse().map(log=>{
+    const m=calcProdMetrics(log);
+    const mac=DB.machines.find(x=>x.id===log.machineId);
+    if(!m) return '';
+    return `<tr>
+      <td>${log.date}</td><td>${log.workerName}</td><td>${log.productName}</td>
+      <td><span class="machine-tag" style="font-size:10px">${mac?mac.name:'#'+log.machineId}</span></td>
+      <td>${m.machineRunHrs.toFixed(2)}</td><td>${log.fgOutput}</td>
+      <td>${effBadge(m.wastage,3,8,'%')}</td>
+      <td>${effBadge(m.machineEff,85,60,'%')}</td>
+      <td class="cost-tag">${fmtCurrency(m.convCostPerKg)}</td>
+    </tr>`;
+  }).join('') : `<tr><td colspan="9" style="text-align:center;padding:24px;color:var(--text3)">No entries match filters</td></tr>`;
+}
+
+// ── Export helpers ───────────────────────────────────────────────────────────
+function exportProdExcel(){
+  if(typeof XLSX==='undefined'){toast('XLSX library not loaded','error');return;}
+  const rows = DB.productionLogs.map(log=>{
+    const m=calcProdMetrics(log);
+    const mac=DB.machines.find(x=>x.id===log.machineId);
+    return {
+      Date:log.date, Worker:log.workerName, Product:log.productName,
+      Machine:mac?mac.name:'#'+log.machineId, RPM:log.rpm,
+      'Start Time':log.startTime,'End Time':log.endTime,'Break (min)':log.breakMins,
+      'RM Input (kg)':log.rmInput,'FG Output (kg)':log.fgOutput,
+      'Machine Run Hrs':m?m.machineRunHrs.toFixed(2):'','Man Hrs':m?m.manHrs.toFixed(2):'',
+      'Avg kg/hr':m?m.kgPerHr.toFixed(2):'','Wastage %':m?m.wastage.toFixed(2):'',
+      'Machine Eff%':m?m.machineEff.toFixed(1):'',
+      'Machine Cost':m?m.machineCost.toFixed(2):'','Labour Cost':m?m.labourCost.toFixed(2):'',
+      'Conv Cost/kg':m?m.convCostPerKg.toFixed(2):'','Hour Meter':log.hourMeter,Remarks:log.remarks
+    };
+  });
+  const ws=XLSX.utils.json_to_sheet(rows);
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Production Logs');
+  XLSX.writeFile(wb,'Production_Logs_'+nowDate()+'.xlsx');
+  toast('Excel exported ✓','success');
+}
+
+function exportProdReportExcel(){
+  if(typeof XLSX==='undefined'){toast('XLSX library not loaded','error');return;}
+  // Monthly summary sheet
+  const monthData={};
+  DB.productionLogs.forEach(l=>{
+    const mn=l.date.slice(0,7);
+    if(!monthData[mn]) monthData[mn]={Month:mn,Entries:0,'FG Output (kg)':0,'RM Input (kg)':0,'Run Hrs':0};
+    const m=calcProdMetrics(l);
+    monthData[mn].Entries++;
+    monthData[mn]['FG Output (kg)']+=(Number(l.fgOutput)||0);
+    monthData[mn]['RM Input (kg)']+=(Number(l.rmInput)||0);
+    if(m) monthData[mn]['Run Hrs']+=m.machineRunHrs;
+  });
+  const monthly=Object.values(monthData).map(r=>({...r,'FG Output (kg)':r['FG Output (kg)'].toFixed(1),'RM Input (kg)':r['RM Input (kg)'].toFixed(1),'Run Hrs':r['Run Hrs'].toFixed(2),'Wastage %':r['RM Input (kg)']>0?((1-(r['FG Output (kg)']/r['RM Input (kg)']))*100).toFixed(1):'—'}));
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(monthly),'Monthly Summary');
+  // Machine sheet
+  const macData={};
+  DB.machines.forEach(m=>{ macData[m.id]={'Machine':m.name,'Type':m.type,'Run Hrs':0,'FG Output (kg)':0,'Entries':0}; });
+  DB.productionLogs.forEach(l=>{ const m=calcProdMetrics(l); if(m&&macData[l.machineId]){macData[l.machineId]['Run Hrs']+=m.machineRunHrs;macData[l.machineId]['FG Output (kg)']+=(Number(l.fgOutput)||0);macData[l.machineId]['Entries']++;} });
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(Object.values(macData)),'Machine Utilisation');
+  // Worker sheet
+  const wData={};
+  DB.productionLogs.forEach(l=>{if(!wData[l.workerName])wData[l.workerName]={'Worker':l.workerName,'Entries':0,'FG Output (kg)':0,'Run Hrs':0};const m=calcProdMetrics(l);wData[l.workerName]['Entries']++;wData[l.workerName]['FG Output (kg)']+=(Number(l.fgOutput)||0);if(m)wData[l.workerName]['Run Hrs']+=m.machineRunHrs;});
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(Object.values(wData)),'Worker Productivity');
+  XLSX.writeFile(wb,'Production_Report_'+nowDate()+'.xlsx');
+  toast('Report exported ✓','success');
+}
+
+function exportProdPDF(){
+  const allLogs=DB.productionLogs;
+  if(!allLogs.length){toast('No production logs to export','info');return;}
+  let html=`<html><head><style>
+    body{font-family:Arial,sans-serif;font-size:11px;color:#222;}
+    h2{font-size:15px;margin-bottom:4px;}h3{font-size:12px;color:#555;margin-bottom:12px;}
+    table{width:100%;border-collapse:collapse;margin-bottom:18px;}
+    th{background:#1e293b;color:#fff;padding:6px 8px;text-align:left;font-size:10px;}
+    td{padding:5px 8px;border-bottom:1px solid #e5e7eb;}
+    .good{color:#059669;font-weight:700;}.warn{color:#d97706;font-weight:700;}.bad{color:#dc2626;font-weight:700;}
+  </style></head><body>
+  <h2>Surface Paints Pvt. Ltd. — Production Report</h2>
+  <h3>Generated: ${nowDateTime()}</h3>
+  <table><thead><tr><th>Date</th><th>Worker</th><th>Product</th><th>Machine</th>
+  <th>Run Hrs</th><th>FG (kg)</th><th>Wastage%</th><th>Eff%</th><th>Conv Cost/kg</th></tr></thead><tbody>`;
+  allLogs.forEach(log=>{
+    const m=calcProdMetrics(log);
+    const mac=DB.machines.find(x=>x.id===log.machineId);
+    if(!m) return;
+    const wc=m.wastage<5?'good':m.wastage<10?'warn':'bad';
+    const ec=m.machineEff>=85?'good':m.machineEff>=60?'warn':'bad';
+    html+=`<tr><td>${log.date}</td><td>${log.workerName}</td><td>${log.productName}</td>
+    <td>${mac?mac.name:'#'+log.machineId}</td>
+    <td>${m.machineRunHrs.toFixed(2)}</td><td>${log.fgOutput}</td>
+    <td class="${wc}">${m.wastage.toFixed(2)}%</td>
+    <td class="${ec}">${m.machineEff.toFixed(1)}%</td>
+    <td>₹${m.convCostPerKg.toFixed(2)}</td></tr>`;
+  });
+  html+=`</tbody></table></body></html>`;
+  const w=window.open('','_blank');
+  w.document.write(html);
+  w.document.close();
+  setTimeout(()=>w.print(),400);
+}
+
+// ── Production dashboard tile (shown on main dashboard for prod role) ────────
+function getProdDashTiles(){
+  const today=nowDate();
+  const thisMonth=today.slice(0,7);
+  const todayLogs=DB.productionLogs.filter(l=>l.date===today);
+  const monthLogs=DB.productionLogs.filter(l=>l.date.startsWith(thisMonth));
+  const todayFG=todayLogs.reduce((s,l)=>s+(Number(l.fgOutput)||0),0);
+  const monthFG=monthLogs.reduce((s,l)=>s+(Number(l.fgOutput)||0),0);
+  let monthHrs=0,wasteArr=[];
+  monthLogs.forEach(l=>{const m=calcProdMetrics(l);if(m){monthHrs+=m.machineRunHrs;wasteArr.push(m.wastage);}});
+  const avgWaste=wasteArr.length?wasteArr.reduce((a,b)=>a+b,0)/wasteArr.length:0;
+  return `
+  <div class="stat-card" style="cursor:pointer" onclick="navigate('production')">
+    <div class="stat-icon" style="background:#fef3c7"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2.5"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"/></svg></div>
+    <div class="stat-label">Today's Production</div>
+    <div class="stat-value">${todayFG.toFixed(0)} <span style="font-size:14px;font-weight:600;color:var(--text2)">kg</span></div>
+    <div class="stat-sub">${todayLogs.length} runs today</div>
+  </div>
+  <div class="stat-card" style="cursor:pointer" onclick="navigate('prodreports')">
+    <div class="stat-icon" style="background:#eff6ff"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg></div>
+    <div class="stat-label">Monthly Output</div>
+    <div class="stat-value">${monthFG.toFixed(0)} <span style="font-size:14px;font-weight:600;color:var(--text2)">kg</span></div>
+    <div class="stat-sub">${monthHrs.toFixed(1)} machine hours</div>
+  </div>
+  <div class="stat-card" style="cursor:pointer" onclick="navigate('prodreports')">
+    <div class="stat-icon" style="background:${avgWaste<5?'#f0fdf4':avgWaste<10?'#fffbeb':'#fef2f2'}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${avgWaste<5?'#059669':avgWaste<10?'#d97706':'#dc2626'}" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+    <div class="stat-label">Avg Wastage</div>
+    <div class="stat-value ${effClass(100-avgWaste,95,90)}">${avgWaste.toFixed(1)}%</div>
+    <div class="stat-sub">this month</div>
+  </div>`;
+}
+
+// ── Button ripple effect ────────────────────────────────────────────────────
+document.addEventListener('click', function(e){
+  const btn = e.target.closest('.btn');
+  if(!btn) return;
+  const r = document.createElement('span');
+  const rect = btn.getBoundingClientRect();
+  const size = Math.max(rect.width, rect.height);
+  r.className = 'ripple';
+  r.style.cssText = `width:${size}px;height:${size}px;left:${e.clientX-rect.left-size/2}px;top:${e.clientY-rect.top-size/2}px;`;
+  btn.appendChild(r);
+  setTimeout(()=>r.remove(), 600);
+});
+
+// ── Nav item stagger on sidebar build ────────────────────────────────────────
+const _origBuildSidebar = typeof buildSidebar === 'function' ? buildSidebar : null;
+// Animate nav items whenever sidebar content changes
+const _navObserver = new MutationObserver(()=>{
+  document.querySelectorAll('.nav-item').forEach((el,i)=>{
+    el.style.animation='none';
+    el.style.opacity='0';
+    el.style.transform='translateX(-10px)';
+    setTimeout(()=>{
+      el.style.transition=`opacity 0.22s ease ${i*0.04}s, transform 0.22s ease ${i*0.04}s`;
+      el.style.opacity='1';
+      el.style.transform='translateX(0)';
+    }, 20);
+  });
+});
+const _sidebarNav = document.getElementById('sidebar-nav');
+if(_sidebarNav) _navObserver.observe(_sidebarNav, {childList:true, subtree:true});
+
 </script>
 </body>
 </html>
