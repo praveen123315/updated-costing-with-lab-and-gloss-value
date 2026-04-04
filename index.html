@@ -709,6 +709,11 @@ async function loadFromGAS(){
         partyName: f.partyName||'',
         lots: Number(f.lots)||1,
         inventoryDebited: f.inventoryDebited===false||f.inventoryDebited==='false'?false:true,
+        inventoryPartialDebit: f.inventoryPartialDebit===true||f.inventoryPartialDebit==='true'?true:false,
+        skippedDebitRmIds: Array.isArray(f.skippedDebitRmIds)?f.skippedDebitRmIds.map(Number):[],
+        debitLots: Number(f.debitLots)||0,
+        debitDate: f.debitDate||'',
+        debitRemarks: f.debitRemarks||'',
         items: Array.isArray(f.items)?f.items.map(i=>({rmId:Number(i.rmId),qty:Number(i.qty)||0,unit:i.unit||'KG',rate:(i.rate!==undefined&&i.rate!==''&&i.rate!==null)?Number(i.rate):undefined})).filter(i=>i.rmId&&i.qty>0):[],
       }));
       // ── v2.3: Patch item rates from basePrices if available ──────────────
@@ -1011,10 +1016,10 @@ function nowDateTime(){
 function nowDate(){return nowDateTime().slice(0,10);}
 
 function toast(msg,type='info'){
-  const icons={success:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>',error:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>',info:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>'};
+  const icons={success:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>',error:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>',info:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>',warning:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>'};
   const t=document.createElement('div');
   t.className='toast '+type;
-  t.style.color=type==='success'?'var(--green)':type==='error'?'var(--red)':'var(--accent2)';
+  t.style.color=type==='success'?'var(--green)':type==='error'?'var(--red)':type==='warning'?'var(--orange)':'var(--accent2)';
   t.innerHTML=(icons[type]||'')+msg;
   document.getElementById('toast-container').appendChild(t);
   setTimeout(()=>{
@@ -1273,8 +1278,11 @@ function renderFormulations(){
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Use as Template
           </button>`:''}
           ${currentUser.role==='formulation'
-            ? `<button class="btn btn-primary btn-sm" onclick="openPrintChoiceModal(${f.id})">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> Print / PDF
+            ? `<button class="btn btn-sm" onclick="openSudhirDebitModal(${f.id})" style="${(f.inventoryDebited===true||f.inventoryDebited==='true')?'background:#f0fdf4;color:#15803d;border:1.5px solid #6ee7b7;':'background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;border:none;'}">
+                📦 ${(f.inventoryDebited===true||f.inventoryDebited==='true')?'Inventory Debited ✓':'Debit Inventory'}
+              </button>
+              <button class="btn btn-sm" style="background:#f0fdf4;color:#15803d;border:1.5px solid #86efac;" onclick="exportWorkerPDF(${f.id})">
+                👷 Worker PDF
               </button>`
             : `<button class="btn btn-blue btn-sm" onclick="exportFormulationPDF(${f.id})">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> PDF
@@ -1297,7 +1305,7 @@ function renderFormulations(){
         </div>
       </div>
       <div class="batch-card-meta" style="margin-top:10px;">
-        <span>📅 ${f.mfgDate}</span><span>👤 ${f.byName}</span><span>⚗ ${(f.items||[]).length} materials · ${calcTotalQtyDisplay(f)}</span>${f.remarks?`<span>💬 ${f.remarks}</span>`:''}<span style="background:${(f.inventoryDebited===false||f.inventoryDebited==="false")?'var(--accent-light)':'var(--green-light)'};color:${(f.inventoryDebited===false||f.inventoryDebited==="false")?'var(--accent2)':'var(--green)'};padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;">${(f.inventoryDebited===false||f.inventoryDebited==="false")?'🔒 No Debit':'📦 Debited'}</span>
+        <span>📅 ${f.mfgDate}</span><span>👤 ${f.byName}</span><span>⚗ ${(f.items||[]).length} materials · ${calcTotalQtyDisplay(f)}</span>${f.remarks?`<span>💬 ${f.remarks}</span>`:''}<span style="background:${f.inventoryPartialDebit?'var(--orange-light)':(f.inventoryDebited===false||f.inventoryDebited==="false")?'var(--accent-light)':'var(--green-light)'};color:${f.inventoryPartialDebit?'var(--orange)':(f.inventoryDebited===false||f.inventoryDebited==="false")?'var(--accent2)':'var(--green)'};padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;">${f.inventoryPartialDebit?'⚠️ Partial Debit':(f.inventoryDebited===false||f.inventoryDebited==="false")?'🔒 No Debit':'📦 Debited'}</span>
       </div>
       ${(f.partyName||f.partyId||f.refNo)?`<div style="margin-top:8px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
         ${(f.partyName||f.partyId)?`<div style="background:linear-gradient(135deg,#1d4ed8,#2563eb);border-radius:10px;padding:8px 18px;display:inline-flex;align-items:center;gap:8px;">
@@ -1627,12 +1635,210 @@ tfoot td{padding:9px 10px;font-weight:800;font-size:12pt;color:#111;}
 }
 
 // ════════════════════════════════════════════════════════
-//  SUDHIR JI PDF — enter lots, debit inventory
+//  SUDHIR JI — Debit Inventory (separate from PDF)
+// ════════════════════════════════════════════════════════
+function openSudhirDebitModal(id){
+  const f=DB.formulations.find(x=>x.id===id);
+  if(!f)return;
+
+  // Already fully debited
+  if(f.inventoryDebited===true||f.inventoryDebited==='true'){
+    // Build skipped list for display
+    const skipped=(f.skippedDebitRmIds||[]).map(rid=>{const rm=getRMById(rid);return rm?rm.name:'#'+rid;});
+    const modal=`<div class="modal-overlay" id="sudhir-debit-modal" onclick="if(event.target.id==='sudhir-debit-modal')closeModal('sudhir-debit-modal')">
+    <div class="modal">
+      <div class="modal-header">
+        <div><div class="modal-title">📦 Inventory Debit Status</div></div>
+        <button class="close-btn" onclick="closeModal('sudhir-debit-modal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="alert" style="background:#f0fdf4;border:1.5px solid #6ee7b7;color:#065f46;font-size:13px;border-radius:10px;padding:14px 16px;margin-bottom:12px;">
+          <strong>✅ Inventory already debited</strong> for this formulation (${f.debitLots||1} lot${(f.debitLots||1)>1?'s':''} on ${f.debitDate||f.mfgDate}).
+        </div>
+        ${skipped.length?`<div class="alert" style="background:var(--orange-light);border:1.5px solid #fdba74;color:#9a3412;font-size:12px;border-radius:10px;padding:12px 14px;">
+          <strong>⚠️ These materials were NOT debited</strong> (zero/insufficient stock at time of debit):<br>
+          <span style="margin-top:6px;display:block;font-weight:700;">${skipped.join(', ')}</span>
+          <span style="margin-top:4px;display:block;font-size:11px;">Recipe was saved, but these materials had zero inventory so their stock was not reduced.</span>
+        </div>`:''}
+        ${f.debitRemarks?`<div style="margin-top:12px;font-size:12px;color:var(--text2);background:var(--bg3);border-radius:8px;padding:10px 14px;">💬 Remark: ${f.debitRemarks}</div>`:''}
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('sudhir-debit-modal')">Close</button>
+        <button class="btn btn-primary btn-sm" onclick="closeModal('sudhir-debit-modal');openSudhirPDFModal(${id})">📋 Print PDF</button>
+      </div>
+    </div></div>`;
+    document.body.insertAdjacentHTML('beforeend',modal);
+    return;
+  }
+
+  // Partial debit — some items were skipped last time
+  const partialSkipped=(f.skippedDebitRmIds||[]).map(rid=>{const rm=getRMById(rid);return rm?rm.name:'#'+rid;});
+
+  const modal=`<div class="modal-overlay" id="sudhir-debit-modal" onclick="if(event.target.id==='sudhir-debit-modal')closeModal('sudhir-debit-modal')">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">📦 Debit Inventory</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:2px;">${f.productName}${f.batchNo?' — Batch: '+f.batchNo:''}</div>
+      </div>
+      <button class="close-btn" onclick="closeModal('sudhir-debit-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+
+      ${f.inventoryPartialDebit?`<div class="alert" style="background:var(--orange-light);border:1.5px solid #fdba74;color:#9a3412;font-size:12px;border-radius:8px;padding:10px 14px;margin-bottom:14px;">
+        <strong>⚠️ Previous partial debit on record.</strong> Materials skipped: <strong>${partialSkipped.join(', ')}</strong>.<br>
+        Clicking Confirm Debit will debit ALL materials now (those with stock available).
+      </div>`:''}
+
+      <div class="alert" style="background:var(--accent-light);border:1.5px solid #bfdbfe;color:#1e40af;font-size:12px;border-radius:8px;padding:10px 14px;margin-bottom:16px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:middle;margin-right:6px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        This debit is <strong>one-time and permanent</strong>. Once done it cannot be undone.
+        Materials with zero/insufficient stock will be <strong>skipped but noted</strong>.
+      </div>
+
+      <div class="form-group" style="max-width:280px;">
+        <label style="font-weight:700;">Number of Lots ✱</label>
+        <input class="form-control" id="sdb-lots" type="number" min="1" value="1"
+          oninput="updateDebitPreview(${id})" style="font-size:16px;font-weight:700;">
+        <div class="form-hint">How many lots were actually produced?</div>
+      </div>
+
+      <div class="form-group" style="max-width:400px;">
+        <label>Remark (optional)</label>
+        <input class="form-control" id="sdb-remark" placeholder="e.g. Made for Sudhir Ji batch, some materials were zero...">
+      </div>
+
+      <div id="sdb-preview" style="margin-top:4px;"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('sudhir-debit-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="confirmSudhirDebit(${id})" style="background:linear-gradient(135deg,#16a34a,#15803d);">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        Confirm Debit Inventory
+      </button>
+    </div>
+  </div></div>`;
+  document.body.insertAdjacentHTML('beforeend',modal);
+  document.getElementById('sdb-lots')?.focus();
+  updateDebitPreview(id);
+}
+
+function updateDebitPreview(id){
+  const f=DB.formulations.find(x=>x.id===id);
+  const lots=parseInt(document.getElementById('sdb-lots')?.value)||1;
+  if(!f)return;
+  const perLot=f.lots||1;
+  let rows='';let hasShortage=false;let skippedNames=[];
+  f.items.forEach(item=>{
+    const rm=getRMById(item.rmId);if(!rm)return;
+    const qtyPerLot=item.qty/perLot;
+    const totalNeeded=qtyPerLot*lots;
+    const available=getInvByRMId(rm.id).quantity;
+    const ok=available>=totalNeeded;
+    if(!ok){hasShortage=true;skippedNames.push(rm.name);}
+    rows+=`<tr>
+      <td class="td-primary">${rm.name}</td>
+      <td style="font-weight:700;">${totalNeeded.toFixed(3)} ${rm.unit}</td>
+      <td>${available.toFixed(3)}</td>
+      <td><span class="status-pill ${ok?'status-ok':'status-out'}">${ok?'✓ Will Debit':'⚠ Skip (zero)'}</span></td>
+    </tr>`;
+  });
+  const previewEl=document.getElementById('sdb-preview');
+  if(!previewEl)return;
+  previewEl.innerHTML=`
+    <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+        <div style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;">${f.productName} × ${lots} Lots</div>
+        ${hasShortage?`<span class="status-pill status-out">⚠ Some materials zero — will be skipped</span>`:`<span class="status-pill status-ok">✓ All stock available</span>`}
+      </div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Raw Material</th><th>Required</th><th>In Stock</th><th>Status</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table></div>
+      ${hasShortage?`<div style="margin-top:10px;background:var(--orange-light);border:1px solid #fdba74;border-radius:8px;padding:10px 14px;font-size:12px;color:#9a3412;">
+        <strong>⚠️ Skipped (zero/insufficient stock):</strong> ${skippedNames.join(', ')}<br>
+        <span style="font-size:11px;">Recipe will be saved. These materials will be noted as "not debited — zero stock" in remarks.</span>
+      </div>`:''}
+    </div>`;
+}
+
+function confirmSudhirDebit(id){
+  const f=DB.formulations.find(x=>x.id===id);
+  if(!f)return;
+  if(f.inventoryDebited===true||f.inventoryDebited==='true'){
+    toast('Inventory already debited for this formulation','info');
+    closeModal('sudhir-debit-modal');
+    return;
+  }
+  const lots=parseInt(document.getElementById('sdb-lots')?.value);
+  if(!lots||lots<1){toast('Please enter number of lots','error');return;}
+  const remark=(document.getElementById('sdb-remark')?.value||'').trim();
+  const perLot=f.lots||1;
+  const debitDateTime=nowDateTime();
+  const skippedRmIds=[];
+  const skippedNames=[];
+  const debitLog=[];
+
+  f.items.forEach(item=>{
+    const rm=getRMById(item.rmId);if(!rm)return;
+    const qtyPerLot=item.qty/perLot;
+    const totalDebit=qtyPerLot*lots;
+    const inv=DB.inventory.find(i=>i.rmId===item.rmId);
+    const available=inv?inv.quantity:0;
+    if(available<totalDebit){
+      skippedRmIds.push(item.rmId);
+      skippedNames.push(rm.name);
+      return; // skip this material
+    }
+    if(inv) inv.quantity=Math.max(0,inv.quantity-totalDebit);
+    DB.stockTransactions.push({id:DB.nextId.txn++,rmId:item.rmId,type:'consumption',qty:-totalDebit,date:debitDateTime.slice(0,10),remarks:`Inventory Debit — ${f.batchNo||f.productName} (${lots} lots)`,by:currentUser.username});
+    debitLog.push({rmId:item.rmId,name:rm.name,qty:totalDebit});
+  });
+
+  // Build auto remark listing skipped materials
+  let autoRemark=remark?remark+'. ':'';
+  if(skippedNames.length>0){
+    autoRemark+=`Recipe saved but these materials were NOT debited (zero/insufficient stock): ${skippedNames.join(', ')}.`;
+  }
+
+  // Update formulation record
+  f.inventoryDebited=true;
+  f.inventoryPartialDebit=skippedNames.length>0;
+  f.skippedDebitRmIds=skippedRmIds;
+  f.debitLots=lots;
+  f.debitDate=debitDateTime.slice(0,10);
+  f.debitRemarks=autoRemark||'Inventory debited successfully.';
+
+  const auditEntry={time:debitDateTime,user:currentUser.name,action:'Inventory debited',
+    detail:`${f.productName} — ${lots} lot${lots>1?'s':''} — Batch: ${f.batchNo||'—'}${skippedNames.length?' | Skipped (zero stock): '+skippedNames.join(', '):''}` };
+  DB.auditLog.unshift(auditEntry);
+
+  closeModal('sudhir-debit-modal');
+
+  if(skippedNames.length>0){
+    toast(`📦 Inventory debited ✓ — NOT debited (zero stock): ${skippedNames.join(', ')}`,'warning');
+  } else {
+    toast(`📦 Inventory debited successfully for ${lots} lot${lots>1?'s':''}!`,'success');
+  }
+
+  // Persist to Sheets
+  const invUpdates=debitLog.map(d=>({rmId:d.rmId,newQuantity:(DB.inventory.find(i=>i.rmId===d.rmId)||{}).quantity||0}));
+  const newTxns=DB.stockTransactions.slice(-debitLog.length);
+  Promise.all(invUpdates.map(u=>gasCall('updateInventory',{rmId:u.rmId,newQuantity:u.newQuantity})))
+    .then(()=>Promise.all(newTxns.map(tx=>gasCall('addTransaction',{transaction:tx}))))
+    .then(()=>gasCall('saveFormulation',{formulation:f,items:f.items,inventoryUpdates:invUpdates,transactions:newTxns,debitInventory:true}))
+    .then(()=>gasCall('addAudit',{entry:auditEntry}))
+    .then(()=>toast('Debit saved to Google Sheets ✓','success'));
+
+  navigate('formulations');
+}
+
+// ════════════════════════════════════════════════════════
+//  SUDHIR JI PDF — print only, NO inventory debit
 // ════════════════════════════════════════════════════════
 function openSudhirPDFModal(id){
   const f=DB.formulations.find(x=>x.id===id);
   if(!f)return;
-  const savedLots=f.lots||1;
   const modal=`<div class="modal-overlay" id="sudhir-modal" onclick="if(event.target.id==='sudhir-modal')closeModal('sudhir-modal')">
   <div class="modal modal-lg">
     <div class="modal-header">
@@ -1644,28 +1850,26 @@ function openSudhirPDFModal(id){
     </div>
     <div class="modal-body">
 
-      ${f.inventoryDebited?`<div class="alert" style="background:#fef2f2;border:1.5px solid #fca5a5;color:#991b1b;font-size:12px;border-radius:8px;padding:10px 14px;margin-bottom:16px;">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right:6px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-        <strong>Inventory already debited for this formulation.</strong> You can still generate and print the PDF, but inventory will <strong>NOT</strong> be debited again.
-      </div>`:''}
+      ${(f.inventoryDebited===true||f.inventoryDebited==='true')
+        ? `<div class="alert" style="background:#f0fdf4;border:1.5px solid #6ee7b7;color:#065f46;font-size:12px;border-radius:8px;padding:10px 14px;margin-bottom:14px;">
+            ✅ <strong>Inventory already debited</strong> (${f.debitLots||1} lots on ${f.debitDate||f.mfgDate}).
+            ${(f.skippedDebitRmIds||[]).length?'<br>⚠️ Not debited (zero stock): <strong>'+((f.skippedDebitRmIds||[]).map(rid=>{const rm=getRMById(rid);return rm?rm.name:'#'+rid;}).join(', '))+'</strong>'  :''}
+          </div>`
+        : `<div class="alert alert-warning" style="font-size:12px;">
+            ⚠️ Inventory has <strong>not been debited yet</strong> for this formulation.<br>
+            Use the <strong>📦 Debit Inventory</strong> button on the formulation card to debit stock.
+          </div>`}
 
       <div class="form-group" style="max-width:280px;">
         <label style="font-weight:700;">Number of Lots ✱</label>
-        <input class="form-control" id="sudhir-lots" type="number" min="1" placeholder="Enter number of lots (required)"
+        <input class="form-control" id="sudhir-lots" type="number" min="1" value="${f.debitLots||1}"
           oninput="updateSudhirPreview(${id})" style="font-size:16px;font-weight:700;">
-        <div class="form-hint">How many lots were actually produced?</div>
+        <div class="form-hint">Lots to show on the PDF (for printing only, does not debit).</div>
       </div>
 
       <div class="form-group" style="max-width:320px;">
         <label>Batch Number / Reference</label>
         <input class="form-control" id="sudhir-batch" value="${f.batchNo||''}" placeholder="e.g. B2025-003">
-      </div>
-
-      <div class="alert alert-warning" style="font-size:12px;">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-        ${f.inventoryDebited
-          ? 'PDF will be generated but <strong>inventory will NOT be debited again</strong>.'
-          : 'Inventory will be debited when you click <strong>Generate PDF</strong>. This cannot be undone.'}
       </div>
 
       <div id="sudhir-preview" style="margin-top:4px;"></div>
@@ -1676,7 +1880,7 @@ function openSudhirPDFModal(id){
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> Preview
       </button>
       <button class="btn btn-primary" onclick="generateSudhirPDF(${id})">
-        ${f.inventoryDebited ? '📋 Generate PDF (No Debit)' : '📋 Generate PDF &amp; Debit Inventory'}
+        📋 Generate PDF
       </button>
     </div>
   </div></div>`;
@@ -1783,34 +1987,10 @@ function generateSudhirPDF(id){
   const totalRMCost=rmCostPerLot*lots;
   const totalCost=totalRMCost+(DB.packagingCost*lots);
 
-  // ── One-time inventory debit ──────────────────────────
+  // PDF only — inventory debit happens separately via Debit Inventory button
   const alreadyDebited = f.inventoryDebited===true || f.inventoryDebited==='true';
-  let debitLog=[];
-  if(!alreadyDebited){
-    f.items.forEach(item=>{
-      const rm=getRMById(item.rmId);if(!rm)return;
-      const qtyPerLot=item.qty/perLot;
-      const totalDebit=qtyPerLot*lots;
-      const inv=DB.inventory.find(i=>i.rmId===item.rmId);
-      if(inv){inv.quantity=Math.max(0,inv.quantity-totalDebit);}
-      DB.stockTransactions.push({id:DB.nextId.txn++,rmId:item.rmId,type:'consumption',qty:-totalDebit,date:printDateTime.slice(0,10),remarks:`Sudhir PDF — ${batchRef} (${lots} lots)`,by:currentUser.username});
-      debitLog.push({name:rm.name,code:rm.code,unit:rm.unit,qty:totalDebit});
-    });
-    f.inventoryDebited=true;
-    addAudit('Sudhir PDF generated + inventory debited',`${f.productName} — ${lots} lots — Batch: ${batchRef}`);
-
-    // Persist to Google Sheets
-    const auditEntry=DB.auditLog[0];
-    const invUpdates=f.items.map(item=>({rmId:item.rmId,newQuantity:(DB.inventory.find(i=>i.rmId===item.rmId)||{}).quantity||0}));
-    const newTxns=DB.stockTransactions.slice(-f.items.length);
-    Promise.all(invUpdates.map(u=>gasCall('updateInventory',{rmId:u.rmId,newQuantity:u.newQuantity})))
-      .then(()=>Promise.all(newTxns.map(tx=>gasCall('addTransaction',{transaction:tx}))))
-      .then(()=>gasCall('addAudit',{entry:auditEntry}))
-      .then(()=>toast('Inventory debit saved to Sheets ✓','success'));
-  } else {
-    addAudit('Sudhir PDF re-printed (no debit)',`${f.productName} — ${lots} lots — Batch: ${batchRef}`);
-    gasCall('addAudit',{entry:DB.auditLog[0]});
-  }
+  addAudit('Sudhir PDF printed',`${f.productName} — ${lots} lots — Batch: ${batchRef}${alreadyDebited?' (inventory already debited)':' (inventory NOT yet debited)'}`);
+  gasCall('addAudit',{entry:DB.auditLog[0]});
 
   let sno=1;
   let itemRows='';
@@ -1878,8 +2058,10 @@ tfoot td{padding:10px 12px;font-weight:800;font-size:12pt;color:#111;}
     <tbody>${itemRows}</tbody>
     <tfoot><tr><td colspan="2" style="text-align:right;padding-right:12px;">Total Quantity</td><td style="text-align:right;">${totalQtyAll%1===0?totalQtyAll.toFixed(0):totalQtyAll.toFixed(3)} KG</td></tr></tfoot>
   </table>
-  <div class="status-box" style="color:${alreadyDebited?'#92400e':'#065f46'};border-color:${alreadyDebited?'#fcd34d':'#6ee7b7'};">
-    ${alreadyDebited?'⚠ Inventory was previously debited for this batch.':'✓ Inventory debited: '+lots+' lot'+(lots>1?'s':'')}
+  <div class="status-box" style="color:${alreadyDebited?'#065f46':'#92400e'};border-color:${alreadyDebited?'#6ee7b7':'#fcd34d'};">
+    ${alreadyDebited?'✓ Inventory debited ('+f.debitLots+' lots on '+(f.debitDate||f.mfgDate)+')':'⚠ Inventory NOT yet debited — pending Sudhir Ji approval'}
+    ${(f.skippedDebitRmIds||[]).length?'<br><small style="font-weight:600;color:#9a3412;">Not debited (zero stock): '+((f.skippedDebitRmIds||[]).map(rid=>{ const rm = (window.DB&&DB.rawMaterials||[]).find(r=>r.id==rid); return rm?rm.name:'#'+rid; }).join(', '))+'</small>':''}
+    ${f.debitRemarks?'<br><small style="color:#555;">'+f.debitRemarks+'</small>':''}
   </div>
 </div></body></html>`;
 
@@ -1893,7 +2075,7 @@ tfoot td{padding:10px 12px;font-weight:800;font-size:12pt;color:#111;}
   const toolbar=document.createElement('div');
   toolbar.style.cssText='background:#111827;padding:12px 18px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #374151;flex-shrink:0;';
   toolbar.innerHTML=`
-    <span style="color:#f59e0b;font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:700;">📋 ${f.productName} — ${lots} Lots — Inventory Debited ✓</span>
+    <span style="color:#f59e0b;font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:700;">📋 ${f.productName} — ${lots} Lots${alreadyDebited?' — ✅ Inventory Debited':' — ⚠️ Inventory Not Yet Debited'}</span>
     <span style="flex:1"></span>
     <button onclick="document.getElementById('pdf-print-frame').contentWindow.print()" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#000;border:none;padding:9px 22px;font-size:13px;font-family:'Plus Jakarta Sans',sans-serif;cursor:pointer;border-radius:8px;font-weight:700;">🖨 Print / Save as PDF</button>
     <a href="${url}" download="ProductionRecord_${batchRef}.html" style="background:#3b82f6;color:#fff;border:none;padding:9px 22px;font-size:13px;font-family:'Plus Jakarta Sans',sans-serif;cursor:pointer;border-radius:8px;font-weight:700;text-decoration:none;">↓ Download</a>
@@ -1903,7 +2085,7 @@ tfoot td{padding:10px 12px;font-weight:800;font-size:12pt;color:#111;}
   iframe.style.cssText='flex:1;border:none;background:#fff;';
   overlay.appendChild(toolbar);overlay.appendChild(iframe);
   document.body.appendChild(overlay);
-  toast('Production PDF generated — inventory debited ✓','success');
+  toast('Production PDF generated ✓','success');
 }
 
 
@@ -2708,8 +2890,8 @@ function saveFormulation(){
   const productFinish=document.getElementById('fm-pfinish')?.value||'';
   const partyId='';  // auto-populated in Google Sheet via VLOOKUP on refNo
   const lots=1;  // lots removed from new formulation form; always saved as 1
-  // Admin NEVER debits inventory. Only formulation role users do (when debit setting is ON)
-  const debit = currentUser.role !== 'admin' && DB.settings.debitInventoryOnSave;
+  // Formulation save NEVER debits inventory anymore.
+  // Inventory debit is a separate explicit action by Sudhir Ji via the Debit button.
 
   if(!pname){toast('Product Name is required','error');return;}
 
@@ -2719,7 +2901,6 @@ function saveFormulation(){
     const rmId=parseInt(document.getElementById('sel-'+id).value);
     const baseQty=parseFloat(document.getElementById('qty-'+id).value);
     const unit=document.getElementById('fmunit-'+id)?.value||'KG';
-    // Save overridden rate if admin provided one
     const rateEl=document.getElementById('rate-'+id);
     const rm=getRMById(rmId);
     const rate=rateEl?parseFloat(rateEl.value)||0:(rm?rm.rate||0:0);
@@ -2727,39 +2908,19 @@ function saveFormulation(){
   });
   if(items.length===0){toast('Add at least one raw material','error');return;}
 
-  // Stock check only if debit is ON
-  if(debit){
-    for(const item of items){
-      const inv=getInvByRMId(item.rmId);
-      if(inv.quantity<item.qty){
-        const rm=getRMById(item.rmId);
-        toast(`Insufficient stock for ${rm.name}: need ${item.qty}, have ${inv.quantity.toFixed(2)}`,'error');
-        return;
-      }
-    }
-    // Deduct inventory
-    items.forEach(item=>{
-      const inv=DB.inventory.find(i=>i.rmId===item.rmId);
-      if(inv) inv.quantity-=item.qty;
-      DB.stockTransactions.push({id:DB.nextId.txn++,rmId:item.rmId,type:'consumption',qty:-item.qty,date:mfgDateTime.slice(0,10),remarks:`Batch ${batch}`,by:currentUser.username});
-    });
-  }
-
-  const f={id:DB.nextId.formulation++,productName:pname,productCode:pcode,productType,productFinish,batchNo:batch,mfgDate:mfgDateTime,remarks,refNo,partyId,by:currentUser.username,byName:currentUser.name,createdAt:mfgDateTime,lots,inventoryDebited:debit,items};
+  const f={id:DB.nextId.formulation++,productName:pname,productCode:pcode,productType,productFinish,batchNo:batch,mfgDate:mfgDateTime,remarks,refNo,partyId,by:currentUser.username,byName:currentUser.name,createdAt:mfgDateTime,lots,inventoryDebited:false,inventoryPartialDebit:false,skippedDebitRmIds:[],debitRemarks:'',items};
   DB.formulations.push(f);
-  const debitNote=debit?' — inventory debited':' — inventory NOT debited (Debit Off)';
-  const auditEntry={time:mfgDateTime,user:currentUser.name,action:'Created formulation',detail:`${pcode} — Batch ${batch}${lots>1?' ('+lots+' lots)':''}${debitNote}`};
+
+  const auditEntry={time:mfgDateTime,user:currentUser.name,action:'Created formulation',detail:`${pcode} — Batch ${batch} — inventory NOT yet debited (pending Sudhir Ji approval)`};
   DB.auditLog.unshift(auditEntry);
 
   closeModal('form-modal');
-  toast(debit?'Saving to Google Sheets...':'Formulation saved (inventory not debited — Debit Off)','info');
+  toast('Formulation saved ✓ — Inventory not yet debited','info');
 
-  const invUpdates=debit?items.map(item=>({rmId:item.rmId,newQuantity:getInvByRMId(item.rmId).quantity})):[];
-  const txns=debit?DB.stockTransactions.filter(t=>t.remarks===`Batch ${batch}`):[];
-  gasCall('saveFormulation',{formulation:f,items,inventoryUpdates:invUpdates,transactions:txns,debitInventory:debit})
+  gasCall('saveFormulation',{formulation:f,items,inventoryUpdates:[],transactions:[],debitInventory:false})
     .then(()=>gasCall('addAudit',{entry:auditEntry}))
     .then(()=>gasCall('saveSetting',{key:'nextId',value:JSON.stringify(DB.nextId)}))
-    .then(()=>toast(debit?'Formulation saved to Google Sheets ✓':'Formulation saved ✓ (no inventory debit)','success'));
+    .then(()=>toast('Saved to Google Sheets ✓','success'));
 
   // Clear draft after successful save
   _formDraft = null;
