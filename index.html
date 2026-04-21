@@ -2381,6 +2381,38 @@ function openNewFormModal(template=null, forceEmpty=false){
         </div>
       </div>
       <hr style="border-color:var(--border);margin:16px 0;">
+      <!-- ══ TEMPLATE AUTO-FILL ══ -->
+      <div style="background:linear-gradient(135deg,#f0fdf4,#ecfdf5);border:2px solid #6ee7b7;border-radius:14px;padding:16px 18px;margin-bottom:18px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+          <span style="font-size:20px;">📋</span>
+          <div>
+            <div style="font-size:13px;font-weight:800;color:#065f46;">Auto-Fill from Saved Template</div>
+            <div style="font-size:11px;color:#047857;margin-top:1px;">Select a previous formulation → enter your FG quantity → all RM quantities auto-scale in one step</div>
+          </div>
+        </div>
+        <div class="form-row" style="margin-bottom:10px;">
+          <div class="form-group" style="margin-bottom:0;">
+            <label style="font-size:11px;color:#065f46;">Select Template Formulation</label>
+            <select class="form-control" id="fm-template-sel" onchange="onTemplateSelect()" style="font-size:13px;border-color:#6ee7b7;">
+              <option value="">— Choose a saved formulation —</option>
+              ${DB.formulations.map(f=>`<option value="${f.id}">${f.productName}${f.productCode?' ('+f.productCode+')':''} — ${calcTotalQty(f).toFixed(2)} KG base</option>`).join('')}
+            </select>
+          </div>
+          <div class="form-group" style="margin-bottom:0;">
+            <label style="font-size:11px;color:#065f46;">Target FG Quantity (KG) ✱</label>
+            <input class="form-control" id="fm-template-qty" type="number" step="0.01" min="0.01" placeholder="e.g. 500" style="font-size:14px;font-weight:700;border-color:#6ee7b7;" oninput="onTemplateQtyInput()">
+          </div>
+        </div>
+        <div id="fm-template-info" style="font-size:11px;color:#047857;margin-bottom:10px;min-height:16px;"></div>
+        <button class="btn btn-success btn-sm" id="fm-template-apply-btn" onclick="applyTemplate()" style="display:none;background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;border:none;padding:9px 20px;font-size:13px;font-weight:700;border-radius:9px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          Apply Template — Auto-fill All RM Quantities
+        </button>
+        <div id="fm-template-applied-badge" style="display:none;background:#dcfce7;border:1.5px solid #6ee7b7;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;color:#15803d;display:none;">
+          ✅ Template applied — all quantities scaled to <span id="fm-tpl-applied-kg"></span> KG
+          <button onclick="clearTemplateApply()" style="margin-left:10px;background:transparent;border:none;color:#6b7280;font-size:11px;cursor:pointer;text-decoration:underline;">Reset</button>
+        </div>
+      </div>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
         <div style="font-size:13px;font-weight:700;color:var(--text);">Raw Material Items</div>
       </div>
@@ -2460,6 +2492,98 @@ function openNewFormModal(template=null, forceEmpty=false){
     // Fresh form: show 10 empty rows
     for(let i=0; i<10; i++) addFormItem();
   }
+}
+
+// ════════════════════════════════════════════════════════
+//  TEMPLATE AUTO-FILL — scale saved formulation to any FG qty
+// ════════════════════════════════════════════════════════
+function onTemplateSelect(){
+  const fId=parseInt(document.getElementById('fm-template-sel')?.value)||0;
+  const infoEl=document.getElementById('fm-template-info');
+  const applyBtn=document.getElementById('fm-template-apply-btn');
+  const qtyEl=document.getElementById('fm-template-qty');
+  if(!fId){
+    if(infoEl)infoEl.textContent='';
+    if(applyBtn)applyBtn.style.display='none';
+    return;
+  }
+  const f=DB.formulations.find(x=>x.id===fId);
+  if(!f){if(infoEl)infoEl.textContent='';return;}
+  const baseKg=calcTotalQty(f);
+  if(infoEl)infoEl.textContent=`Template base size: ${baseKg.toFixed(3)} KG · ${f.items.length} raw materials — Enter your target quantity and click Apply.`;
+  // show/hide apply button
+  const qty=parseFloat(qtyEl?.value)||0;
+  if(applyBtn)applyBtn.style.display=(qty>0)?'inline-flex':'none';
+}
+
+function onTemplateQtyInput(){
+  const fId=parseInt(document.getElementById('fm-template-sel')?.value)||0;
+  const qty=parseFloat(document.getElementById('fm-template-qty')?.value)||0;
+  const applyBtn=document.getElementById('fm-template-apply-btn');
+  if(applyBtn)applyBtn.style.display=(fId&&qty>0)?'inline-flex':'none';
+}
+
+function applyTemplate(){
+  const fId=parseInt(document.getElementById('fm-template-sel')?.value)||0;
+  const targetKg=parseFloat(document.getElementById('fm-template-qty')?.value)||0;
+  if(!fId){toast('Please select a template formulation','error');return;}
+  if(targetKg<=0){toast('Please enter a valid FG quantity','error');return;}
+  const f=DB.formulations.find(x=>x.id===fId);
+  if(!f||!f.items||f.items.length===0){toast('Template has no raw material items','error');return;}
+
+  const baseKg=calcTotalQty(f);
+  if(baseKg<=0){toast('Template base quantity is zero','error');return;}
+  const scaleFactor=targetKg/baseKg;
+
+  // Clear existing form items
+  const fmItems=document.getElementById('fm-items');
+  if(fmItems)fmItems.innerHTML='';
+  formItemCount=0;
+
+  // Add scaled items from template
+  f.items.forEach(item=>{
+    const rm=getRMById(item.rmId);if(!rm)return;
+    const u=(item.unit||rm.unit||'KG').toUpperCase();
+    // Scale quantity
+    const scaledQty=parseFloat((item.qty*scaleFactor).toFixed(4));
+    addFormItem(item.rmId, scaledQty, item.unit||rm.unit, item.rate!==undefined?item.rate:rm.rate);
+  });
+
+  // Pad to at least 10 rows
+  const totalRows=f.items.filter(i=>getRMById(i.rmId)).length;
+  const needed=Math.max(0,10-totalRows);
+  for(let i=0;i<needed;i++)addFormItem();
+
+  updateFmLiveTotal();
+  _saveFormDraft();
+
+  // Show success badge
+  const badge=document.getElementById('fm-template-applied-badge');
+  const kgSpan=document.getElementById('fm-tpl-applied-kg');
+  const applyBtn=document.getElementById('fm-template-apply-btn');
+  if(badge){badge.style.display='flex';badge.style.alignItems='center';}
+  if(kgSpan)kgSpan.textContent=targetKg+' KG';
+  if(applyBtn)applyBtn.style.display='none';
+
+  toast(`✅ Template applied — ${f.items.length} materials scaled to ${targetKg} KG (×${scaleFactor.toFixed(4)})`, 'success');
+
+  // Scroll to items
+  document.getElementById('fm-items')?.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+function clearTemplateApply(){
+  const badge=document.getElementById('fm-template-applied-badge');
+  if(badge)badge.style.display='none';
+  const applyBtn=document.getElementById('fm-template-apply-btn');
+  const fId=parseInt(document.getElementById('fm-template-sel')?.value)||0;
+  const qty=parseFloat(document.getElementById('fm-template-qty')?.value)||0;
+  if(applyBtn)applyBtn.style.display=(fId&&qty>0)?'inline-flex':'none';
+  // Clear and reset items to 10 empty rows
+  const fmItems=document.getElementById('fm-items');
+  if(fmItems)fmItems.innerHTML='';
+  formItemCount=0;
+  for(let i=0;i<10;i++)addFormItem();
+  updateFmLiveTotal();
 }
 
 function updateLotPreview(){
@@ -3895,8 +4019,16 @@ function renderAdjustTab(){
   return`<div class="card">
   <div class="card-title">Manual Stock Adjustment</div>
   <div class="form-row">
-    <div class="form-group"><label>Material</label>
-      <select class="form-control" id="adj-rm">${DB.rawMaterials.map(r=>`<option value="${r.id}">${r.name} (${r.code})</option>`).join('')}</select>
+    <div class="form-group">
+      <label>Material</label>
+      <div style="position:relative;">
+        <input class="form-control" id="adj-rm-search" placeholder="🔍 Search material name or code..." autocomplete="off"
+          oninput="filterAdjustMaterialDropdown()" 
+          onfocus="openAdjustMaterialDropdown()" 
+          onblur="setTimeout(()=>closeAdjustMaterialDropdown(),200)">
+        <div id="adj-rm-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg2);border:1.5px solid var(--accent);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,0.12);z-index:500;max-height:280px;overflow-y:auto;margin-top:2px;"></div>
+        <input type="hidden" id="adj-rm" value="">
+      </div>
     </div>
     <div class="form-group"><label>Type</label>
       <select class="form-control" id="adj-type">${typeOptions}</select>
@@ -3975,6 +4107,7 @@ function saveAdjustment(){
   const isInvUser=currentUser.role==='inventory';
   let qty=parseFloat(document.getElementById('adj-qty').value);
   if(isNaN(qty)){toast('Enter valid quantity','error');return;}
+  if(!rmId){toast('Please select a material','error');return;}
   // Inventory user always inputs positive; subtract types auto-negate
   if(isInvUser&&(type==='damage'||type==='adjustment')) qty=-Math.abs(qty);
   const inv=DB.inventory.find(i=>i.rmId===rmId);
@@ -3988,6 +4121,68 @@ function saveAdjustment(){
     .then(()=>gasCall('addAudit',{entry:DB.auditLog[0]}))
     .then(()=>toast('Adjustment saved ✓','success'));
   navigate('inventory');
+}
+
+// ════════════════════════════════════════════════════════
+//  ADJUST TAB MATERIAL SEARCH DROPDOWN
+// ════════════════════════════════════════════════════════
+function openAdjustMaterialDropdown(){
+  const searchInput=document.getElementById('adj-rm-search');
+  const dropdown=document.getElementById('adj-rm-dropdown');
+  if(!searchInput||!dropdown)return;
+  
+  const searchText=(searchInput.value||'').toLowerCase().trim();
+  let filteredMaterials=DB.rawMaterials;
+  
+  if(searchText){
+    filteredMaterials=DB.rawMaterials.filter(rm=>
+      rm.name.toLowerCase().includes(searchText)||
+      rm.code.toLowerCase().includes(searchText)
+    );
+  }
+  
+  if(filteredMaterials.length===0){
+    dropdown.innerHTML=`<div style="padding:12px;color:var(--text3);font-size:12px;text-align:center;">No materials found</div>`;
+  } else {
+    dropdown.innerHTML=filteredMaterials.map(rm=>{
+      const inv=getInvByRMId(rm.id);
+      const st=getStockStatus(rm);
+      const stockBadge=st==='ok'?'<span style="background:#d1fae5;color:#065f46;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:700;">✓ IN STOCK</span>':
+                       st==='low'?'<span style="background:#fef3c7;color:#92400e;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:700;">⚠ LOW</span>':
+                                 '<span style="background:#fee2e2;color:#991b1b;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:700;">✕ OUT</span>';
+      return`<div onmousedown="selectAdjustMaterial(${rm.id},'${rm.name.replace(/'/g,"\\'")} (${rm.code})')" 
+        style="padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .1s;" 
+        onmouseover="this.style.background='var(--accent-light)'" 
+        onmouseout="this.style.background=''">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div style="font-size:13px;font-weight:600;color:var(--text);">${rm.name}</div>
+          ${stockBadge}
+        </div>
+        <div style="font-size:11px;color:var(--text3);margin-top:3px;">
+          Code: <span class="mono" style="color:var(--text2);">${rm.code}</span> · 
+          Available: <strong>${inv.quantity.toFixed(2)} ${rm.unit}</strong> · 
+          Min Stock: ${rm.minStock}
+        </div>
+      </div>`;
+    }).join('');
+  }
+  
+  dropdown.style.display='block';
+}
+
+function filterAdjustMaterialDropdown(){
+  openAdjustMaterialDropdown();
+}
+
+function closeAdjustMaterialDropdown(){
+  const dropdown=document.getElementById('adj-rm-dropdown');
+  if(dropdown)dropdown.style.display='none';
+}
+
+function selectAdjustMaterial(rmId,displayName){
+  document.getElementById('adj-rm').value=rmId;
+  document.getElementById('adj-rm-search').value=displayName;
+  closeAdjustMaterialDropdown();
 }
 
 // ════════════════════════════════════════════════════════
