@@ -639,11 +639,17 @@ const DB = {
   ],
   labourRate: 60,     // ₹ per man-hour — configurable
   productionLogs: [], // entered by Production Entry Operator
+  // ── Shift Master (v4.0) ──────────────────────────────────────────────────────
+  shifts: [
+    {id:1,name:'Day Shift',startTime:'08:30',endTime:'17:00',crossesMidnight:false,active:true,color:'#2563eb'},
+    {id:2,name:'Night Shift',startTime:'17:00',endTime:'02:00',crossesMidnight:true,active:true,color:'#7c3aed'},
+  ],
   nextId_machine: 4,
   nextId_prodlog: 1,
+  nextId_shift: 3,
 };
 
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbyj0xfyWCqWHO4pZXp-P3ZYWJ0BHe5CuW1tNvPgbjdRA-DP_dv1nrlCg-S5PYw_tjQI/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbyLM8QcAT-G-Rs1lpW0yLYrwhzKIwbzOrHHYySJZO1plaZgJ1oFT6-f8hdV1hxPuVLOgw/exec';
 
 let currentUser = null;
 let dashboardRefreshTimer = null;
@@ -826,12 +832,13 @@ const NAV_ICONS = {
   production:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"/></svg>`,
   prodreports:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><polyline points="8 13 10 15 14 11"/></svg>`,
   machines:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>`,
+  shiftmaster:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
 };
 
 const NAV_CONFIG = {
   admin:[
     {section:'Overview',items:[{id:'dashboard',label:'Dashboard'}]},
-    {section:'Production',items:[{id:'formulations',label:'Formulations'},{id:'costing',label:'Costing Engine'},{id:'costanalysis',label:'Cost Analysis'},{id:'production',label:'Production Entry'},{id:'prodreports',label:'Prod. Reports'},{id:'machines',label:'Machine Setup'}]},
+    {section:'Production',items:[{id:'formulations',label:'Formulations'},{id:'costing',label:'Costing Engine'},{id:'costanalysis',label:'Cost Analysis'},{id:'production',label:'Production Entry'},{id:'prodreports',label:'Prod. Reports'},{id:'machines',label:'Machine Setup'},{id:'shiftmaster',label:'Shift Master'}]},
     {section:'Materials',items:[{id:'rawmaterials',label:'Raw Materials'},{id:'inventory',label:'Inventory'},{id:'kitting',label:'Full Kitting'}]},
     {section:'Reports',items:[{id:'reports',label:'Reports & Export'}]},
     {section:'System',items:[{id:'users',label:'User Management'},{id:'settings',label:'Settings'}]},
@@ -858,7 +865,7 @@ const NAV_CONFIG = {
   ],
   production:[
     {section:'Overview',items:[{id:'dashboard',label:'Prod. Dashboard'}]},
-    {section:'Production',items:[{id:'production',label:'Production Entry'},{id:'prodreports',label:'Reports & Analytics'}]},
+    {section:'Production',items:[{id:'production',label:'Production Entry'},{id:'prodreports',label:'Reports & Analytics'},{id:'shiftmaster',label:'Shift Master'}]},
   ],
 };
 
@@ -867,12 +874,12 @@ const BADGE_CLASSES={admin:'badge-admin',formulation:'badge-form',view:'badge-vi
 
 function can(perm){
   const perms={
-    admin:['dashboard','formulations','costing','rawmaterials','inventory','reports','users','settings','viewPrice','editPrice','manageUsers','viewCost','kitting','costanalysis','addStock','subtractStock','production','prodreports','machines','manageMachines'],
+    admin:['dashboard','formulations','costing','rawmaterials','inventory','reports','users','settings','viewPrice','editPrice','manageUsers','viewCost','kitting','costanalysis','addStock','subtractStock','production','prodreports','machines','manageMachines','shiftmaster'],
     formulation:['dashboard','formulations','inventory'],
     inventory:['dashboard','inventory','reports','addStock','subtractStock'],
     view:['dashboard','inventory'],
     report:['dashboard','reports','inventory'],
-    production:['dashboard','production','prodreports'],
+    production:['dashboard','production','prodreports','shiftmaster'],
   };
   return(perms[currentUser.role]||[]).includes(perm);
 }
@@ -933,7 +940,7 @@ function navigate(page){
   document.querySelectorAll('.nav-item').forEach(e=>e.classList.remove('active'));
   const ni=document.getElementById('nav-'+page);
   if(ni)ni.classList.add('active');
-  const titles={dashboard:'Dashboard',formulations:'Formulations',costing:'Costing Engine',costanalysis:'Cost Analysis',rawmaterials:'Raw Materials',inventory:'Inventory',reports:'Reports & Export',users:'User Management',settings:'System Settings',kitting:'Full Kitting',debitstatus:'Inventory Debit Status',production:'Production Entry',prodreports:'Production Reports & Analytics',machines:'Machine Setup'};
+  const titles={dashboard:'Dashboard',formulations:'Formulations',costing:'Costing Engine',costanalysis:'Cost Analysis',rawmaterials:'Raw Materials',inventory:'Inventory',reports:'Reports & Export',users:'User Management',settings:'System Settings',kitting:'Full Kitting',debitstatus:'Inventory Debit Status',production:'Production Entry',prodreports:'Production Reports & Analytics',machines:'Machine Setup',shiftmaster:'Shift Master'};
   document.getElementById('page-heading').textContent=titles[page]||page;
   const content=document.getElementById('page-content');
   content.style.cssText='opacity:0;transform:translateY(12px);transition:none;';
@@ -962,6 +969,7 @@ function renderPage(page,el){
     case 'production':el.innerHTML=can('production')?renderProductionEntry():'<div class="alert alert-error">Access denied.</div>';break;
     case 'prodreports':el.innerHTML=can('prodreports')?renderProdReports():'<div class="alert alert-error">Access denied.</div>';break;
     case 'machines':el.innerHTML=can('manageMachines')?renderMachineSetup():'<div class="alert alert-error">Access denied.</div>';break;
+    case 'shiftmaster':el.innerHTML=can('shiftmaster')?renderShiftMaster():'<div class="alert alert-error">Access denied.</div>';break;
     default:el.innerHTML='<p>Page not found</p>';
   }
 }
@@ -1263,7 +1271,7 @@ function renderFormulations(){
     f.items=f.items||[];
     const cost=calcBatchCost(f);
     const totalQty=calcTotalQty(f);
-    html+=`<div class="batch-card" data-id="${f.id}" data-name="${f.productName.toLowerCase()}" data-code="${f.productCode.toLowerCase()}" data-batch="${f.batchNo.toLowerCase()}" data-date="${f.mfgDate}">
+    html+=`<div class="batch-card" data-id="${f.id}" data-name="${(f.productName||'').toLowerCase()}" data-code="${(f.productCode||'').toLowerCase()}" data-batch="${(f.batchNo||'').toLowerCase()}" data-date="${f.mfgDate||''}" data-remarks="${(f.remarks||'').toLowerCase()}" data-by="${(f.byName||f.by||'').toLowerCase()}">
       <div class="batch-card-top">
         <div>
           <div class="batch-card-title">${f.productName}</div>
@@ -1363,7 +1371,9 @@ function filterFormulations(){
     const code=card.dataset.code||'';
     const batch=card.dataset.batch||'';
     const date=card.dataset.date||'';
-    let show=(!q||(name+code+batch).includes(q));
+    const remarks=card.dataset.remarks||'';
+    const by=card.dataset.by||'';
+    let show=(!q||[name,code,batch,remarks,by].join(' ').includes(q));
     if(show&&dateFilter){
       const d=new Date(date.slice(0,10));
       if(dateFilter==='today')show=date.startsWith(today);
@@ -3638,7 +3648,7 @@ async function confirmBulkImport(){
   let saved=0, failed=0;
   for(const entry of toSave){
     try{
-      await gasCall('saveRawMaterial',{rm:entry.rm});
+      await gasCall('saveRawMaterial',{rm:entry.rm,isNew:entry.isNew});
       saved++;
     } catch(e){ console.error('Bulk save failed for',entry.rm.code,e); failed++; }
   }
@@ -3736,7 +3746,7 @@ function saveRM(id){
     const rmForGAS={id:rm.id,name:name,code:code,unit:unit,rate:rate,supplier:supplier,updatedDate:updatedDate,minStock:minStock};
     const detail=`${code} — ${name}${oldName!==name?' (renamed from '+oldName+')':''}`;
     addAudit('Updated raw material',detail);
-    gasCall('saveRawMaterial',{rm:rmForGAS})
+    gasCall('saveRawMaterial',{rm:rmForGAS,isNew:false})
       .then(()=>gasCall('addAudit',{entry:DB.auditLog[0]}))
       .then(()=>{ toast('Material updated ✓','success'); closeModal('rm-modal'); navigate('rawmaterials'); })
       .catch(err=>{ toast('Save failed — '+err.message,'error'); if(saveBtn){saveBtn.disabled=false;saveBtn.textContent='Save';} });
@@ -3746,7 +3756,7 @@ function saveRM(id){
     DB.rawMaterials.push(newRM);
     DB.inventory.push({id:newRMId,rmId:newRMId,quantity:0});
     addAudit('Added raw material',`${code} — ${name}`);
-    gasCall('saveRawMaterial',{rm:newRM})
+    gasCall('saveRawMaterial',{rm:newRM,isNew:true})
       .then(()=>gasCall('addAudit',{entry:DB.auditLog[0]}))
       .then(()=>{ toast('Material saved ✓','success'); closeModal('rm-modal'); navigate('rawmaterials'); })
       .catch(err=>{
@@ -6374,15 +6384,13 @@ function renderProductionEntry(){
     const m=calcProdMetrics(log);
     const mac=DB.machines.find(x=>x.id===log.machineId);
     if(!m) return `<tr><td colspan="12" style="text-align:center;color:var(--text3)">Invalid time data</td></tr>`;
-    const lf=log.formulationId?DB.formulations.find(x=>x.id===log.formulationId):null;
-    const lfCell=lf
-      ?`<span style="font-size:11px;font-weight:600;color:var(--accent);background:var(--accent-light);padding:2px 8px;border-radius:20px;white-space:nowrap;">🔗 ${lf.productName}${lf.batchNo?' · '+lf.batchNo:''}</span>`
-      :`<span style="color:var(--text3);font-size:12px;">—</span>`;
+    const shiftObj=log.shiftId?DB.shifts.find(s=>s.id===log.shiftId):null;
+    const shiftCell=shiftObj?`<span style="font-size:11px;font-weight:600;padding:2px 9px;border-radius:20px;background:${shiftObj.color}22;color:${shiftObj.color};border:1px solid ${shiftObj.color}44">${shiftObj.name}</span>`:`<span style="color:var(--text3);font-size:12px;">—</span>`;
     return `<tr>
       <td class="td-primary">${log.date}</td>
+      <td>${shiftCell}</td>
       <td>${log.workerName||'—'}</td>
       <td>${log.productName||'—'}</td>
-      <td>${lfCell}</td>
       <td><span class="machine-tag">${mac?mac.name:log.machineId}</span></td>
       <td>${log.rpm||'—'}</td>
       <td>${m.machineRunHrs.toFixed(2)} hr</td>
@@ -6455,7 +6463,7 @@ function renderProductionEntry(){
     <div class="table-wrap">
       <table id="prod-table">
         <thead><tr>
-          <th>Date</th><th>Worker</th><th>Product</th><th>Formulation</th><th>Machine</th><th>RPM</th>
+          <th>Date</th><th>Shift</th><th>Worker</th><th>Product</th><th>Machine</th><th>RPM</th>
           <th>Run Hrs</th><th>FG Output</th><th>Wastage%</th><th>Efficiency%</th>
           <th>Conv.Cost/kg</th><th>Actions</th>
         </tr></thead>
@@ -6465,7 +6473,7 @@ function renderProductionEntry(){
   </div>
 
   <!-- PRODUCTION ENTRY MODAL -->
-  <div class="modal-overlay" id="prod-modal" style="display:none" onclick="if(event.target===this)closeProdModal()">
+  <div class="modal-overlay" id="prod-modal" style="display:none">
     <div class="modal modal-xl">
       <div class="modal-header">
         <div class="modal-title">⚙️ New Production Entry</div>
@@ -6473,25 +6481,46 @@ function renderProductionEntry(){
       </div>
       <div class="modal-body">
         <div class="prod-form-section">
-          <div class="prod-form-section-title">🧑 Workers & Date</div>
+          <div class="prod-form-section-title">🧑 Workers, Dates & Shift</div>
           <div class="prod-entry-grid">
+            <!-- WORKER SELECTION: dropdown list from Users + past logs -->
             <div class="form-group" style="grid-column:1/-1">
-              <label>Workers * <span style="font-weight:400;color:var(--text3);font-size:11px;">— type name and press Enter or comma to add multiple</span></label>
-              <div id="pe-workers-wrap" style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;background:var(--bg);border:1.5px solid var(--border);border-radius:9px;padding:6px 10px;min-height:40px;cursor:text;" onclick="document.getElementById('pe-worker-input').focus()">
-                <div id="pe-worker-tags"></div>
-                <input id="pe-worker-input" type="text" placeholder="Type name, press Enter…"
-                  style="border:none;outline:none;background:transparent;font-family:inherit;font-size:14px;color:var(--text);min-width:160px;flex:1;"
-                  onkeydown="peWorkerKey(event)" oninput="peWorkerInputStyle()">
+              <label>Workers * <span style="font-weight:400;color:var(--text3);font-size:11px;">— select from list or type a new name and press Enter</span></label>
+              <div style="position:relative;">
+                <div id="pe-workers-wrap" style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;background:var(--bg);border:1.5px solid var(--border);border-radius:9px;padding:6px 10px;min-height:40px;cursor:text;" onclick="document.getElementById('pe-worker-input').focus()">
+                  <div id="pe-worker-tags"></div>
+                  <input id="pe-worker-input" type="text" placeholder="Type or select worker…"
+                    style="border:none;outline:none;background:transparent;font-family:inherit;font-size:14px;color:var(--text);min-width:160px;flex:1;"
+                    onkeydown="peWorkerKey(event)" oninput="peWorkerInputStyle()" onfocus="peWorkerShowAll()">
+                </div>
+                <div id="pe-worker-suggestions" style="display:none;position:absolute;z-index:9999;background:var(--card);border:1.5px solid var(--accent);border-radius:8px;box-shadow:var(--shadow-md);min-width:200px;max-height:220px;overflow-y:auto;top:calc(100% + 2px);left:0;width:100%;"></div>
               </div>
-              <div id="pe-worker-suggestions" style="display:none;position:absolute;z-index:9999;background:var(--card);border:1.5px solid var(--accent);border-radius:8px;box-shadow:var(--shadow-md);min-width:200px;max-height:180px;overflow-y:auto;"></div>
+            </div>
+
+            <!-- DATE + SHIFT SECTION: each date gets its own shift -->
+            <div class="form-group" style="grid-column:1/-1">
+              <label>Date(s) &amp; Shift * <span style="font-weight:400;color:var(--text3);font-size:11px;">— each date can have its own shift (e.g. same machine ran Morning &amp; Night on same day)</span></label>
+
+              <!-- Date+Shift rows table -->
+              <div id="pe-date-rows" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px;"></div>
+
+              <!-- Add date row -->
+              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                <input type="date" id="pe-date-picker" class="form-control" style="width:170px;">
+                <select id="pe-shift-picker" class="form-control" style="width:220px;">
+                  <option value="">— Select Shift —</option>
+                  ${DB.shifts.filter(s=>s.active).map(s=>`<option value="${s.id}" data-start="${s.startTime}" data-end="${s.endTime}">${s.name} (${s.startTime}–${s.endTime}${s.crossesMidnight?' +1d':''})</option>`).join('')}
+                </select>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="peAddDateRow()" style="white-space:nowrap;">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  Add Date &amp; Shift
+                </button>
+              </div>
+              <div id="pe-date-count-hint" style="font-size:11px;color:var(--text3);margin-top:4px;"></div>
             </div>
             <div class="form-group">
-              <label>Date *</label>
-              <input class="form-control" id="pe-date" type="date" value="${today}">
-            </div>
-            <div class="form-group">
-              <label>Product Name *</label>
-              <input class="form-control" id="pe-product" placeholder="Product being produced">
+              <label>Material / Product *</label>
+              <input class="form-control" id="pe-product" placeholder="Material or product being produced">
             </div>
             <div class="form-group" style="grid-column:1/-1">
               <label>🔗 Link to Formulation <span style="font-weight:400;color:var(--text3)">(optional — auto-fills product name)</span></label>
@@ -6513,60 +6542,27 @@ function renderProductionEntry(){
             </div>
           </div>
         </div>
-        <div class="prod-form-section">
-          <div class="prod-form-section-title">🏭 Machine Details</div>
-          <div class="prod-entry-grid">
-            <div class="form-group">
-              <label>Machine *</label>
-              <select class="form-control" id="pe-machine">${machineOpts}</select>
-            </div>
-            <div class="form-group">
-              <label>RPM</label>
-              <input class="form-control" id="pe-rpm" type="number" placeholder="e.g. 1200">
-            </div>
-            <div class="form-group">
-              <label>Hour Meter Reading</label>
-              <input class="form-control" id="pe-hourmeter" type="number" placeholder="Meter reading at start">
-            </div>
-          </div>
-        </div>
-        <div class="prod-form-section">
-          <div class="prod-form-section-title">⏱ Time Details</div>
-          <div class="prod-entry-grid">
-            <div class="form-group">
-              <label>Start Time *</label>
-              <input class="form-control" id="pe-start" type="time" oninput="updateProdCalcPreview()">
-            </div>
-            <div class="form-group">
-              <label>End Time *</label>
-              <input class="form-control" id="pe-end" type="time" oninput="updateProdCalcPreview()">
-            </div>
-            <div class="form-group">
-              <label>Break / Lunch (minutes)</label>
-              <input class="form-control" id="pe-break" type="number" value="30" min="0" placeholder="30" oninput="updateProdCalcPreview()">
-            </div>
-          </div>
-        </div>
-        <div class="prod-form-section">
-          <div class="prod-form-section-title">⚖️ Material Quantities</div>
-          <div class="prod-entry-grid">
-            <div class="form-group">
-              <label>Raw Material Input (kg) *</label>
-              <input class="form-control" id="pe-rminput" type="number" step="0.01" placeholder="0.00" oninput="updateProdCalcPreview()">
-            </div>
-            <div class="form-group">
-              <label>Finished Goods Output (kg) *</label>
-              <input class="form-control" id="pe-fgoutput" type="number" step="0.01" placeholder="0.00" oninput="updateProdCalcPreview()">
-            </div>
+        <!-- MULTI-MACHINE ENTRIES CONTAINER -->
+        <div id="pe-machine-entries-container"></div>
 
-          </div>
+        <!-- Add Machine Entry Button -->
+        <div style="margin: 4px 0 16px;">
+          <button type="button" class="btn btn-secondary" onclick="peAddMachineEntry()" style="border-style:dashed;width:100%;justify-content:center;gap:8px;padding:11px;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            + Add Machine Entry
+          </button>
         </div>
+
+        <!-- Totals Summary (auto-calculated) -->
+        <div id="pe-totals-bar" style="display:none;background:linear-gradient(135deg,#1e293b,#334155);border-radius:11px;padding:14px 18px;margin-bottom:14px;color:#fff;">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;opacity:0.7;">📊 Combined Totals Across All Machine Entries</div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;" id="pe-totals-grid"></div>
+        </div>
+
         <div class="form-group">
           <label>Remarks</label>
           <textarea class="form-control" id="pe-remarks" rows="2" placeholder="Any observations, issues, or notes…"></textarea>
         </div>
-        <!-- Live calculated preview -->
-        <div id="prod-calc-preview"></div>
       </div>
       <div class="modal-footer">
         <button class="btn btn-secondary" onclick="closeProdModal()">Cancel</button>
@@ -6605,7 +6601,15 @@ function renderProductionEntry(){
 
 // ── Multi-Worker Input ────────────────────────────────────────────────────────
 window._peWorkers = [];
+window._peDates   = [];
 window._currentViewLogId = null;
+
+// Build combined worker list: production/admin Users + past log entries
+function peGetAllWorkerNames(){
+  const fromUsers=(DB.users||[]).filter(u=>u.role==='production'||u.role==='admin').map(u=>u.name).filter(Boolean);
+  const fromLogs=[...new Set((DB.productionLogs||[]).map(l=>l.workerName).flatMap(n=>n.split(',').map(x=>x.trim())))].filter(Boolean);
+  return [...new Set([...fromUsers,...fromLogs])].sort();
+}
 
 function peWorkerKey(e){
   const inp = document.getElementById('pe-worker-input');
@@ -6618,7 +6622,6 @@ function peWorkerKey(e){
     window._peWorkers.pop();
     peWorkerRenderTags();
   }
-  // suggestions
   if(e.key!=='Enter'&&e.key!==','&&e.key!=='Tab'&&e.key!=='Backspace'){
     setTimeout(()=>peWorkerSuggest(inp.value.trim()),0);
   }
@@ -6627,12 +6630,18 @@ function peWorkerInputStyle(){
   peWorkerWrapStyle();
   peWorkerSuggest(document.getElementById('pe-worker-input').value.trim());
 }
+function peWorkerShowAll(){
+  peWorkerSuggest('');
+}
 function peWorkerAdd(name){
   if(!name||window._peWorkers.includes(name)) return;
   window._peWorkers.push(name);
   peWorkerRenderTags();
   peWorkerWrapStyle();
-  document.getElementById('pe-worker-suggestions').style.display='none';
+  const box=document.getElementById('pe-worker-suggestions');
+  if(box) box.style.display='none';
+  const inp=document.getElementById('pe-worker-input');
+  if(inp) inp.value='';
 }
 function peWorkerRemove(idx){
   window._peWorkers.splice(idx,1);
@@ -6644,8 +6653,8 @@ function peWorkerRenderTags(){
   if(!wrap) return;
   wrap.innerHTML=window._peWorkers.map((w,i)=>`
     <span style="display:inline-flex;align-items:center;gap:5px;background:var(--accent-light);border:1px solid #93c5fd;border-radius:20px;padding:3px 10px;font-size:12px;font-weight:600;color:var(--accent);white-space:nowrap;">
-      👤 ${w}
-      <button onclick="peWorkerRemove(${i})" style="background:none;border:none;cursor:pointer;color:var(--accent);font-size:13px;padding:0;line-height:1;font-weight:700;">✕</button>
+      \u{1F464} ${w}
+      <button onclick="peWorkerRemove(${i})" style="background:none;border:none;cursor:pointer;color:var(--accent);font-size:13px;padding:0;line-height:1;font-weight:700;">\u2715</button>
     </span>`).join('');
 }
 function peWorkerWrapStyle(){
@@ -6654,30 +6663,92 @@ function peWorkerWrapStyle(){
   const hasTags=window._peWorkers.length>0;
   wrap.style.borderColor=hasTags?'var(--accent)':'var(--border)';
   const inp=document.getElementById('pe-worker-input');
-  if(inp) inp.placeholder=hasTags?'Add another…':'Type name, press Enter…';
+  if(inp) inp.placeholder=hasTags?'Add another\u2026':'Type or select worker\u2026';
 }
 function peWorkerSuggest(q){
   const box=document.getElementById('pe-worker-suggestions');
   if(!box) return;
-  if(!q){box.style.display='none';return;}
-  const existing=[...new Set(DB.productionLogs.map(l=>l.workerName).flatMap(n=>n.split(',').map(x=>x.trim())))].filter(Boolean);
-  const matches=existing.filter(n=>n.toLowerCase().includes(q.toLowerCase())&&!window._peWorkers.includes(n));
+  const all=peGetAllWorkerNames();
+  const matches=q
+    ? all.filter(n=>n.toLowerCase().includes(q.toLowerCase())&&!window._peWorkers.includes(n))
+    : all.filter(n=>!window._peWorkers.includes(n));
   if(!matches.length){box.style.display='none';return;}
-  box.innerHTML=matches.slice(0,6).map(n=>`<div onclick="peWorkerAdd('${n.replace(/'/g,"\'")}');document.getElementById('pe-worker-input').value=''" style="padding:8px 14px;cursor:pointer;font-size:13px;font-weight:500;color:var(--text);" onmouseover="this.style.background='var(--accent-light)'" onmouseout="this.style.background=''">${n}</div>`).join('');
-  // position under input
-  const inp=document.getElementById('pe-worker-input');
-  if(inp){
-    const r=inp.getBoundingClientRect();
-    box.style.top=(r.bottom+window.scrollY+2)+'px';
-    box.style.left=r.left+'px';
-  }
+  const header=q?'':'<div style="padding:5px 14px 3px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text3);">All Workers</div>';
+  box.innerHTML=header+matches.slice(0,10).map(n=>`<div onclick="peWorkerAdd('${n.replace(/'/g,"\\'")}');" style="padding:8px 14px;cursor:pointer;font-size:13px;font-weight:500;color:var(--text);display:flex;align-items:center;gap:7px;" onmouseover="this.style.background='var(--accent-light)'" onmouseout="this.style.background=''">\u{1F464} ${n}</div>`).join('');
   box.style.display='block';
 }
 document.addEventListener('click',function(e){
   const box=document.getElementById('pe-worker-suggestions');
   const wrap=document.getElementById('pe-workers-wrap');
-  if(box&&wrap&&!wrap.contains(e.target)) box.style.display='none';
+  if(box&&wrap&&!wrap.contains(e.target)&&e.target.id!=='pe-worker-input') box.style.display='none';
 });
+
+// \u2500\u2500 Multi-Date Selection \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+// _peDates is now [{date, shiftId}] — each date carries its own shift
+function peAddDateRow(){
+  const dateStr = document.getElementById('pe-date-picker').value;
+  const shiftVal = document.getElementById('pe-shift-picker').value;
+  if(!dateStr){toast('Please pick a date','info');return;}
+  if(!shiftVal){toast('Please select a shift for this date','info');return;}
+  if(!window._peDates) window._peDates=[];
+  // Allow same date with DIFFERENT shift (e.g. morning + night same day)
+  const duplicate = window._peDates.find(r=>r.date===dateStr && r.shiftId===shiftVal);
+  if(duplicate){toast('This date + shift combination is already added','info');return;}
+  window._peDates.push({date:dateStr, shiftId:shiftVal});
+  window._peDates.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
+  peDateRenderRows();
+  document.getElementById('pe-date-picker').value='';
+}
+function peRemoveDateRow(idx){
+  window._peDates=(window._peDates||[]).filter((_,i)=>i!==idx);
+  peDateRenderRows();
+}
+function peDateRenderRows(){
+  const container=document.getElementById('pe-date-rows');
+  const hint=document.getElementById('pe-date-count-hint');
+  if(!container) return;
+  if(!window._peDates||!window._peDates.length){
+    container.innerHTML='<div style="color:var(--text3);font-size:13px;padding:6px 2px;">No date/shift rows yet — pick a date and shift above then click Add</div>';
+    if(hint) hint.textContent='';
+    return;
+  }
+  container.innerHTML=window._peDates.map((row,i)=>{
+    const shiftObj=DB.shifts.find(s=>String(s.id)===String(row.shiftId));
+    const shiftColor=shiftObj?.color||'#6366f1';
+    const fmtd=new Date(row.date+'T00:00:00').toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric',weekday:'short'});
+    return `<div style="display:flex;align-items:center;gap:8px;background:var(--bg2);border:1.5px solid var(--border);border-radius:9px;padding:8px 12px;flex-wrap:wrap;">`
+      +`<span style="background:#f0fdf4;border:1px solid #6ee7b7;border-radius:16px;padding:3px 11px;font-size:12px;font-weight:700;color:#065f46;white-space:nowrap;">📅 ${fmtd}</span>`
+      +`<select onchange="peDateRowShiftChange(${i},this.value)" style="border:1.5px solid ${shiftColor}44;border-radius:8px;padding:5px 10px;font-size:12px;font-weight:600;color:${shiftColor};background:${shiftColor}11;font-family:inherit;cursor:pointer;outline:none;min-width:180px;">`
+      +`<option value="">&#8212; Shift &#8212;</option>`
+      +DB.shifts.filter(s=>s.active).map(s=>`<option value="${s.id}" ${String(s.id)===String(row.shiftId)?'selected':''}>${s.name} (${s.startTime}–${s.endTime}${s.crossesMidnight?' +1d':''})</option>`).join('')
+      +`</select>`
+      +`<button onclick="peRemoveDateRow(${i})" style="background:none;border:1px solid #fca5a5;border-radius:7px;cursor:pointer;color:#dc2626;font-size:12px;padding:4px 10px;font-weight:700;" title="Remove">✕ Remove</button>`
+      +`</div>`;
+  }).join('');
+  if(hint){
+    const n=window._peDates.length;
+    if(n>1){
+      hint.innerHTML=`<span style="color:#059669;font-weight:600;">ℹ ${n} date/shift row${n>1?'s':''} — machine data will be saved as <strong>${n} separate record${n>1?'s':''}</strong>, each with its own date &amp; shift.</span>`;
+    } else {
+      hint.textContent='';
+    }
+  }
+  if(window._peDates.length>0) peAutoFillTimesFromShift(window._peDates[0].shiftId);
+}
+function peDateRowShiftChange(idx,shiftVal){
+  if(!window._peDates||!window._peDates[idx]) return;
+  window._peDates[idx].shiftId=shiftVal;
+  peDateRenderRows();
+}
+function peAutoFillTimesFromShift(shiftId){
+  const shiftObj=DB.shifts.find(s=>String(s.id)===String(shiftId));
+  if(!shiftObj) return;
+  document.querySelectorAll('.pe-me-start').forEach(el=>{ if(!el.value) el.value=shiftObj.startTime; });
+  document.querySelectorAll('.pe-me-end').forEach(el=>{ if(!el.value) el.value=shiftObj.endTime; });
+  peMachineEntriesUpdateTotals();
+}
+// Legacy alias — shift is now per-date row, so global auto-fill is a no-op
+function peShiftAutoFill(){}
 
 // ── Print / Download PDF for individual Production Log ────────────────────────
 function printProdLog(){
@@ -7007,78 +7078,304 @@ document.addEventListener('click',function(e){
   }
 });
 
+// ── Multi-Machine Entry State ────────────────────────────────────────────────
+window._peMachineEntries = []; // array of entry objects {id, ...}
+window._peMachineCounter = 0;
+
 function openProdEntryModal(){
   document.getElementById('prod-modal').style.display='flex';
-  document.getElementById('prod-calc-preview').innerHTML='';
   peFormClear(true);
   // reset workers
   window._peWorkers=[];
   const tags=document.getElementById('pe-worker-tags');
   const inp=document.getElementById('pe-worker-input');
   if(tags) tags.innerHTML='';
-  if(inp){inp.value='';inp.placeholder='Type name, press Enter…';}
+  if(inp){inp.value='';inp.placeholder='Type or select worker…';}
   peWorkerWrapStyle();
+  // reset dates — clear rows, set today's date in picker, auto-select first shift
+  window._peDates=[];
+  peDateRenderRows();
+  const todayVal=nowDate();
+  const dp=document.getElementById('pe-date-picker');
+  if(dp) dp.value=todayVal;
+  const sp=document.getElementById('pe-shift-picker');
+  if(sp&&DB.shifts.length>0){
+    const firstActive=DB.shifts.find(s=>s.active);
+    if(firstActive) sp.value=String(firstActive.id);
+  }
+  // reset multi-machine entries
+  window._peMachineEntries=[];
+  window._peMachineCounter=0;
+  document.getElementById('pe-machine-entries-container').innerHTML='';
+  document.getElementById('pe-totals-bar').style.display='none';
+  // add first entry by default
+  peAddMachineEntry();
 }
 function closeProdModal(){
   document.getElementById('prod-modal').style.display='none';
   peFormClear(true);
   window._peWorkers=[];
+  window._peDates=[];
+  window._peMachineEntries=[];
+}
+
+// peShiftAutoFill is now a no-op — shift auto-fill is per date-row via peDateRenderRows()
+function peShiftAutoFill(){}
+
+function peAddMachineEntry(){
+  const idx = ++window._peMachineCounter;
+  const container = document.getElementById('pe-machine-entries-container');
+  const machOpts  = DB.machines.filter(m=>m.active).map(m=>`<option value="${m.id}">${m.name} (${m.type})</option>`).join('');
+  // grab shift defaults from first date-row if available
+  let defStart='', defEnd='';
+  if(window._peDates&&window._peDates.length>0){
+    const firstShift=DB.shifts.find(s=>String(s.id)===String(window._peDates[0].shiftId));
+    if(firstShift){defStart=firstShift.startTime||'';defEnd=firstShift.endTime||'';}
+  }
+  const card = document.createElement('div');
+  card.id = 'pe-me-card-'+idx;
+  card.className = 'prod-form-section';
+  card.style.cssText='border:1.5px solid var(--border);border-radius:12px;margin-bottom:14px;padding:16px;position:relative;background:var(--bg2);';
+  card.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+      <div style="display:flex;align-items:center;gap:9px;">
+        <div style="width:28px;height:28px;border-radius:8px;background:var(--accent-light);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:var(--accent);">${idx}</div>
+        <div class="prod-form-section-title" style="margin-bottom:0;">Machine Entry #${idx}</div>
+      </div>
+      ${idx>1?`<button type="button" class="btn btn-danger btn-sm" onclick="peRemoveMachineEntry(${idx})" title="Remove this entry">✕ Remove</button>`:'<span style="font-size:11px;color:var(--text3)">First entry</span>'}
+    </div>
+
+    <!-- Machine Details sub-section -->
+    <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px;padding-bottom:4px;border-bottom:1px dashed var(--border);">
+      🏭 Machine Details
+    </div>
+    <div class="prod-entry-grid" style="margin-bottom:12px;">
+      <div class="form-group">
+        <label>Machine *</label>
+        <select class="form-control pe-me-machine" id="pe-me-machine-${idx}">${machOpts}</select>
+      </div>
+      <div class="form-group">
+        <label>RPM *</label>
+        <input class="form-control pe-me-rpm" id="pe-me-rpm-${idx}" type="number" placeholder="e.g. 1200" min="1">
+      </div>
+      <div class="form-group">
+        <label>Hour Meter Reading *</label>
+        <input class="form-control pe-me-hourmeter" id="pe-me-hourmeter-${idx}" type="number" placeholder="Meter reading at start" min="0">
+      </div>
+    </div>
+
+    <!-- Time Details sub-section -->
+    <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px;padding-bottom:4px;border-bottom:1px dashed var(--border);">
+      ⏱ Time Details
+    </div>
+    <div class="prod-entry-grid" style="margin-bottom:12px;">
+      <div class="form-group">
+        <label>Start Time *</label>
+        <input class="form-control pe-me-start" id="pe-me-start-${idx}" type="time" value="${defStart}" oninput="peMachineEntriesUpdateTotals()">
+      </div>
+      <div class="form-group">
+        <label>End Time *</label>
+        <input class="form-control pe-me-end" id="pe-me-end-${idx}" type="time" value="${defEnd}" oninput="peMachineEntriesUpdateTotals()">
+      </div>
+      <div class="form-group">
+        <label>Break / Lunch (min)</label>
+        <input class="form-control pe-me-break" id="pe-me-break-${idx}" type="number" value="30" min="0" placeholder="30" oninput="peMachineEntriesUpdateTotals()">
+      </div>
+    </div>
+
+    <!-- Material Quantities sub-section -->
+    <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px;padding-bottom:4px;border-bottom:1px dashed var(--border);">
+      ⚖️ Material Quantities
+    </div>
+    <div class="prod-entry-grid" style="margin-bottom:4px;">
+      <div class="form-group">
+        <label>Raw Material Input (kg) *</label>
+        <input class="form-control pe-me-rminput" id="pe-me-rminput-${idx}" type="number" step="0.01" placeholder="0.00" oninput="peMachineEntriesUpdateTotals()">
+      </div>
+      <div class="form-group">
+        <label>Finished Goods Output (kg) *</label>
+        <input class="form-control pe-me-fgoutput" id="pe-me-fgoutput-${idx}" type="number" step="0.01" placeholder="0.00" oninput="peMachineEntriesUpdateTotals()">
+      </div>
+    </div>
+
+    <!-- Per-entry calc preview -->
+    <div id="pe-me-preview-${idx}" style="margin-top:6px;"></div>
+  `;
+  container.appendChild(card);
+  // Animate in
+  card.style.opacity='0'; card.style.transform='translateY(8px)';
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    card.style.transition='opacity 0.22s ease, transform 0.22s ease';
+    card.style.opacity='1'; card.style.transform='translateY(0)';
+  }));
+  peMachineEntriesUpdateTotals();
+}
+
+function peRemoveMachineEntry(idx){
+  const card = document.getElementById('pe-me-card-'+idx);
+  if(card){
+    card.style.transition='opacity 0.2s ease, transform 0.2s ease';
+    card.style.opacity='0'; card.style.transform='translateY(-8px) scale(0.98)';
+    setTimeout(()=>{ card.remove(); peMachineEntriesUpdateTotals(); }, 200);
+  }
+}
+
+function peMachineEntriesUpdateTotals(){
+  const cards = document.querySelectorAll('[id^="pe-me-card-"]');
+  let totalRM=0, totalFG=0, totalRunHrs=0, entriesWithTime=0;
+
+  cards.forEach(card=>{
+    const idx = card.id.replace('pe-me-card-','');
+    const startT = document.getElementById('pe-me-start-'+idx)?.value;
+    const endT   = document.getElementById('pe-me-end-'+idx)?.value;
+    const brk    = Number(document.getElementById('pe-me-break-'+idx)?.value)||0;
+    const rmIn   = Number(document.getElementById('pe-me-rminput-'+idx)?.value)||0;
+    const fgOut  = Number(document.getElementById('pe-me-fgoutput-'+idx)?.value)||0;
+    const machId = Number(document.getElementById('pe-me-machine-'+idx)?.value);
+
+    totalRM  += rmIn;
+    totalFG  += fgOut;
+
+    // Per-card preview
+    const mock = {startTime:startT, endTime:endT, breakMins:brk, rmInput:rmIn, fgOutput:fgOut, machineId:machId};
+    const m = calcProdMetrics(mock);
+    const prevEl = document.getElementById('pe-me-preview-'+idx);
+    if(prevEl){
+      if(m && (startT||endT)){
+        prevEl.innerHTML=`<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px;">
+          <span style="background:#1e293b;color:#fff;border-radius:7px;padding:4px 11px;font-size:11px;font-weight:700;">⏱ ${m.machineRunHrs.toFixed(2)} hrs run</span>
+          <span style="background:${m.kgPerHr>0?'#eff6ff':'#f8fafc'};color:var(--accent);border-radius:7px;padding:4px 11px;font-size:11px;font-weight:700;border:1px solid #bfdbfe;">📦 ${m.kgPerHr.toFixed(2)} kg/hr</span>
+          <span style="background:${m.wastage<5?'#f0fdf4':m.wastage<10?'#fffbeb':'#fef2f2'};color:${m.wastage<5?'#059669':m.wastage<10?'#d97706':'#dc2626'};border-radius:7px;padding:4px 11px;font-size:11px;font-weight:700;border:1px solid ${m.wastage<5?'#6ee7b7':m.wastage<10?'#fde68a':'#fca5a5'};">⚠ ${m.wastage.toFixed(2)}% waste</span>
+        </div>`;
+        totalRunHrs += m.machineRunHrs;
+        entriesWithTime++;
+      } else {
+        prevEl.innerHTML='';
+      }
+    }
+  });
+
+  // Update totals bar
+  const totalBar = document.getElementById('pe-totals-bar');
+  const totGrid  = document.getElementById('pe-totals-grid');
+  if(cards.length>1 || (totalRM>0&&totalFG>0)){
+    totalBar.style.display='block';
+    const avgWaste = totalRM>0?((totalRM-totalFG)/totalRM*100):0;
+    totGrid.innerHTML=`
+      <div style="text-align:center;"><div style="font-size:10px;opacity:.65;text-transform:uppercase;letter-spacing:.6px;">Machines</div><div style="font-size:20px;font-weight:800;">${cards.length}</div></div>
+      <div style="text-align:center;"><div style="font-size:10px;opacity:.65;text-transform:uppercase;letter-spacing:.6px;">Total Run Hrs</div><div style="font-size:20px;font-weight:800;">${totalRunHrs.toFixed(2)}</div></div>
+      <div style="text-align:center;"><div style="font-size:10px;opacity:.65;text-transform:uppercase;letter-spacing:.6px;">Total RM (kg)</div><div style="font-size:20px;font-weight:800;">${totalRM.toFixed(1)}</div></div>
+      <div style="text-align:center;"><div style="font-size:10px;opacity:.65;text-transform:uppercase;letter-spacing:.6px;">Total FG (kg)</div><div style="font-size:20px;font-weight:800;">${totalFG.toFixed(1)}</div></div>
+      <div style="text-align:center;"><div style="font-size:10px;opacity:.65;text-transform:uppercase;letter-spacing:.6px;">Avg Wastage</div><div style="font-size:20px;font-weight:800;color:${avgWaste<5?'#4ade80':avgWaste<10?'#fbbf24':'#f87171'}">${avgWaste.toFixed(1)}%</div></div>
+    `;
+  } else {
+    totalBar.style.display='none';
+  }
 }
 
 function updateProdCalcPreview(){
-  const startT = document.getElementById('pe-start')?.value;
-  const endT   = document.getElementById('pe-end')?.value;
-  const brk    = document.getElementById('pe-break')?.value;
-  const rmIn   = document.getElementById('pe-rminput')?.value;
-  const fgOut  = document.getElementById('pe-fgoutput')?.value;
-  const machId = Number(document.getElementById('pe-machine')?.value);
-  const formId = document.getElementById('pe-formulation')?.value;
-
-  const mock = {startTime:startT,endTime:endT,breakMins:brk,rmInput:rmIn,fgOutput:fgOut,machineId:machId,formulationId:formId};
-  const m = calcProdMetrics(mock);
-  if(!m){ document.getElementById('prod-calc-preview').innerHTML=''; return; }
-
-  document.getElementById('prod-calc-preview').innerHTML=`
-    <div class="calc-result-box">
-      <div class="calc-item"><div class="calc-item-label">Machine Run Hrs</div><div class="calc-item-val white">${m.machineRunHrs.toFixed(2)}</div></div>
-      <div class="calc-item"><div class="calc-item-label">Avg kg/hr</div><div class="calc-item-val blue">${m.kgPerHr.toFixed(2)}</div></div>
-      <div class="calc-item"><div class="calc-item-label">Wastage %</div><div class="calc-item-val ${m.wastage<5?'green':m.wastage<10?'amber':'red'}">${m.wastage.toFixed(2)}%</div></div>
-    </div>`;
+  // Legacy: now handled per-machine-entry by peMachineEntriesUpdateTotals
+  peMachineEntriesUpdateTotals();
 }
 
 function saveProdEntry(){
   const workers = window._peWorkers||[];
   const workerName = workers.join(', ');
   if(!workerName){toast('Please add at least one worker (*)','error');return;}
-  const date    = document.getElementById('pe-date').value;
+
+  // Multi-date validation: _peDates is [{date, shiftId}]
+  const dateRows = (window._peDates||[]).filter(r=>r.date&&r.shiftId);
+  if(!dateRows.length){toast('Please add at least one date + shift row (*)','error');return;}
+
   const product = document.getElementById('pe-product').value.trim();
-  const machId  = Number(document.getElementById('pe-machine').value);
-  const rpm     = document.getElementById('pe-rpm').value;
-  const hmeter  = document.getElementById('pe-hourmeter').value;
-  const start   = document.getElementById('pe-start').value;
-  const end     = document.getElementById('pe-end').value;
-  const brk     = document.getElementById('pe-break').value;
-  const rmIn    = document.getElementById('pe-rminput').value;
-  const fgOut   = document.getElementById('pe-fgoutput').value;
   const formId  = document.getElementById('pe-formulation').value;
   const remarks = document.getElementById('pe-remarks').value.trim();
 
-  if(!date||!product||!machId||!start||!end||!rmIn||!fgOut){
-    toast('Please fill all required fields (*)','error'); return;
+  if(!product){
+    toast('Please fill Material/Product (*)','error'); return;
   }
-  const id = DB.nextId_prodlog++;
-  const log = {id,workerName,date,productName:product,machineId:machId,
-    rpm,hourMeter:hmeter,startTime:start,endTime:end,breakMins:Number(brk)||0,
-    rmInput:Number(rmIn),fgOutput:Number(fgOut),formulationId:formId?Number(formId):null,
-    remarks,by:currentUser.username,byName:currentUser.name,createdAt:nowDateTime()};
-  DB.productionLogs.push(log);
-  addAudit('Production Entry','Workers: '+workerName+', Machine: '+machId+', FG: '+fgOut+'kg');
+
+  // Collect all machine entries
+  const cards = document.querySelectorAll('[id^="pe-me-card-"]');
+  if(!cards.length){toast('Add at least one Machine Entry','error');return;}
+
+  const machineEntries = [];
+  let hasError = false;
+  cards.forEach(card=>{
+    const idx = card.id.replace('pe-me-card-','');
+    const machId = Number(document.getElementById('pe-me-machine-'+idx)?.value);
+    const rpm    = (document.getElementById('pe-me-rpm-'+idx)?.value||'').trim();
+    const hmeter = (document.getElementById('pe-me-hourmeter-'+idx)?.value??'').trim();
+    const start  = document.getElementById('pe-me-start-'+idx)?.value||'';
+    const end    = document.getElementById('pe-me-end-'+idx)?.value||'';
+    const brk    = document.getElementById('pe-me-break-'+idx)?.value||'0';
+    const rmIn   = document.getElementById('pe-me-rminput-'+idx)?.value||'';
+    const fgOut  = document.getElementById('pe-me-fgoutput-'+idx)?.value||'';
+    if(!machId||!start||!end||!rmIn||!fgOut){
+      toast('Machine Entry #'+idx+': please fill Machine, Start/End Time, RM Input and FG Output (*)','error');
+      hasError=true; return;
+    }
+    if(!rpm){
+      toast('Machine Entry #'+idx+': RPM is required (*)','error');
+      hasError=true; return;
+    }
+    if(hmeter===''){
+      toast('Machine Entry #'+idx+': Hour Meter Reading is required (*)','error');
+      hasError=true; return;
+    }
+    machineEntries.push({machineId:machId,rpm,hourMeter:hmeter,startTime:start,endTime:end,breakMins:Number(brk)||0,rmInput:Number(rmIn),fgOutput:Number(fgOut)});
+  });
+  if(hasError) return;
+
+  // Save one production log per machine entry PER DATE ROW
+  // Each row has its own date + shift; same machine data, separate records
+  const logsToSave = [];
+  dateRows.forEach((row,rowIdx)=>{
+    const shiftObj2=DB.shifts.find(s=>String(s.id)===String(row.shiftId));
+    const shiftName2=shiftObj2?shiftObj2.name:'';
+    machineEntries.forEach((me,i)=>{
+      const id = DB.nextId_prodlog++;
+      const log = {
+        id, workerName, date:row.date, shiftId:Number(row.shiftId), shiftName:shiftName2,
+        productName:product, machineId:me.machineId,
+        rpm:me.rpm, hourMeter:me.hourMeter,
+        startTime:me.startTime, endTime:me.endTime, breakMins:me.breakMins,
+        rmInput:me.rmInput, fgOutput:me.fgOutput,
+        formulationId:formId?Number(formId):null,
+        remarks:(rowIdx===0&&i===0)?remarks:'',
+        by:currentUser.username, byName:currentUser.name, createdAt:nowDateTime()
+      };
+      DB.productionLogs.push(log);
+      logsToSave.push(log);
+    });
+  });
+
+  const dateLabel = dateRows.length>1 ? dateRows.length+' dates × '+machineEntries.length+' machine(s)' : machineEntries.length+' machine entr'+(machineEntries.length>1?'ies':'y');
+  const datesSummary=dateRows.map(r=>{const so=DB.shifts.find(s=>String(s.id)===String(r.shiftId));return r.date+(so?' ('+so.name+')':'');}).join(', ');
+  addAudit('Production Entry ('+dateLabel+')','Workers: '+workerName+', Product: '+product+', Dates: '+datesSummary);
   closeProdModal();
   navigate('production');
-  toast('Production entry saved ✓','success');
-  gasCall('saveProductionLog',{log})
-    .then(()=>gasCall('addAudit',{entry:DB.auditLog[0]}))
-    .catch(e=>console.error('GAS saveProductionLog error:',e));
+  toast('Saving to Google Sheets…','info');
+
+  // Save all logs to Google Sheets (sequential to avoid race conditions)
+  (async()=>{
+    let allOk = true;
+    for(const log of logsToSave){
+      try{
+        const res = await gasCall('saveProductionLog',{log});
+        if(!res||!res.success){ allOk=false; console.error('GAS save failed for log',log.id,res); }
+      } catch(e){
+        allOk=false;
+        console.error('GAS error saving log',log.id,e);
+      }
+    }
+    if(allOk){
+      const dLabel=dateRows.length>1?' across '+dateRows.length+' dates':'';
+      toast('Saved '+logsToSave.length+' record'+(logsToSave.length>1?'s':'')+dLabel+' to Google Sheets ✓','success');
+    } else {
+      toast('⚠ Some entries may not have saved to Google Sheets. Check connection.','error');
+    }
+  })();
 }
 
 function deleteProdLog(id){
@@ -7099,9 +7396,11 @@ function viewProdLog(id){
   const fCost = f ? calcBatchCost(f) : null;
   const fQty  = f ? calcTotalQty(f) : 0;
 
+  const shiftV = log.shiftId ? (DB.shifts.find(s=>s.id===log.shiftId)||{name:'—'}).name : '—';
   document.getElementById('prod-view-body').innerHTML=`
     <div class="prod-entry-grid" style="margin-bottom:16px">
       <div><strong>Date:</strong> ${log.date}</div>
+      <div><strong>Shift:</strong> ${shiftV}</div>
       <div><strong>Worker:</strong> ${log.workerName}</div>
       <div><strong>Product:</strong> ${log.productName}</div>
       <div><strong>Machine:</strong> ${mac?mac.name:'#'+log.machineId}</div>
@@ -7155,6 +7454,166 @@ function prodFilterTable(){
     const matchDate = !dateFilter || row.cells[0]?.textContent?.trim()===dateFilter;
     row.style.display = (matchMac&&matchDate)?'':'none';
   });
+}
+
+// ── Shift Master page ────────────────────────────────────────────────────────
+function renderShiftMaster(){
+  const shiftRows = DB.shifts.map(s=>`
+    <tr>
+      <td class="td-primary">
+        <span style="display:inline-flex;align-items:center;gap:8px;">
+          <span style="width:12px;height:12px;border-radius:50%;background:${s.color};display:inline-block;flex-shrink:0;box-shadow:0 0 0 2px ${s.color}33;"></span>
+          ${s.name}
+        </span>
+      </td>
+      <td><span class="mono" style="font-size:13px;">${s.startTime}</span></td>
+      <td><span class="mono" style="font-size:13px;">${s.endTime}${s.crossesMidnight?' <span style="font-size:10px;color:var(--text3);font-weight:600;">(next day)</span>':''}</span></td>
+      <td>
+        <span class="status-pill ${s.active?'status-ok':'status-out'}">${s.active?'Active':'Inactive'}</span>
+      </td>
+      <td>
+        <button class="btn btn-sm btn-secondary" onclick="openShiftModal(${s.id})">Edit</button>
+        <button class="btn btn-sm btn-danger" onclick="toggleShift(${s.id})" style="margin-left:4px">${s.active?'Deactivate':'Activate'}</button>
+        ${DB.shifts.length>1?`<button class="btn btn-sm btn-danger" onclick="deleteShift(${s.id})" style="margin-left:4px">Delete</button>`:''}
+      </td>
+    </tr>`).join('');
+
+  return `
+  <div class="page-header" style="margin-bottom:20px">
+    <div>
+      <div class="page-title" style="font-size:16px">Shift Master</div>
+      <div class="page-subtitle">Define shifts — operators select from these in Production Entry</div>
+    </div>
+    <button class="btn btn-primary" onclick="openShiftModal()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Add Shift
+    </button>
+  </div>
+
+  <!-- Info banner -->
+  <div class="alert alert-info" style="margin-bottom:20px;max-width:700px;">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    <span>Shifts defined here appear as a dropdown in the <strong>Production Entry</strong> form. Selecting a shift auto-fills the Start/End time for all machine entries. Mark a shift Inactive to hide it from selection.</span>
+  </div>
+
+  <div class="card" style="padding:0;overflow:hidden;max-width:800px;">
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Shift Name</th><th>Start Time</th><th>End Time</th><th>Status</th><th>Actions</th>
+        </tr></thead>
+        <tbody>${shiftRows||'<tr><td colspan="5" style="text-align:center;padding:28px;color:var(--text3)">No shifts defined yet.</td></tr>'}</tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Shift Modal -->
+  <div class="modal-overlay" id="shift-modal" style="display:none" onclick="if(event.target===this)this.style.display='none'">
+    <div class="modal" style="max-width:480px;">
+      <div class="modal-header">
+        <div class="modal-title" id="shift-modal-title">Add Shift</div>
+        <button class="close-btn" onclick="document.getElementById('shift-modal').style.display='none'">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Shift Name *</label>
+          <input class="form-control" id="sm-name" placeholder="e.g. Day Shift, Night Shift, Morning Shift">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Start Time *</label>
+            <input class="form-control" id="sm-start" type="time">
+          </div>
+          <div class="form-group">
+            <label>End Time *</label>
+            <input class="form-control" id="sm-end" type="time">
+          </div>
+        </div>
+        <div class="form-group">
+          <label style="display:flex;align-items:center;gap:10px;">
+            <input type="checkbox" id="sm-midnight" style="width:16px;height:16px;cursor:pointer;">
+            <span>Ends next day (crosses midnight)</span>
+          </label>
+          <div class="form-hint">Check this for shifts like Night Shift (e.g. 5:00 PM – 2:00 AM)</div>
+        </div>
+        <div class="form-group">
+          <label>Color Tag</label>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px;">
+            ${['#2563eb','#7c3aed','#059669','#d97706','#dc2626','#0891b2','#db2777','#65a30d'].map(c=>`
+              <label style="cursor:pointer;display:flex;align-items:center;gap:4px;">
+                <input type="radio" name="sm-color" value="${c}" style="display:none" id="smcol-${c.replace('#','')}">
+                <span onclick="document.getElementById('smcol-${c.replace('#','')}').checked=true;document.querySelectorAll('.sm-color-swatch').forEach(s=>s.style.boxShadow='');this.style.boxShadow='0 0 0 3px ${c}66, 0 0 0 5px ${c}';"
+                  class="sm-color-swatch"
+                  style="width:24px;height:24px;border-radius:50%;background:${c};display:inline-block;cursor:pointer;transition:box-shadow 0.15s;"></span>
+              </label>`).join('')}
+          </div>
+        </div>
+        <input type="hidden" id="sm-edit-id" value="">
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="document.getElementById('shift-modal').style.display='none'">Cancel</button>
+        <button class="btn btn-primary" onclick="saveShift()">Save Shift</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function openShiftModal(id){
+  document.getElementById('shift-modal-title').textContent = id ? 'Edit Shift' : 'Add Shift';
+  document.getElementById('sm-edit-id').value = id||'';
+  document.getElementById('sm-name').value='';
+  document.getElementById('sm-start').value='';
+  document.getElementById('sm-end').value='';
+  document.getElementById('sm-midnight').checked=false;
+  // uncheck all color radios
+  document.querySelectorAll('input[name="sm-color"]').forEach(r=>r.checked=false);
+  document.querySelectorAll('.sm-color-swatch').forEach(s=>s.style.boxShadow='');
+  if(id){
+    const s=DB.shifts.find(x=>x.id===id);
+    if(s){
+      document.getElementById('sm-name').value=s.name;
+      document.getElementById('sm-start').value=s.startTime;
+      document.getElementById('sm-end').value=s.endTime;
+      document.getElementById('sm-midnight').checked=s.crossesMidnight||false;
+      const radio=document.getElementById('smcol-'+(s.color||'#2563eb').replace('#',''));
+      if(radio){
+        radio.checked=true;
+        const sw=radio.nextElementSibling;
+        if(sw) sw.style.boxShadow=`0 0 0 3px ${s.color}66, 0 0 0 5px ${s.color}`;
+      }
+    }
+  }
+  document.getElementById('shift-modal').style.display='flex';
+  setTimeout(()=>document.getElementById('sm-name').focus(),80);
+}
+function toggleShift(id){
+  const s=DB.shifts.find(x=>x.id===id);
+  if(s){ s.active=!s.active; navigate('shiftmaster'); toast(`${s.name} ${s.active?'activated':'deactivated'}`,'info'); }
+}
+function deleteShift(id){
+  if(!confirm('Delete this shift? It will be removed from the shift list.')) return;
+  DB.shifts=DB.shifts.filter(s=>s.id!==id);
+  navigate('shiftmaster');
+  toast('Shift deleted','info');
+}
+function saveShift(){
+  const name=document.getElementById('sm-name').value.trim();
+  const start=document.getElementById('sm-start').value;
+  const end=document.getElementById('sm-end').value;
+  const midnight=document.getElementById('sm-midnight').checked;
+  const colorRadio=document.querySelector('input[name="sm-color"]:checked');
+  const color=colorRadio?colorRadio.value:'#2563eb';
+  const editId=document.getElementById('sm-edit-id').value;
+  if(!name||!start||!end){toast('Shift name, start time and end time are required','error');return;}
+  if(editId){
+    const s=DB.shifts.find(x=>x.id===Number(editId));
+    if(s){s.name=name;s.startTime=start;s.endTime=end;s.crossesMidnight=midnight;s.color=color;}
+  } else {
+    DB.shifts.push({id:DB.nextId_shift++,name,startTime:start,endTime:end,crossesMidnight:midnight,active:true,color});
+  }
+  document.getElementById('shift-modal').style.display='none';
+  navigate('shiftmaster');
+  toast('Shift saved ✓','success');
 }
 
 // ── Machine Setup page ───────────────────────────────────────────────────────
