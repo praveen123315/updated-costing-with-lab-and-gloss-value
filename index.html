@@ -490,6 +490,48 @@ tbody tr:nth-child(1){animation-delay:0.03s;} tbody tr:nth-child(2){animation-de
 .form-group:focus-within label{color:var(--accent);transition:color 0.2s ease;}
 .form-group:focus-within label svg{stroke:var(--accent);}
 
+/* ═══════════════════════════════════════════════════════
+   FORMULATION SAVE OVERLAY  v3.4
+═══════════════════════════════════════════════════════ */
+#save-overlay{position:fixed;inset:0;z-index:9999;display:none;align-items:center;justify-content:center;background:rgba(10,15,30,0.72);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);}
+#save-overlay.visible{display:flex;animation:sovIn 0.22s ease both;}
+#save-overlay.dismissing{animation:sovOut 0.38s ease forwards;}
+@keyframes sovIn{from{opacity:0;}to{opacity:1;}}
+@keyframes sovOut{from{opacity:1;}to{opacity:0;}}
+.sov-card{background:#ffffff;border-radius:22px;padding:40px 44px 36px;width:320px;text-align:center;box-shadow:0 24px 64px rgba(0,0,0,0.22),0 4px 16px rgba(37,99,235,0.12);position:relative;overflow:hidden;}
+@keyframes sovCardIn{from{transform:scale(0.88) translateY(18px);opacity:0;}to{transform:scale(1) translateY(0);opacity:1;}}
+@keyframes sovBounce{0%{transform:scale(1);}40%{transform:scale(1.04);}100%{transform:scale(1);}}
+.sov-card.entering{animation:sovCardIn 0.32s cubic-bezier(0.34,1.4,0.64,1) both;}
+.sov-card.success-bounce{animation:sovBounce 0.45s cubic-bezier(0.34,1.5,0.64,1) both;}
+.sov-shimmer{position:absolute;top:0;left:-60%;width:60%;height:100%;background:linear-gradient(90deg,transparent,rgba(37,99,235,0.07),transparent);pointer-events:none;}
+@keyframes sovShimmer{0%{left:-60%;}100%{left:110%;}}
+.sov-shimmer.active{animation:sovShimmer 1.6s ease-in-out infinite;}
+.sov-ring{width:72px;height:72px;border-radius:50%;margin:0 auto 20px;display:flex;align-items:center;justify-content:center;position:relative;transition:background 0.3s;}
+.sov-ring-saving{background:linear-gradient(135deg,#eff6ff,#dbeafe);}
+.sov-ring-success{background:linear-gradient(135deg,#f0fdf4,#dcfce7);}
+.sov-ring-error{background:linear-gradient(135deg,#fef2f2,#fee2e2);}
+.sov-arc{position:absolute;inset:-4px;border-radius:50%;border:3px solid transparent;border-top-color:#2563eb;border-right-color:#93c5fd;}
+@keyframes sovSpin{to{transform:rotate(360deg);}}
+.sov-arc.spinning{animation:sovSpin 0.9s linear infinite;}
+.sov-arc.done{display:none;}
+@keyframes sovCheck{0%{stroke-dashoffset:40;}100%{stroke-dashoffset:0;}}
+.sov-check{stroke-dasharray:40;stroke-dashoffset:40;}
+.sov-check.draw{animation:sovCheck 0.42s cubic-bezier(0.4,0,0.2,1) 0.05s forwards;}
+.sov-steps{text-align:left;margin:18px 0 0;list-style:none;padding:0;}
+.sov-step{display:flex;align-items:center;gap:10px;padding:7px 0;font-size:13px;color:#6b7280;font-weight:500;border-bottom:1px solid #f3f4f6;transition:color 0.25s;}
+.sov-step:last-child{border-bottom:none;}
+.sov-step-icon{width:20px;height:20px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:#f3f4f6;transition:background 0.25s,transform 0.25s;}
+.sov-step.active .sov-step-icon{background:#dbeafe;transform:scale(1.12);}
+.sov-step.done .sov-step-icon{background:#dcfce7;}
+.sov-step.active{color:#1d4ed8;}
+.sov-step.done{color:#15803d;}
+.sov-bar-track{height:4px;background:#f3f4f6;border-radius:4px;margin:18px 0 0;overflow:hidden;}
+.sov-bar-fill{height:100%;border-radius:4px;width:0%;background:linear-gradient(90deg,#2563eb,#60a5fa);transition:width 0.5s cubic-bezier(0.4,0,0.2,1);}
+.sov-head{font-size:17px;font-weight:800;color:#111827;margin:0 0 4px;letter-spacing:-0.3px;}
+.sov-sub{font-size:13px;color:#6b7280;margin:0;}
+.sov-pill{display:inline-block;margin-top:14px;background:#f0fdf4;border:1.5px solid #86efac;color:#15803d;border-radius:20px;padding:5px 14px;font-size:13px;font-weight:700;transform:scale(0.8);opacity:0;transition:transform 0.35s cubic-bezier(0.34,1.5,0.64,1),opacity 0.25s;}
+.sov-pill.pop{transform:scale(1);opacity:1;}
+
 </style>
 </head>
 <body>
@@ -649,7 +691,7 @@ const DB = {
   nextId_shift: 3,
 };
 
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbyj0xfyWCqWHO4pZXp-P3ZYWJ0BHe5CuW1tNvPgbjdRA-DP_dv1nrlCg-S5PYw_tjQI/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbxIcqxGszVMeBLmmH69iOWpiF5ayehHVi2NVxzSVw25Ht6nt0PCXktPM2AYWKvKlOPJHA/exec';
 
 let currentUser = null;
 let dashboardRefreshTimer = null;
@@ -714,7 +756,8 @@ async function loadFromGAS(){
         partyId: f.partyId||'',
         partyName: f.partyName||'',
         lots: Number(f.lots)||1,
-        inventoryDebited: f.inventoryDebited===false||f.inventoryDebited==='false'?false:true,
+        // v3.3-FIX4: inverted check — blank cell must default to false (not debited), not true
+        inventoryDebited: f.inventoryDebited===true||f.inventoryDebited==='true'||f.inventoryDebited==='TRUE'?true:false,
         inventoryPartialDebit: f.inventoryPartialDebit===true||f.inventoryPartialDebit==='true'?true:false,
         skippedDebitRmIds: Array.isArray(f.skippedDebitRmIds)?f.skippedDebitRmIds.map(Number):[],
         debitLots: Number(f.debitLots)||0,
@@ -1831,16 +1874,37 @@ function confirmSudhirDebit(id){
     toast(`📦 Inventory debited successfully for ${lots} lot${lots>1?'s':''}!`,'success');
   }
 
-  // Persist to Sheets
-  const invUpdates=debitLog.map(d=>({rmId:d.rmId,newQuantity:(DB.inventory.find(i=>i.rmId===d.rmId)||{}).quantity||0}));
-  const newTxns=DB.stockTransactions.slice(-debitLog.length);
-  Promise.all(invUpdates.map(u=>gasCall('updateInventory',{rmId:u.rmId,newQuantity:u.newQuantity})))
-    .then(()=>Promise.all(newTxns.map(tx=>gasCall('addTransaction',{transaction:tx}))))
-    .then(()=>gasCall('saveFormulation',{formulation:f,items:f.items,inventoryUpdates:invUpdates,transactions:newTxns,debitInventory:true}))
-    .then(()=>gasCall('addAudit',{entry:auditEntry}))
-    .then(()=>toast('Debit saved to Google Sheets ✓','success'));
+  // v3.3-FIX5: Capture new transactions directly from debitLog (not fragile slice)
+  // to avoid wrong transactions being saved if other txns exist in the array.
+  const txnBase = DB.nextId.txn - debitLog.length;
+  const newTxns = DB.stockTransactions.filter(t => t.id >= txnBase && debitLog.find(d=>d.rmId===t.rmId));
 
-  navigate('formulations');
+  // v3.3-FIX5: Build inventory updates from in-memory DB (already updated above)
+  const invUpdates = debitLog.map(d=>({
+    rmId: d.rmId,
+    newQuantity: (DB.inventory.find(i=>i.rmId===d.rmId)||{quantity:0}).quantity
+  }));
+
+  // v3.3-FIX6: Block UI during save; show spinner on the debit button
+  const debitBtn = document.querySelector('#sudhir-debit-modal .btn-success, #sudhir-debit-modal .btn-primary');
+  if(debitBtn){ debitBtn.disabled=true; debitBtn.innerHTML='<div class="spinner" style="width:14px;height:14px;border-color:#0005;border-top-color:#fff;display:inline-block;vertical-align:middle;margin-right:6px;"></div>Saving to Sheets…'; }
+  showSaving();
+
+  // v3.3-FIX5+8: Single sequential chain — NOT parallel Promise.all — prevents race conditions.
+  // All inventory updates + transactions go through saveFormulation in one atomic GAS call.
+  // .catch added so Sudhir Ji sees a visible error instead of a silent failure.
+  gasCall('saveFormulation',{formulation:f,items:f.items,inventoryUpdates:invUpdates,transactions:newTxns,debitInventory:true})
+    .then(()=>gasCall('addAudit',{entry:auditEntry}))
+    .then(()=>{
+      toast(`📦 Debit saved to Google Sheets ✓ — ${lots} lot${lots>1?'s':''}!`,'success');
+      navigate('formulations');
+    })
+    .catch(err=>{
+      toast('❌ DEBIT SAVE FAILED — ' + err.message + ' — Stock was updated locally but NOT in Sheets. Contact admin immediately.','error');
+      // Re-enable so they can retry
+      if(debitBtn){ debitBtn.disabled=false; debitBtn.innerHTML='📦 Confirm Debit'; }
+    })
+    .finally(()=>hideSaving());
 }
 
 // ════════════════════════════════════════════════════════
@@ -2305,11 +2369,14 @@ function saveEditFormulation(id){
   f.remarks=remarks;
   f.items=items;
   addAudit('Edited formulation recipe',`${pcode} — Batch ${batch}`);
+  // v3.3-FIX7: Block save button; add .catch so edit failures surface to user.
+  const editSaveBtn = document.querySelector('#edit-form-modal .btn-primary');
+  if(editSaveBtn){ editSaveBtn.disabled=true; editSaveBtn.innerHTML='<div class="spinner" style="width:14px;height:14px;border-color:#fff3;border-top-color:#fff;display:inline-block;vertical-align:middle;margin-right:6px;"></div>Saving…'; }
+  showSaving();
   gasCall('saveFormulation',{formulation:f,items,inventoryUpdates:[],transactions:[],debitInventory:false})
-    .then(()=>toast('Recipe updated in Google Sheets ✓','success'));
-  closeModal('edit-form-modal');
-  toast('Recipe updated successfully ✓','success');
-  navigate('formulations');
+    .then(()=>{ toast('Recipe updated in Google Sheets ✓','success'); closeModal('edit-form-modal'); navigate('formulations'); })
+    .catch(err=>{ toast('❌ Edit save failed — '+err.message,'error'); if(editSaveBtn){editSaveBtn.disabled=false;editSaveBtn.innerHTML='Save Changes';} })
+    .finally(()=>hideSaving());
 }
 
 
@@ -3159,17 +3226,35 @@ function saveFormulation(){
   const auditEntry={time:mfgDateTime,user:currentUser.name,action:'Created formulation',detail:`${pcode} — Batch ${batch} — inventory NOT yet debited (pending Sudhir Ji approval)`};
   DB.auditLog.unshift(auditEntry);
 
-  closeModal('form-modal');
-  toast('Formulation saved ✓ — Inventory not yet debited','info');
+  // v3.3-FIX1+2+3: Block UI while saving — do NOT close/navigate until GAS confirms.
+  const saveBtn = document.querySelector('#form-modal .btn-primary');
+  if(saveBtn){ saveBtn.disabled=true; saveBtn.innerHTML='<div class="spinner" style="width:14px;height:14px;border-color:#fff3;border-top-color:#fff;display:inline-block;vertical-align:middle;margin-right:6px;"></div>Saving…'; }
+
+  // Show animated save overlay
+  showSaveOverlay();
 
   gasCall('saveFormulation',{formulation:f,items,inventoryUpdates:[],transactions:[],debitInventory:false})
-    .then(()=>gasCall('addAudit',{entry:auditEntry}))
-    .then(()=>gasCall('saveSetting',{key:'nextId',value:JSON.stringify(DB.nextId)}))
-    .then(()=>toast('Saved to Google Sheets ✓','success'));
-
-  // Clear draft after successful save
-  _formDraft = null;
-  navigate('formulations');
+    .then(()=>{ sovAdvance(1); return gasCall('addAudit',{entry:auditEntry}); })
+    .then(()=>{ sovAdvance(2); return gasCall('saveSetting',{key:'nextId',value:JSON.stringify(DB.nextId)}); })
+    .then(()=>{
+      sovSuccess();
+      // Auto-close overlay after user sees success, then navigate
+      hideSaveOverlay(1800);
+      setTimeout(()=>{
+        _formDraft = null;
+        closeModal('form-modal');
+        toast('Formulation saved to Google Sheets ✓','success');
+        navigate('formulations');
+      }, 1900);
+    })
+    .catch(err=>{
+      sovError();
+      hideSaveOverlay(2200);
+      // Re-enable button so user can retry — do NOT close modal or lose data
+      if(saveBtn){ saveBtn.disabled=false; saveBtn.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Save Formulation'; }
+      toast('❌ SAVE FAILED — ' + err.message + ' — Do NOT close this page. Check internet and retry.','error');
+    })
+    .finally(()=>hideSaving());
 }
 
 function viewFormulation(id){
@@ -8402,6 +8487,150 @@ function getProdDashTiles(){
     <div class="stat-value ${effClass(100-avgWaste,95,90)}">${avgWaste.toFixed(1)}%</div>
     <div class="stat-sub">this month</div>
   </div>`;
+}
+
+// ════════════════════════════════════════════════════════
+//  SAVE OVERLAY — animated loading + haptic-feel success
+// ════════════════════════════════════════════════════════
+(function(){
+  // Inject overlay HTML once on page load
+  const el = document.createElement('div');
+  el.id = 'save-overlay';
+  el.innerHTML = `
+    <div class="sov-card entering" id="sov-card">
+      <div class="sov-shimmer" id="sov-shimmer"></div>
+      <div class="sov-ring sov-ring-saving" id="sov-ring">
+        <div class="sov-arc spinning" id="sov-arc"></div>
+        <svg id="sov-icon-saving" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+          <polyline points="17 21 17 13 7 13 7 21"/>
+          <polyline points="7 3 7 8 15 8"/>
+        </svg>
+        <svg id="sov-icon-success" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" style="display:none;position:absolute;">
+          <polyline class="sov-check" points="20 6 9 17 4 12"/>
+        </svg>
+        <svg id="sov-icon-error" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" style="display:none;position:absolute;">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </div>
+      <p class="sov-head" id="sov-head">Saving Formulation…</p>
+      <p class="sov-sub" id="sov-sub">Please wait while data is written to Google Sheets</p>
+      <ul class="sov-steps" id="sov-steps">
+        <li class="sov-step active" id="sovst-0">
+          <span class="sov-step-icon">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><circle cx="12" cy="12" r="10"/></svg>
+          </span>
+          <span>Saving formulation record</span>
+        </li>
+        <li class="sov-step" id="sovst-1">
+          <span class="sov-step-icon">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><circle cx="12" cy="12" r="10"/></svg>
+          </span>
+          <span>Writing audit log entry</span>
+        </li>
+        <li class="sov-step" id="sovst-2">
+          <span class="sov-step-icon">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><circle cx="12" cy="12" r="10"/></svg>
+          </span>
+          <span>Syncing counter to Sheets</span>
+        </li>
+      </ul>
+      <div class="sov-bar-track"><div class="sov-bar-fill" id="sov-bar"></div></div>
+      <div class="sov-pill" id="sov-pill">✅ Saved to Google Sheets!</div>
+    </div>`;
+  document.body.appendChild(el);
+})();
+
+const SOV_STEP_ICONS = {
+  pending: `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><circle cx="12" cy="12" r="10"/></svg>`,
+  active:  `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="3"><circle cx="12" cy="12" r="10"/></svg>`,
+  done:    `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>`,
+  error:   `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`,
+};
+
+function sovSetStep(idx, state) {
+  const el = document.getElementById('sovst-' + idx);
+  if (!el) return;
+  el.className = 'sov-step' + (state === 'active' ? ' active' : state === 'done' ? ' done' : '');
+  el.querySelector('.sov-step-icon').innerHTML = SOV_STEP_ICONS[state] || SOV_STEP_ICONS.pending;
+}
+
+function sovSetBar(pct) {
+  const bar = document.getElementById('sov-bar');
+  if (bar) bar.style.width = pct + '%';
+}
+
+function showSaveOverlay() {
+  const ov = document.getElementById('save-overlay');
+  const card = document.getElementById('sov-card');
+  // Reset state
+  document.getElementById('sov-head').textContent = 'Saving Formulation…';
+  document.getElementById('sov-sub').textContent = 'Please wait while data is written to Google Sheets';
+  document.getElementById('sov-ring').className = 'sov-ring sov-ring-saving';
+  document.getElementById('sov-arc').className = 'sov-arc spinning';
+  document.getElementById('sov-icon-saving').style.display = '';
+  document.getElementById('sov-icon-success').style.display = 'none';
+  document.getElementById('sov-icon-error').style.display = 'none';
+  document.getElementById('sov-pill').className = 'sov-pill';
+  document.getElementById('sov-shimmer').className = 'sov-shimmer active';
+  sovSetBar(0);
+  [0,1,2].forEach(i => sovSetStep(i, 'pending'));
+  sovSetStep(0, 'active');
+  sovSetBar(10);
+  // Show
+  ov.style.display = 'flex';
+  requestAnimationFrame(()=>{
+    ov.classList.add('visible');
+    card.className = 'sov-card entering';
+  });
+}
+
+function sovAdvance(step) {
+  sovSetStep(step - 1, 'done');
+  if (step <= 2) sovSetStep(step, 'active');
+  const pcts = [10, 45, 75, 95];
+  sovSetBar(pcts[step] || 95);
+}
+
+function sovSuccess() {
+  sovSetStep(2, 'done');
+  sovSetBar(100);
+  document.getElementById('sov-head').textContent = 'Saved Successfully!';
+  document.getElementById('sov-sub').textContent = 'Formulation is now in Google Sheets';
+  document.getElementById('sov-ring').className = 'sov-ring sov-ring-success';
+  document.getElementById('sov-arc').className = 'sov-arc done';
+  document.getElementById('sov-icon-saving').style.display = 'none';
+  document.getElementById('sov-icon-success').style.display = '';
+  document.getElementById('sov-shimmer').className = 'sov-shimmer';
+  // Animate check
+  const check = document.querySelector('.sov-check');
+  if (check) { check.classList.remove('draw'); void check.offsetWidth; check.classList.add('draw'); }
+  // Bounce card
+  const card = document.getElementById('sov-card');
+  card.className = 'sov-card success-bounce';
+  // Haptic-feel: vibrate if supported
+  if (navigator.vibrate) navigator.vibrate([40, 30, 60]);
+  // Pop success pill
+  setTimeout(()=>{ document.getElementById('sov-pill').classList.add('pop'); }, 200);
+}
+
+function sovError() {
+  document.getElementById('sov-head').textContent = 'Save Failed';
+  document.getElementById('sov-sub').textContent = 'Check your internet and retry';
+  document.getElementById('sov-ring').className = 'sov-ring sov-ring-error';
+  document.getElementById('sov-arc').className = 'sov-arc done';
+  document.getElementById('sov-icon-saving').style.display = 'none';
+  document.getElementById('sov-icon-error').style.display = '';
+  document.getElementById('sov-shimmer').className = 'sov-shimmer';
+  if (navigator.vibrate) navigator.vibrate([80, 40, 80, 40, 80]);
+}
+
+function hideSaveOverlay(delay) {
+  setTimeout(()=>{
+    const ov = document.getElementById('save-overlay');
+    ov.classList.add('dismissing');
+    setTimeout(()=>{ ov.classList.remove('visible','dismissing'); ov.style.display='none'; }, 400);
+  }, delay || 0);
 }
 
 // ── Button ripple effect ────────────────────────────────────────────────────
