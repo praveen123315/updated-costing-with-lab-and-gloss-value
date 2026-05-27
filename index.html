@@ -5399,10 +5399,7 @@ td{padding:6px 9px;color:#1a1a1a;vertical-align:middle;}
     <tfoot><tr style="background:#f0f0f0"><td class="c" colspan="3" style="font-weight:700;text-align:right;padding-right:10px;">TOTAL →</td><td class="r" style="font-weight:700;font-size:11pt;font-family:'JetBrains Mono'">${calcTotalQtyDisplay(f)}</td>${showCost?`<td></td><td class="r" style="font-weight:700;font-size:10pt;font-family:'JetBrains Mono'">&#8377;${cost.rmCost.toLocaleString('en-IN',{minimumFractionDigits:2})}</td>`:''}</tr></tfoot>
   </table>
   ${showCost?`<div class="cost-box"><table>
-    <tr><td>Raw Material Cost</td><td>&#8377;${cost.rmCost.toLocaleString('en-IN',{minimumFractionDigits:2})}</td></tr>
     <tr class="sub"><td>Cost / KG &nbsp;<span style="color:#aaa">(RM only)</span></td><td>&#8377;${(cost.rmCost/totalQty).toLocaleString('en-IN',{minimumFractionDigits:2})}</td></tr>
-    <tr><td>Packaging Cost &nbsp;<span style="color:#888;font-size:8.5pt;">(&#8377;${cost.packagingPerKg}/kg &times; ${totalQty.toFixed(3)} kg)</span></td><td>&#8377;${cost.packaging.toLocaleString('en-IN',{minimumFractionDigits:2})}</td></tr>
-    <tr class="gd"><td>Total Batch Cost</td><td>&#8377;${cost.total.toLocaleString('en-IN',{minimumFractionDigits:2})}</td></tr>
     <tr class="cpkg"><td>Cost Per KG &nbsp;<span style="color:#aaa">(with Packaging)</span></td><td>&#8377;${(cost.total/totalQty).toLocaleString('en-IN',{minimumFractionDigits:2})}</td></tr>
   </table></div>`:''}
   <div class="rem"><div class="rl">Remarks</div><div>${f.remarks||'<span style="color:#bbb;font-style:italic">No remarks recorded.</span>'}</div></div>
