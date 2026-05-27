@@ -749,7 +749,7 @@ async function loadFromGAS(){
         productType: f.productType||'',
         productFinish: f.productFinish||'',
         batchNo: f.batchNo||'',
-        mfgDate: f.mfgDate||'',
+        // mfgDate/createdAt/debitDate now normalized in the main loadAll mapper
         byName: f.byName||f.by||'',
         remarks: f.remarks||'',
         refNo: f.refNo||'',
@@ -763,6 +763,10 @@ async function loadFromGAS(){
         debitLots: Number(f.debitLots)||0,
         debitDate: f.debitDate||'',
         debitRemarks: f.debitRemarks||'',
+        // v3.5 FIX-DATE: normalize all dates before storing in DB
+        mfgDate: normalizeDate(f.mfgDate)||'',
+        createdAt: normalizeDate(f.createdAt)||'',
+        debitDate: normalizeDate(f.debitDate)||'',
         items: Array.isArray(f.items)?f.items.map(i=>({rmId:Number(i.rmId),qty:Number(i.qty)||0,unit:i.unit||'KG',rate:(i.rate!==undefined&&i.rate!==''&&i.rate!==null)?Number(i.rate):undefined})).filter(i=>i.rmId&&i.qty>0):[],
       }));
       // ── v2.3: Patch item rates from basePrices if available ──────────────
@@ -1062,7 +1066,34 @@ function calcTotalQtyDisplay(f){
 function nowDateTime(){
   const now=new Date();
   const pad=n=>String(n).padStart(2,'0');
-  return `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  // v3.5 FIX-DATE: include seconds → YYYY-MM-DD HH:MM:SS
+  return `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+}
+
+// v3.5 FIX-DATE: Normalize any incoming date value from GAS to YYYY-MM-DD HH:MM:SS.
+// Handles: Excel/Sheets serial floats (46098.49…), locale strings
+// ("Tue Mar 17 2026 11:45:00 GMT+0530…"), and partial ISO ("2026-03-17 14:12").
+function normalizeDate(val){
+  if(val===null||val===undefined||val==='') return '';
+  const s=String(val).trim();
+  // Excel/Sheets serial number (float 40000–60000 = years 2009–2064)
+  const num=Number(s);
+  if(!isNaN(num)&&num>40000&&num<60000){
+    const msPerDay=86400000;
+    const epoch=new Date(Date.UTC(1899,11,30)); // Excel epoch 1899-12-30
+    const d=new Date(epoch.getTime()+num*msPerDay);
+    // Adjust to IST (+5:30 = +19800 seconds)
+    const ist=new Date(d.getTime()+19800000);
+    const pad=n=>String(n).padStart(2,'0');
+    return `${ist.getUTCFullYear()}-${pad(ist.getUTCMonth()+1)}-${pad(ist.getUTCDate())} ${pad(ist.getUTCHours())}:${pad(ist.getUTCMinutes())}:${pad(ist.getUTCSeconds())}`;
+  }
+  // Try parsing as any string date (locale string, ISO variant, etc.)
+  const parsed=new Date(s);
+  if(!isNaN(parsed.getTime())){
+    const pad=n=>String(n).padStart(2,'0');
+    return `${parsed.getFullYear()}-${pad(parsed.getMonth()+1)}-${pad(parsed.getDate())} ${pad(parsed.getHours())}:${pad(parsed.getMinutes())}:${pad(parsed.getSeconds())}`;
+  }
+  return s; // unknown format — return as-is rather than corrupt
 }
 function nowDate(){return nowDateTime().slice(0,10);}
 
@@ -1894,14 +1925,20 @@ function confirmSudhirDebit(id){
   // All inventory updates + transactions go through saveFormulation in one atomic GAS call.
   // .catch added so Sudhir Ji sees a visible error instead of a silent failure.
   gasCall('saveFormulation',{formulation:f,items:f.items,inventoryUpdates:invUpdates,transactions:newTxns,debitInventory:true})
-    .then(()=>gasCall('addAudit',{entry:auditEntry}))
+    .then(res=>{
+      // v3.5 FIX-ID: Sync id in case server re-assigned (safety net for edge cases)
+      if(res&&res.newId&&Number(res.newId)!==f.id){
+        console.warn('[v3.5] Debit: server returned newId',res.newId,'local id was',f.id,'— syncing.');
+        f.id=Number(res.newId);
+      }
+      return gasCall('addAudit',{entry:auditEntry});
+    })
     .then(()=>{
       toast(`📦 Debit saved to Google Sheets ✓ — ${lots} lot${lots>1?'s':''}!`,'success');
       navigate('formulations');
     })
     .catch(err=>{
       toast('❌ DEBIT SAVE FAILED — ' + err.message + ' — Stock was updated locally but NOT in Sheets. Contact admin immediately.','error');
-      // Re-enable so they can retry
       if(debitBtn){ debitBtn.disabled=false; debitBtn.innerHTML='📦 Confirm Debit'; }
     })
     .finally(()=>hideSaving());
@@ -2351,6 +2388,17 @@ function saveEditFormulation(id){
   const batch=document.getElementById('ef-batch').value.trim();
   const remarks=document.getElementById('ef-remarks').value.trim();
   if(!pname){toast('Product Name is required','error');return;}
+
+  // v3.5 FIX-RATE: Build a map of previously saved rates by rmId.
+  // The edit form renders inputs with 0 when item.rate was undefined on load.
+  // We must NEVER overwrite a real saved rate with 0 — that deletes costing data.
+  const savedRateByRmId={};
+  (f.items||[]).forEach(item=>{
+    if(item.rate!==undefined&&item.rate!==null&&Number(item.rate)>0){
+      savedRateByRmId[item.rmId]=Number(item.rate);
+    }
+  });
+
   const items=[];
   document.querySelectorAll('[id^="efitem-"]').forEach(row=>{
     const rowId=row.id;
@@ -2359,23 +2407,45 @@ function saveEditFormulation(id){
     const unit=document.getElementById('efunit-'+rowId)?.value||'KG';
     const rm=getRMById(rmId);
     const rateEl=document.getElementById('efrate-'+rowId);
-    const rate=rateEl?parseFloat(rateEl.value)||0:(rm?rm.rate||0:0);
+    // v3.5 FIX-RATE: 3-tier rate resolution
+    //   1. User explicitly typed a positive number → use it
+    //   2. Previously saved rate for this rm exists → preserve it
+    //   3. Catalog rate for this rm → fall back
+    const parsedInput=rateEl?parseFloat(rateEl.value):NaN;
+    let rate;
+    if(!isNaN(parsedInput)&&parsedInput>0){
+      rate=parsedInput;
+    } else if(savedRateByRmId[rmId]!==undefined){
+      rate=savedRateByRmId[rmId];   // preserve Sudhir Ji's costing rate
+    } else {
+      rate=(rm&&rm.rate>0)?rm.rate:0;
+    }
     if(rmId&&qty>0) items.push({rmId,qty,unit,rate});
   });
   if(items.length===0){toast('Add at least one ingredient','error');return;}
+
+  // Snapshot for rollback on failure
+  const originalItems=[...f.items];
+  const originalName=f.productName, originalCode=f.productCode;
+  const originalBatch=f.batchNo, originalRemarks=f.remarks;
   f.productName=pname;
   f.productCode=pcode;
   f.batchNo=batch;
   f.remarks=remarks;
   f.items=items;
   addAudit('Edited formulation recipe',`${pcode} — Batch ${batch}`);
-  // v3.3-FIX7: Block save button; add .catch so edit failures surface to user.
-  const editSaveBtn = document.querySelector('#edit-form-modal .btn-primary');
+  const editSaveBtn=document.querySelector('#edit-form-modal .btn-primary');
   if(editSaveBtn){ editSaveBtn.disabled=true; editSaveBtn.innerHTML='<div class="spinner" style="width:14px;height:14px;border-color:#fff3;border-top-color:#fff;display:inline-block;vertical-align:middle;margin-right:6px;"></div>Saving…'; }
   showSaving();
   gasCall('saveFormulation',{formulation:f,items,inventoryUpdates:[],transactions:[],debitInventory:false})
     .then(()=>{ toast('Recipe updated in Google Sheets ✓','success'); closeModal('edit-form-modal'); navigate('formulations'); })
-    .catch(err=>{ toast('❌ Edit save failed — '+err.message,'error'); if(editSaveBtn){editSaveBtn.disabled=false;editSaveBtn.innerHTML='Save Changes';} })
+    .catch(err=>{
+      // v3.5 FIX-RATE: roll back in-memory on failure so local state stays consistent
+      f.productName=originalName; f.productCode=originalCode;
+      f.batchNo=originalBatch; f.remarks=originalRemarks; f.items=originalItems;
+      toast('❌ Edit save failed — '+err.message,'error');
+      if(editSaveBtn){editSaveBtn.disabled=false;editSaveBtn.innerHTML='Save Changes';}
+    })
     .finally(()=>hideSaving());
 }
 
@@ -3220,8 +3290,9 @@ function saveFormulation(){
   });
   if(items.length===0){toast('Add at least one raw material','error');return;}
 
-  const f={id:DB.nextId.formulation++,productName:pname,productCode:pcode,productType,productFinish,batchNo:batch,mfgDate:mfgDateTime,remarks,refNo,partyId,by:currentUser.username,byName:currentUser.name,createdAt:mfgDateTime,lots,inventoryDebited:false,inventoryPartialDebit:false,skippedDebitRmIds:[],debitRemarks:'',items};
-  DB.formulations.push(f);
+  // v3.5 FIX-ID: Send id:0 — GAS assigns the real ID under LockService and returns {newId}.
+  // We do NOT push to DB.formulations here; we do it in the .then() after server confirms.
+  const f={id:0,productName:pname,productCode:pcode,productType,productFinish,batchNo:batch,mfgDate:mfgDateTime,remarks,refNo,partyId,by:currentUser.username,byName:currentUser.name,createdAt:mfgDateTime,lots,inventoryDebited:false,inventoryPartialDebit:false,skippedDebitRmIds:[],debitRemarks:'',items};
 
   const auditEntry={time:mfgDateTime,user:currentUser.name,action:'Created formulation',detail:`${pcode} — Batch ${batch} — inventory NOT yet debited (pending Sudhir Ji approval)`};
   DB.auditLog.unshift(auditEntry);
@@ -3234,11 +3305,22 @@ function saveFormulation(){
   showSaveOverlay();
 
   gasCall('saveFormulation',{formulation:f,items,inventoryUpdates:[],transactions:[],debitInventory:false})
-    .then(()=>{ sovAdvance(1); return gasCall('addAudit',{entry:auditEntry}); })
-    .then(()=>{ sovAdvance(2); return gasCall('saveSetting',{key:'nextId',value:JSON.stringify(DB.nextId)}); })
+    .then(res=>{
+      // v3.5 FIX-ID: Server returns the real locked ID — update f and push to DB now
+      if(res && res.newId){
+        f.id = Number(res.newId);
+        if(DB.nextId.formulation <= f.id) DB.nextId.formulation = f.id + 1;
+      }
+      DB.formulations.push(f);
+      sovAdvance(1);
+      return gasCall('addAudit',{entry:auditEntry});
+    })
+    .then(()=>{
+      sovAdvance(2);
+      return gasCall('saveSetting',{key:'nextId',value:JSON.stringify(DB.nextId)});
+    })
     .then(()=>{
       sovSuccess();
-      // Auto-close overlay after user sees success, then navigate
       hideSaveOverlay(1800);
       setTimeout(()=>{
         _formDraft = null;
@@ -3250,7 +3332,9 @@ function saveFormulation(){
     .catch(err=>{
       sovError();
       hideSaveOverlay(2200);
-      // Re-enable button so user can retry — do NOT close modal or lose data
+      // Remove optimistically-created local entry if id was never assigned
+      const idx=DB.formulations.indexOf(f);
+      if(idx!==-1 && f.id===0) DB.formulations.splice(idx,1);
       if(saveBtn){ saveBtn.disabled=false; saveBtn.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Save Formulation'; }
       toast('❌ SAVE FAILED — ' + err.message + ' — Do NOT close this page. Check internet and retry.','error');
     })
