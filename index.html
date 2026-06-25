@@ -795,7 +795,8 @@ async function loadFromGAS(){
       if(d.users && d.users.length) DB.users = d.users;
       if(d.rawMaterials && d.rawMaterials.length) DB.rawMaterials = d.rawMaterials.map(r=>({
         ...r,
-        category: r.category||''  // v3.7: ensure category always present even on older sheets
+        category: r.category||'',  // v3.7: ensure category always present even on older sheets
+        expiryDate: r.expiryDate||''  // v3.9+: expiry date for alerts tab
       }));
       if(d.inventory && d.inventory.length) DB.inventory = d.inventory;
       if(d.formulations) DB.formulations = d.formulations.map(f=>({
@@ -875,6 +876,35 @@ async function loadFromGAS(){
           createdAt: normalizeDate(r.createdAt)||''
         }));
       if(d.partyLookup && Array.isArray(d.partyLookup)) DB.partyLookup = d.partyLookup;
+
+      // v3.9-FIX: Retroactively enrich formulations that have a refNo but
+      // blank partyId / partyName (happens for all Sudhir Ji recipes saved
+      // before v3.8 introduced the Sheet2 lookup, or when Sheet2 wasn't ready
+      // yet at save time).  We do this client-side immediately after partyLookup
+      // lands so the UI shows correct data, and then fire a silent GAS patch to
+      // persist the resolved values back into the Formulations sheet.
+      if(DB.partyLookup && DB.partyLookup.length){
+        const _patchQueue=[];
+        DB.formulations.forEach(f=>{
+          if(!f.refNo) return;                        // no refNo — nothing to look up
+          if(f.partyId || f.partyName) return;       // already has party data — skip
+          const _match=DB.partyLookup.find(p=>
+            String(p.refNo||'').trim().toLowerCase()===f.refNo.trim().toLowerCase()
+          );
+          if(_match){
+            f.partyId   = String(_match.partyId  ||'').trim();
+            f.partyName = String(_match.partyName||'').trim();
+            if(f.id) _patchQueue.push({id:f.id, partyId:f.partyId, partyName:f.partyName});
+          }
+        });
+        // Silently write the resolved values back to the Formulations sheet
+        // so next load already has them (one batched call, non-blocking).
+        if(_patchQueue.length){
+          gasCall('patchFormulationParties',{patches:_patchQueue})
+            .catch(()=>{}); // best-effort — ignore errors
+        }
+      }
+
       _biCache=null; _biCacheKey=''; // clear BI cache on data reload
       toast('Data loaded from Google Sheets ✓','success');
     } else {
@@ -2661,11 +2691,18 @@ function saveEditFormulation(id){
   const originalItems=[...f.items];
   const originalName=f.productName, originalCode=f.productCode;
   const originalBatch=f.batchNo, originalRemarks=f.remarks;
+  const originalPartyId=f.partyId, originalPartyName=f.partyName;
   f.productName=pname;
   f.productCode=pcode;
   f.batchNo=batch;
   f.remarks=remarks;
   f.items=items;
+  // v3.9-FIX: Re-run Sheet2 party lookup for edits too — covers recipes that
+  // had refNo but blank partyId/partyName when first saved (pre-v3.8 entries).
+  if(f.refNo && DB.partyLookup && DB.partyLookup.length && (!f.partyId && !f.partyName)){
+    const _em=DB.partyLookup.find(p=>String(p.refNo||'').trim().toLowerCase()===f.refNo.trim().toLowerCase());
+    if(_em){f.partyId=String(_em.partyId||'').trim();f.partyName=String(_em.partyName||'').trim();}
+  }
   addAudit('Edited formulation recipe',`${pcode} — Batch ${batch}`);
   const editSaveBtn=document.querySelector('#edit-form-modal .btn-primary');
   if(editSaveBtn){ editSaveBtn.disabled=true; editSaveBtn.innerHTML='<div class="spinner" style="width:14px;height:14px;border-color:#fff3;border-top-color:#fff;display:inline-block;vertical-align:middle;margin-right:6px;"></div>Saving…'; }
@@ -2676,6 +2713,7 @@ function saveEditFormulation(id){
       // v3.5 FIX-RATE: roll back in-memory on failure so local state stays consistent
       f.productName=originalName; f.productCode=originalCode;
       f.batchNo=originalBatch; f.remarks=originalRemarks; f.items=originalItems;
+      f.partyId=originalPartyId; f.partyName=originalPartyName;
       toast('❌ Edit save failed — '+err.message,'error');
       if(editSaveBtn){editSaveBtn.disabled=false;editSaveBtn.innerHTML='Save Changes';}
     })
@@ -4516,6 +4554,10 @@ function openRMModal(id){
         <div class="form-group"><label>Last Updated</label><input class="form-control" id="rm-updated" type="date" value="${rm.updatedDate||today}"></div>
         ${!isInventoryUser?`<div class="form-group"><label>Min Stock Level</label><input class="form-control" id="rm-minstock" type="number" value="${rm.minStock||0}" placeholder="0"></div>`:''}
       </div>
+      <div class="form-group">
+        <label>Expiry Date <span style="font-size:11px;color:var(--text3);font-weight:400;">(optional — for expiry tracking in Alerts tab)</span></label>
+        <input class="form-control" id="rm-expiry" type="date" value="${rm.expiryDate||''}">
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('rm-modal')">Cancel</button>
@@ -4538,6 +4580,8 @@ function saveRM(id){
   const minStock=minStockEl?(isNaN(parseInt(minStockEl.value,10))?0:parseInt(minStockEl.value,10)):(getRMById(id)?.minStock||0);
   const categoryEl=document.getElementById('rm-category');
   const category=categoryEl?categoryEl.value:(getRMById(id)?.category||'');
+  const expiryDateEl=document.getElementById('rm-expiry');
+  const expiryDate=expiryDateEl?expiryDateEl.value.trim():(getRMById(id)?.expiryDate||'');
   if(!name||!code){toast('Name and Code are required','error');return;}
   // rate can be 0 (allowed) — only block if field is completely empty/NaN
   if(currentUser.role!=='inventory'&&isNaN(parseFloat(rateEl?.value))){toast('Rate is required — enter 0 if free','error');return;}
@@ -4550,8 +4594,8 @@ function saveRM(id){
     const oldName=rm.name;
     // Update in memory first so UI feels instant
     rm.name=name; rm.code=code; rm.unit=unit; rm.rate=rate;
-    rm.supplier=supplier; rm.updatedDate=updatedDate; rm.minStock=minStock; rm.category=category;
-    const rmForGAS={id:rm.id,name:name,code:code,unit:unit,rate:rate,supplier:supplier,updatedDate:updatedDate,minStock:minStock,category:category};
+    rm.supplier=supplier; rm.updatedDate=updatedDate; rm.minStock=minStock; rm.category=category; rm.expiryDate=expiryDate;
+    const rmForGAS={id:rm.id,name:name,code:code,unit:unit,rate:rate,supplier:supplier,updatedDate:updatedDate,minStock:minStock,category:category,expiryDate:expiryDate};
     const detail=`${code} — ${name}${oldName!==name?' (renamed from '+oldName+')':''}`;
     addAudit('Updated raw material',detail);
     gasCall('saveRawMaterial',{rm:rmForGAS,isNew:false})
@@ -4560,7 +4604,7 @@ function saveRM(id){
       .catch(err=>{ toast('Save failed — '+err.message,'error'); if(saveBtn){saveBtn.disabled=false;saveBtn.textContent='Save';} });
   } else {
     const newRMId=DB.nextId.rm++;
-    const newRM={id:newRMId,name:name,code:code,unit:unit,rate:rate,supplier:supplier,updatedDate:updatedDate,minStock:minStock,category:category};
+    const newRM={id:newRMId,name:name,code:code,unit:unit,rate:rate,supplier:supplier,updatedDate:updatedDate,minStock:minStock,category:category,expiryDate:expiryDate};
     DB.rawMaterials.push(newRM);
     DB.inventory.push({id:newRMId,rmId:newRMId,quantity:0});
     addAudit('Added raw material',`${code} — ${name}`);
@@ -4593,6 +4637,12 @@ function renderInventory(){
   const canAdd=can('addStock');
   const canSubtract=can('subtractStock');
 
+  // compute alert counts for tab badge
+  const _critCount=DB.rawMaterials.filter(rm=>getStockStatus(rm)!=='ok').length;
+  const _today=new Date(); _today.setHours(0,0,0,0);
+  const _soon=new Date(_today); _soon.setDate(_soon.getDate()+30);
+  const _expCount=DB.rawMaterials.filter(rm=>{if(!rm.expiryDate)return false;const d=new Date(rm.expiryDate);d.setHours(0,0,0,0);return d<=_soon;}).length;
+  const _alertTotal=_critCount+_expCount;
   const tabs=`<div class="tabs">
     <div class="tab active" id="tab-stock" onclick="switchInvTab('stock')">${NAV_ICONS.inventory} Stock Levels</div>
     <div class="tab" id="tab-ledger" onclick="switchInvTab('ledger')">
@@ -4601,6 +4651,9 @@ function renderInventory(){
     ${can('editPrice')||canAdd||canSubtract?`<div class="tab" id="tab-adjust" onclick="switchInvTab('adjust')">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg> Adjust
     </div>`:''}
+    <div class="tab" id="tab-alerts" onclick="switchInvTab('alerts')" style="position:relative;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Alerts${_alertTotal>0?`<span style="position:absolute;top:4px;right:4px;background:#ef4444;color:#fff;border-radius:999px;font-size:9px;font-weight:800;min-width:16px;height:16px;display:flex;align-items:center;justify-content:center;padding:0 3px;line-height:1;">${_alertTotal}</span>`:''}
+    </div>
   </div>`;
   return tabs+`<div id="inv-tab-content">${renderStockTab()}</div>`;
 }
@@ -4744,6 +4797,268 @@ function switchInvTab(tab){
   if(tab==='stock')c.innerHTML=renderStockTab();
   else if(tab==='ledger')c.innerHTML=renderLedgerTab();
   else if(tab==='adjust')c.innerHTML=renderAdjustTab();
+  else if(tab==='alerts')c.innerHTML=renderAlertsTab();
+}
+
+// ════════════════════════════════════════════════════════
+//  ALERTS TAB — Critical Shortages + Expiry Warning
+// ════════════════════════════════════════════════════════
+function exportAlertsExcel(){
+  if(typeof XLSX==='undefined'){toast('XLSX library not loaded','error');return;}
+  const wb=XLSX.utils.book_new();
+  const today=new Date(); today.setHours(0,0,0,0);
+  const soon=new Date(today); soon.setDate(soon.getDate()+30);
+
+  // ── Build shared RM→formulation map ──────────────────────
+  const rmFmMap={};
+  DB.formulations.forEach(f=>{
+    (f.items||[]).forEach(item=>{
+      if(!rmFmMap[item.rmId]) rmFmMap[item.rmId]=[];
+      if(!rmFmMap[item.rmId].includes(f.productName)) rmFmMap[item.rmId].push(f.productName);
+    });
+  });
+
+  // ── Sheet 1: Critical Stock ───────────────────────────────
+  const critHeaders=['Material Name','Code','Unit','Current Stock','Min Required','Shortage','Status','Formulation Count','Formulations Using This Material'];
+  const critRows=[critHeaders];
+  DB.rawMaterials.filter(rm=>getStockStatus(rm)!=='ok')
+    .sort((a,b)=>{ const sa=getStockStatus(a),sb=getStockStatus(b); return (sa==='out'&&sb!=='out')?-1:(sb==='out'&&sa!=='out')?1:0; })
+    .forEach(rm=>{
+      const inv=getInvByRMId(rm.id);
+      const st=getStockStatus(rm);
+      const shortage=Math.max(0,rm.minStock-inv.quantity);
+      const fmNames=rmFmMap[rm.id]||[];
+      critRows.push([rm.name,rm.code,rm.unit,inv.quantity.toFixed(2),rm.minStock,shortage>0?shortage.toFixed(2):'0',st.toUpperCase(),fmNames.length,fmNames.join(', ')||'Not used in any formulation']);
+    });
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(critRows),'Critical Stock');
+
+  // ── Sheet 2: Expiring Soon ────────────────────────────────
+  const expHeaders=['Material Name','Code','Unit','Current Stock','Expiry Date','Days Left','Status','Formulation Count','Formulations Using This Material'];
+  const expRows=[expHeaders];
+  DB.rawMaterials.filter(rm=>{if(!rm.expiryDate)return false;const d=new Date(rm.expiryDate);d.setHours(0,0,0,0);return d<=soon;})
+    .sort((a,b)=>new Date(a.expiryDate)-new Date(b.expiryDate))
+    .forEach(rm=>{
+      const inv=getInvByRMId(rm.id);
+      const expDate=new Date(rm.expiryDate); expDate.setHours(0,0,0,0);
+      const daysLeft=Math.round((expDate-today)/(1000*60*60*24));
+      const statusLabel=daysLeft<0?'EXPIRED':daysLeft<=7?'URGENT':'EXPIRING SOON';
+      const fmNames=rmFmMap[rm.id]||[];
+      expRows.push([rm.name,rm.code,rm.unit,inv.quantity.toFixed(2),rm.expiryDate,daysLeft,statusLabel,fmNames.length,fmNames.join(', ')||'Not used in any formulation']);
+    });
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(expRows),'Expiring Soon');
+
+  // ── Sheet 3: Most Used Materials (all RM sorted by formulation count) ───────
+  const usageHeaders=['#','Material Name','Code','Unit','Current Stock','Min Stock','Stock Status','Formulation Count','Formulations'];
+  const usageRows=[usageHeaders];
+  DB.rawMaterials
+    .map(rm=>({rm,fmNames:rmFmMap[rm.id]||[]}))
+    .filter(x=>x.fmNames.length>0)
+    .sort((a,b)=>b.fmNames.length-a.fmNames.length)
+    .forEach((x,i)=>{
+      const inv=getInvByRMId(x.rm.id);
+      usageRows.push([i+1,x.rm.name,x.rm.code,x.rm.unit,inv.quantity.toFixed(2),x.rm.minStock,getStockStatus(x.rm).toUpperCase(),x.fmNames.length,x.fmNames.join(', ')]);
+    });
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(usageRows),'Most Used Materials');
+
+  XLSX.writeFile(wb,'Inventory_Alerts_'+new Date().toISOString().slice(0,10)+'.xlsx');
+  toast('Alerts report exported ✓','success');
+}
+
+function renderAlertsTab(){
+  const today=new Date(); today.setHours(0,0,0,0);
+  const soon=new Date(today); soon.setDate(soon.getDate()+30);
+  const urgent=new Date(today); urgent.setDate(urgent.getDate()+7);
+
+  // ── 1. Build RM → formulation usage map (unique product names per RM) ───────
+  const rmFormulationMap={};   // rmId → [productName, ...]
+  DB.formulations.forEach(f=>{
+    (f.items||[]).forEach(item=>{
+      if(!rmFormulationMap[item.rmId]) rmFormulationMap[item.rmId]=[];
+      if(!rmFormulationMap[item.rmId].includes(f.productName))
+        rmFormulationMap[item.rmId].push(f.productName);
+    });
+  });
+
+  // ── 2. Top-5 most used materials (by unique formulation count) ───────────────
+  const topUsed=DB.rawMaterials
+    .map(rm=>({rm,fmNames:rmFormulationMap[rm.id]||[]}))
+    .filter(x=>x.fmNames.length>0)
+    .sort((a,b)=>b.fmNames.length-a.fmNames.length)
+    .slice(0,5);
+
+  const rankColors=['#f59e0b','#94a3b8','#b45309','#64748b','#64748b'];
+  const rankBgs=['#fffbeb','#f8fafc','#fef3c7','#f8fafc','#f8fafc'];
+  const rankLabels=['🥇','🥈','🥉','4th','5th'];
+
+  const topUsedHTML=topUsed.length===0?'':`
+  <div class="card" style="margin-bottom:16px;">
+    <div class="page-header" style="margin-bottom:14px;">
+      <div>
+        <div class="card-title" style="margin:0;display:flex;align-items:center;gap:8px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          Most Used Materials
+        </div>
+        <div style="font-size:12px;color:var(--text3);margin-top:3px;">Raw materials appearing in the most formulations — critical to keep in stock</div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px;">
+      ${topUsed.map((x,i)=>{
+        const inv=getInvByRMId(x.rm.id);
+        const st=getStockStatus(x.rm);
+        const stColor=st==='out'?'#dc2626':st==='low'?'#d97706':'#16a34a';
+        const stBg=st==='out'?'#fef2f2':st==='low'?'#fffbeb':'#f0fdf4';
+        const stLabel=st==='out'?'✕ OUT':st==='low'?'⚠ LOW':'✓ OK';
+        return `<div style="background:${rankBgs[i]};border:1.5px solid ${rankColors[i]}33;border-radius:12px;padding:14px 16px;position:relative;overflow:hidden;">
+          <div style="position:absolute;top:10px;right:12px;font-size:20px;opacity:0.7;">${rankLabels[i]}</div>
+          <div style="font-size:18px;font-weight:900;color:${rankColors[i]};line-height:1;">${x.fmNames.length}</div>
+          <div style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">formulations</div>
+          <div style="font-size:13px;font-weight:700;color:var(--text);line-height:1.2;margin-bottom:4px;">${x.rm.name}</div>
+          <div style="font-size:11px;color:var(--text3);margin-bottom:8px;font-family:'JetBrains Mono',monospace;">${x.rm.code}</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;">
+            <span style="font-size:11px;font-weight:600;color:var(--text2);">${inv.quantity.toFixed(2)} ${x.rm.unit}</span>
+            <span style="background:${stBg};color:${stColor};border-radius:4px;padding:2px 7px;font-size:10px;font-weight:700;">${stLabel}</span>
+          </div>
+          <div style="margin-top:8px;font-size:10px;color:var(--text3);line-height:1.4;">${x.fmNames.slice(0,3).join(' · ')}${x.fmNames.length>3?` +${x.fmNames.length-3} more`:''}</div>
+        </div>`;
+      }).join('')}
+    </div>
+  </div>`;
+
+  // ── 3. Critical / Short stock ─────────────────────────────
+  const critItems=DB.rawMaterials
+    .filter(rm=>getStockStatus(rm)!=='ok')
+    .sort((a,b)=>{
+      // Primary: OUT before LOW
+      const sa=getStockStatus(a),sb=getStockStatus(b);
+      if(sa!==sb) return (sa==='out'&&sb!=='out')?-1:1;
+      // Secondary: more formulations first
+      const fa=(rmFormulationMap[a.id]||[]).length, fb=(rmFormulationMap[b.id]||[]).length;
+      return fb-fa;
+    });
+
+  let critHTML='';
+  if(critItems.length===0){
+    critHTML=`<div style="color:var(--green);font-weight:600;padding:16px 0;display:flex;align-items:center;gap:8px;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+      All materials are sufficiently stocked ✓
+    </div>`;
+  } else {
+    critHTML=`<div class="table-wrap"><table>
+      <thead><tr>
+        <th>Material</th><th>Code</th><th>Stock</th><th>Min Required</th><th>Shortage</th><th>Status</th><th style="text-align:center;">Used In</th><th>Formulations</th>
+      </tr></thead><tbody>`;
+    critItems.forEach(rm=>{
+      const inv=getInvByRMId(rm.id);
+      const st=getStockStatus(rm);
+      const shortage=Math.max(0,rm.minStock-inv.quantity);
+      const fmNames=rmFormulationMap[rm.id]||[];
+      const cnt=fmNames.length;
+      const pillColor=st==='out'?'#fef2f2':'#fffbeb';
+      const cntBg=cnt>=5?'#7c3aed':cnt>=3?'#2563eb':cnt>=1?'#0891b2':'#94a3b8';
+      const fmChips=cnt>0
+        ? fmNames.map(n=>`<span style="display:inline-block;background:var(--accent-light);color:var(--accent2);border-radius:4px;padding:1px 7px;font-size:10px;font-weight:600;margin:1px 2px 1px 0;">${n}</span>`).join('')
+        : `<span style="color:var(--text3);font-size:11px;">Not used in any formulation</span>`;
+      critHTML+=`<tr style="background:${pillColor};">
+        <td class="td-primary" style="font-weight:700;">${rm.name}</td>
+        <td class="mono" style="font-size:11px;color:var(--text3);">${rm.code}</td>
+        <td><strong style="color:${st==='out'?'var(--red)':'var(--orange)'};">${inv.quantity.toFixed(2)} ${rm.unit}</strong></td>
+        <td>${rm.minStock} ${rm.unit}</td>
+        <td style="color:var(--red);font-weight:700;">${shortage>0?shortage.toFixed(2)+' '+rm.unit:'—'}</td>
+        <td><span class="status-pill ${st==='out'?'status-out':'status-low'}">${st==='out'?'✕ OUT':'⚠ LOW'}</span></td>
+        <td style="text-align:center;">
+          <span style="display:inline-flex;align-items:center;justify-content:center;background:${cntBg};color:#fff;border-radius:999px;width:28px;height:28px;font-size:13px;font-weight:800;">${cnt}</span>
+        </td>
+        <td style="max-width:280px;">${fmChips}</td>
+      </tr>`;
+    });
+    critHTML+=`</tbody></table></div>`;
+  }
+
+  // ── 4. Expiring Soon ──────────────────────────────────────
+  const expItems=DB.rawMaterials
+    .filter(rm=>{ if(!rm.expiryDate) return false; const d=new Date(rm.expiryDate); d.setHours(0,0,0,0); return d<=soon; })
+    .sort((a,b)=>new Date(a.expiryDate)-new Date(b.expiryDate));
+
+  let expHTML='';
+  if(expItems.length===0){
+    expHTML=`<div style="color:var(--green);font-weight:600;padding:16px 0;display:flex;align-items:center;gap:8px;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+      No materials expiring in the next 30 days ✓
+    </div>`;
+  } else {
+    expHTML=`<div class="table-wrap"><table>
+      <thead><tr>
+        <th>Material</th><th>Code</th><th>Current Stock</th><th>Expiry Date</th><th>Days Left</th><th style="text-align:center;">Used In</th><th>Formulations</th>
+      </tr></thead><tbody>`;
+    expItems.forEach(rm=>{
+      const inv=getInvByRMId(rm.id);
+      const expDate=new Date(rm.expiryDate); expDate.setHours(0,0,0,0);
+      const daysLeft=Math.round((expDate-today)/(1000*60*60*24));
+      const isExpired=daysLeft<0;
+      const isUrgent=daysLeft<=7&&!isExpired;
+      const rowBg=isExpired?'#fef2f2':isUrgent?'#fffbeb':'#f0fdf4';
+      const dayColor=isExpired?'#dc2626':isUrgent?'#d97706':'#16a34a';
+      const dayLabel=isExpired?`Expired ${Math.abs(daysLeft)}d ago`:isUrgent?`${daysLeft}d left`:`${daysLeft} days`;
+      const fmNames=rmFormulationMap[rm.id]||[];
+      const cnt=fmNames.length;
+      const cntBg=cnt>=5?'#7c3aed':cnt>=3?'#2563eb':cnt>=1?'#0891b2':'#94a3b8';
+      const fmChips=cnt>0
+        ? fmNames.map(n=>`<span style="display:inline-block;background:var(--accent-light);color:var(--accent2);border-radius:4px;padding:1px 7px;font-size:10px;font-weight:600;margin:1px 2px 1px 0;">${n}</span>`).join('')
+        : `<span style="color:var(--text3);font-size:11px;">Not used in any formulation</span>`;
+      expHTML+=`<tr style="background:${rowBg};">
+        <td class="td-primary" style="font-weight:700;">${rm.name}</td>
+        <td class="mono" style="font-size:11px;color:var(--text3);">${rm.code}</td>
+        <td><strong>${inv.quantity.toFixed(2)} ${rm.unit}</strong></td>
+        <td style="font-weight:600;">${rm.expiryDate}</td>
+        <td><span style="font-weight:800;color:${dayColor};">${dayLabel}</span></td>
+        <td style="text-align:center;">
+          <span style="display:inline-flex;align-items:center;justify-content:center;background:${cntBg};color:#fff;border-radius:999px;width:28px;height:28px;font-size:13px;font-weight:800;">${cnt}</span>
+        </td>
+        <td style="max-width:280px;">${fmChips}</td>
+      </tr>`;
+    });
+    expHTML+=`</tbody></table></div>`;
+  }
+
+  // ── 5. Render ─────────────────────────────────────────────
+  return `
+  ${topUsedHTML}
+
+  <div class="card" style="margin-bottom:16px;">
+    <div class="page-header" style="margin-bottom:18px;">
+      <div>
+        <div class="card-title" style="margin:0;display:flex;align-items:center;gap:8px;">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          Critical Stock Shortage
+        </div>
+        <div style="font-size:12px;color:var(--text3);margin-top:4px;">Materials below minimum stock · Sorted by status then most-used first</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <span style="background:#fef2f2;color:#dc2626;border:1px solid #fca5a5;border-radius:6px;padding:4px 12px;font-size:12px;font-weight:700;">${critItems.filter(r=>getStockStatus(r)==='out').length} OUT</span>
+        <span style="background:#fffbeb;color:#92400e;border:1px solid #fcd34d;border-radius:6px;padding:4px 12px;font-size:12px;font-weight:700;">${critItems.filter(r=>getStockStatus(r)==='low').length} LOW</span>
+        <button class="btn btn-success btn-sm" onclick="exportAlertsExcel()" style="gap:5px;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export All
+        </button>
+      </div>
+    </div>
+    ${critHTML}
+  </div>
+
+  <div class="card">
+    <div class="page-header" style="margin-bottom:18px;">
+      <div>
+        <div class="card-title" style="margin:0;display:flex;align-items:center;gap:8px;">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          Expiring Soon
+          <span style="font-size:11px;font-weight:500;color:var(--text3);">(within 30 days)</span>
+        </div>
+        <div style="font-size:12px;color:var(--text3);margin-top:4px;">Set expiry date per material in Raw Materials → Edit</div>
+      </div>
+      ${expItems.length>0?`<span style="background:#fffbeb;color:#92400e;border:1px solid #fcd34d;border-radius:6px;padding:4px 12px;font-size:12px;font-weight:700;">${expItems.length} Material${expItems.length!==1?'s':''} Expiring</span>`:''}
+    </div>
+    ${expHTML}
+  </div>`;
 }
 
 function openStockModal(){
