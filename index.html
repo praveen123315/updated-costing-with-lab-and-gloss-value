@@ -144,9 +144,9 @@ select.form-control option{background:#fff;}
 .stat-sub{font-size:12px;color:var(--text3);}
 
 /* TABLE */
-.table-wrap{overflow-x:auto;}
+.table-wrap{overflow-x:auto;overflow-y:auto;max-height:520px;}
 table{width:100%;border-collapse:collapse;}
-th{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.7px;color:var(--text3);padding:10px 14px;text-align:left;border-bottom:1.5px solid var(--border);background:var(--bg3);}
+th{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.7px;color:var(--text3);padding:10px 14px;text-align:left;border-bottom:1.5px solid var(--border);background:var(--bg3);position:sticky;top:0;z-index:2;}
 th:first-child{border-radius:8px 0 0 0;}
 th:last-child{border-radius:0 8px 0 0;}
 td{padding:12px 14px;font-size:13px;color:var(--text2);border-bottom:1px solid var(--border);}
@@ -471,9 +471,9 @@ tbody tr:nth-child(1){animation-delay:0.03s;} tbody tr:nth-child(2){animation-de
 .forecast-loaded-badge .flb-meta span{display:flex;align-items:center;gap:4px;}
 .forecast-results{display:none;}
 .forecast-results.visible{display:block;}
-.forecast-table-wrap{overflow-x:auto;border-radius:var(--radius-lg);}
+.forecast-table-wrap{overflow-x:auto;overflow-y:auto;max-height:520px;border-radius:var(--radius-lg);}
 .forecast-table{width:100%;border-collapse:collapse;font-size:13px;}
-.forecast-table th{background:linear-gradient(135deg,#0f172a,#1e293b);color:#94a3b8;padding:10px 14px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;white-space:nowrap;}
+.forecast-table th{background:linear-gradient(135deg,#0f172a,#1e293b);color:#94a3b8;padding:10px 14px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;white-space:nowrap;position:sticky;top:0;z-index:2;}
 .forecast-table th:first-child{border-radius:10px 0 0 0;}
 .forecast-table th:last-child{border-radius:0 10px 0 0;}
 .forecast-table td{padding:11px 14px;border-bottom:1px solid var(--border);color:var(--text2);vertical-align:middle;}
@@ -666,16 +666,6 @@ tbody tr:nth-child(1){animation-delay:0.03s;} tbody tr:nth-child(2){animation-de
   </div>
 </div>
 
-<!-- ═══ SURFACE AI CHATBOT (outside #app, position:fixed, high z-index) ═══ -->
-<button id="sai-launcher" onclick="saiToggle()" title="Ask Surface AI">
-  <div id="sai-badge"><div id="sai-badge-dot"></div></div>
-  <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
-    <path d="M12 2C6.48 2 2 6.48 2 12c0 1.85.5 3.58 1.37 5.06L2 22l4.94-1.37A9.96 9.96 0 0 0 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2Z" fill="rgba(255,255,255,0.25)"/>
-    <circle cx="8.5" cy="12" r="1.2" fill="#fff"/>
-    <circle cx="12" cy="12" r="1.2" fill="#fff"/>
-    <circle cx="15.5" cy="12" r="1.2" fill="#fff"/>
-  </svg>
-</button>
 <div id="toast-container"></div>
 
 <script>
@@ -751,6 +741,7 @@ const DB = {
   nextId_prodlog: 1,
   nextId_shift: 3,
   forecastInputRows: [],  // v3.6b: loaded from ForecastInput sheet via loadAll
+  partyLookup: [],        // v3.8: loaded from Sheet2
 };
 
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbyc-RerRwnz6bLFYgYWmL432rbyY5SXxWe7EBdDP4osk7PAK2j0mnueibqFuYnNRvkh/exec';
@@ -880,9 +871,11 @@ async function loadFromGAS(){
       if(d.forecastInputRows && Array.isArray(d.forecastInputRows))
         DB.forecastInputRows = d.forecastInputRows.map(r=>({
           ...r,
-          orderDate: normalizeDate(r.orderDate)||'',   // v3.6b-FIX: normalize like all other date fields
-          createdAt: normalizeDate(r.createdAt)||''    // v3.6b-FIX: normalize createdAt too
+          orderDate: normalizeDate(r.orderDate)||'',
+          createdAt: normalizeDate(r.createdAt)||''
         }));
+      if(d.partyLookup && Array.isArray(d.partyLookup)) DB.partyLookup = d.partyLookup;
+      _biCache=null; _biCacheKey=''; // clear BI cache on data reload
       toast('Data loaded from Google Sheets ✓','success');
     } else {
       toast('Could not load from Sheets — using local data','info');
@@ -927,7 +920,6 @@ function logout(){
   document.getElementById('login-screen').style.display='flex';
   document.getElementById('login-user').value='';
   document.getElementById('login-pass').value='';
-  const chatBtn = document.getElementById('sai-launcher');
   if (chatBtn) chatBtn.classList.remove('sai-active');
   saiOnLogout();
 }
@@ -1041,9 +1033,6 @@ function initApp(){
   document.getElementById('topbar-date').textContent=new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
   buildSidebar();
   navigate('dashboard');
-  // Show chatbot launcher
-  const chatBtn = document.getElementById('sai-launcher');
-  if (chatBtn) chatBtn.classList.add('sai-active');
   // Auto-refresh dashboard every 60 seconds
   if(dashboardRefreshTimer) clearInterval(dashboardRefreshTimer);
   dashboardRefreshTimer = setInterval(()=>{
@@ -1078,12 +1067,14 @@ function navigate(page){
   const content=document.getElementById('page-content');
   content.style.cssText='opacity:0;transform:translateY(12px);transition:none;';
   content.innerHTML=`<div class="loading-page"><div class="spinner"></div><span>Loading...</span></div>`;
+  const _heavyPages=['analytics','prodreports','reports','kitting','costanalysis','forecasting'];
+  const _delay=_heavyPages.includes(page)?150:40;
   setTimeout(()=>{
     renderPage(page,content);
     requestAnimationFrame(()=>requestAnimationFrame(()=>{
-      content.style.cssText='opacity:1;transform:translateY(0);transition:opacity 0.3s ease,transform 0.3s ease;';
+      content.style.cssText='opacity:1;transform:translateY(0);transition:opacity 0.25s ease,transform 0.25s ease;';
     }));
-  },60);
+  },_delay);
 }
 
 function renderPage(page,el){
@@ -1471,7 +1462,14 @@ function renderFormulations(){
     html+=`<div class="alert alert-info">${_emptyMsg}</div>`;
   }
 
-  myForms.slice().reverse().forEach(f=>{
+  const _fmAll = myForms.slice().reverse();
+  const _fmBatch = 50;
+  const _fmInitial = _fmAll.slice(0, _fmBatch);
+  const _fmRemaining = _fmAll.length - _fmBatch;
+  window._fmAllForms = _fmAll;
+  window._fmLoaded = _fmBatch;
+
+  _fmInitial.forEach(f=>{
     try{
     if(!f||!f.productName)return;
     f.items=f.items||[];
@@ -1566,8 +1564,57 @@ function renderFormulations(){
     </div>`;
     }catch(e){console.warn("Skipped formulation render:",f?.id,e);}
   });
+  if(_fmRemaining > 0){
+    html+=`<div id="fm-loadmore" style="padding:20px;text-align:center;">
+      <button class="btn btn-secondary" onclick="_fmLoadMore()" style="min-width:220px;font-size:13px;">
+        ↓ Show ${_fmRemaining} more formulations
+      </button>
+      <div style="font-size:12px;color:var(--text3);margin-top:6px;">Showing first ${_fmBatch} of ${_fmAll.length}</div>
+    </div>`;
+  }
   html+=`</div>`;
   return html;
+}
+
+function _fmLoadMore(){
+  if(!window._fmAllForms) return;
+  const BATCH=50;
+  const next = window._fmAllForms.slice(window._fmLoaded, window._fmLoaded+BATCH);
+  if(!next.length) return;
+  const list = document.getElementById('formulations-list');
+  const sentinel = document.getElementById('fm-loadmore');
+  if(sentinel) sentinel.remove();
+  let xhtml='';
+  next.forEach(f=>{
+    try{
+      if(!f||!f.productName)return;
+      f.items=f.items||[];
+      const cost=calcBatchCost(f);
+      const totalQty=calcTotalQty(f);
+      // Build same card data attributes - full card rebuilt inline
+      const card=document.createElement('div');
+      card.className='batch-card';
+      card.dataset.id=f.id;
+      card.dataset.name=(f.productName||'').toLowerCase();
+      card.dataset.code=(f.productCode||'').toLowerCase();
+      card.dataset.batch=(f.batchNo||'').toLowerCase();
+      card.dataset.date=f.mfgDate||'';
+      card.dataset.remarks=(f.remarks||'').toLowerCase();
+      card.dataset.by=(f.byName||f.by||'').toLowerCase();
+      card.innerHTML='<div class="batch-card-top"><div><div class="batch-card-title">'+f.productName+'</div><div class="batch-card-code">'+(f.productCode||'—')+' · Batch: '+(f.batchNo||'—')+'</div></div></div><div class="batch-card-meta" style="margin-top:10px;"><span>📅 '+f.mfgDate+'</span><span>👤 '+f.byName+'</span><span>⚗ '+(f.items||[]).length+' materials</span></div>';
+      if(list) list.appendChild(card);
+    }catch(e){}
+  });
+  window._fmLoaded += next.length;
+  const remaining = window._fmAllForms.length - window._fmLoaded;
+  if(remaining > 0 && list){
+    const s=document.createElement('div');
+    s.id='fm-loadmore';s.style.cssText='padding:20px;text-align:center;';
+    s.innerHTML=`<button class="btn btn-secondary" onclick="_fmLoadMore()" style="min-width:220px;font-size:13px;">↓ Show ${remaining} more formulations</button><div style="font-size:12px;color:var(--text3);margin-top:6px;">Showing ${window._fmLoaded} of ${window._fmAllForms.length}</div>`;
+    list.appendChild(s);
+  }
+  const q=document.getElementById('form-search')?.value||'';
+  if(q) filterFormulations();
 }
 
 function filterFormulations(){
@@ -1604,7 +1651,22 @@ function openEditBatchCodeModal(id){
     <div class="modal-header"><div class="modal-title">✏️ Edit Batch Number</div><button class="close-btn" onclick="closeModal('editbc-modal')">✕</button></div>
     <div class="modal-body">
       <div class="alert alert-info" style="font-size:12px;">${isBatchEditRole?'You can update the Batch Number for formulations created by Sudhir Ji.':'You can edit Batch Number and Product Code.'}</div>
-      <div class="form-group"><label>Batch Number</label><input class="form-control" id="ebc-batch" value="${f.batchNo}" placeholder="e.g. B2026-045"></div>
+      <div class="form-group">
+        <label>Batch Number</label>
+        <div style="position:relative;">
+          <input class="form-control" id="ebc-batch-search"
+            value="${f.batchNo||''}"
+            placeholder="🔍 Search existing or type new batch number..."
+            oninput="_fmBatchFilter(this.value)"
+            onfocus="_fmBatchOpen(this)"
+            onblur="setTimeout(_fmBatchClose,200)"
+            autocomplete="off" style="padding-right:32px;">
+          <span onclick="_fmBatchToggle()" title="Browse all batches"
+            style="position:absolute;right:10px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--text3);font-size:11px;user-select:none;">▼</span>
+        </div>
+        <input type="hidden" id="ebc-batch" value="${f.batchNo||''}">
+        <div class="form-hint" id="ebc-batch-hint">Select an existing batch or type a new one</div>
+      </div>
       ${!isBatchEditRole?`<div class="form-group"><label>Product Code</label><input class="form-control" id="ebc-code" value="${f.productCode}"></div>`:`<input type="hidden" id="ebc-code" value="${f.productCode}">`}
     </div>
     <div class="modal-footer">
@@ -1613,6 +1675,7 @@ function openEditBatchCodeModal(id){
     </div>
   </div></div>`;
   document.body.insertAdjacentHTML('beforeend',modal);
+  setTimeout(()=>{ _batchDropTarget='ebc'; },50);
 }
 
 function saveEditBatchCode(id){
@@ -2672,7 +2735,22 @@ function openNewFormModal(template=null, forceEmpty=false){
         </div>
       </div>
       <div class="form-row">
-        <div class="form-group"><label>Batch Number <span style="font-size:10px;color:var(--text3);font-weight:400;text-transform:none;">(optional, can add later)</span></label><input class="form-control" id="fm-batch" value="${draft?draft.batch:''}" placeholder="e.g. B2025-003 (optional)" oninput="_saveFormDraft()"></div>
+        <div class="form-group">
+          <label>Batch Number <span style="font-size:10px;color:var(--text3);font-weight:400;text-transform:none;">(optional, can add later)</span></label>
+          <div style="position:relative;">
+            <input class="form-control" id="fm-batch-search"
+              value="${draft?draft.batch:''}"
+              placeholder="🔍 Search or type batch number..."
+              oninput="_fmBatchFilter(this.value)"
+              onfocus="_fmBatchOpen(this)"
+              onblur="setTimeout(_fmBatchClose,200)"
+              autocomplete="off" style="padding-right:32px;">
+            <span onclick="_fmBatchToggle()" title="Browse all batches"
+              style="position:absolute;right:10px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--text3);font-size:11px;user-select:none;">▼</span>
+          </div>
+          <input type="hidden" id="fm-batch" value="${draft?draft.batch:''}">
+          <div class="form-hint" id="fm-batch-hint">Select an existing batch to reuse, or type a new batch number</div>
+        </div>
         <div class="form-group">
           <label>Manufacturing Date & Time</label>
           <input class="form-control" id="fm-date" type="text" value="${ts}" readonly style="background:var(--bg3);color:var(--text3);cursor:not-allowed;">
@@ -2684,7 +2762,7 @@ function openNewFormModal(template=null, forceEmpty=false){
         <div class="form-group">
           <label>Ref No <span style="font-size:10px;color:var(--text3);font-weight:400;text-transform:none;">(optional)</span></label>
           <input class="form-control" id="fm-refno" value="${draft?draft.refNo:template?template.refNo||'':''}" placeholder="e.g. SO-2025-042" oninput="_saveFormDraft()">
-          <div class="form-hint">Enter order/customer ref no — Party Name &amp; ID will auto-link in Google Sheet via VLOOKUP</div>
+          <div class="form-hint">Enter order/customer ref no — Party ID &amp; Party Name will auto-fill from Sheet2 when saving</div>
         </div>
       </div>
       <hr style="border-color:var(--border);margin:16px 0;">
@@ -3215,6 +3293,122 @@ let formItemCount=0;
 // ── Draft persistence: remembers form data across page navigation ──
 let _formDraft = null;
 
+// ─────────────────────────────────────────────────────────────────────────────
+//  Batch Number searchable dropdown — body-appended portal
+// ─────────────────────────────────────────────────────────────────────────────
+let _batchDropOpen = false;
+let _batchDropTarget = 'fm'; // 'fm' or 'ebc'
+
+function _fmBatchGetAll() {
+  const seen = new Set(); const list = [];
+  [...DB.formulations].sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||'')).forEach(f=>{
+    const b=(f.batchNo||'').trim();
+    if(b&&!seen.has(b)){ seen.add(b); list.push({batchNo:b,productName:f.productName||'',productCode:f.productCode||'',mfgDate:(f.mfgDate||'').slice(0,10)}); }
+  });
+  return list;
+}
+
+function _batchDropEnsure() {
+  if(document.getElementById('_batch-drop-portal')) return;
+  const div=document.createElement('div');
+  div.id='_batch-drop-portal';
+  div.style.cssText='display:none;position:fixed;z-index:99999;background:var(--card);border:1.5px solid var(--accent);border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.22);max-height:280px;overflow-y:auto;min-width:260px;';
+  div.innerHTML='<div id="_batch-drop-list"></div>';
+  document.body.appendChild(div);
+  document.addEventListener('mousedown',function(e){
+    const drop=document.getElementById('_batch-drop-portal');
+    if(drop&&!drop.contains(e.target)){
+      const i1=document.getElementById('fm-batch-search');
+      const i2=document.getElementById('ebc-batch-search');
+      if(e.target!==i1&&e.target!==i2) _fmBatchClose();
+    }
+  });
+}
+
+function _batchDropPosition(inputEl) {
+  const drop=document.getElementById('_batch-drop-portal'); if(!drop||!inputEl) return;
+  const rect=inputEl.getBoundingClientRect();
+  drop.style.top=(rect.bottom+4)+'px'; drop.style.left=rect.left+'px'; drop.style.width=rect.width+'px';
+}
+
+function _batchDropRender(items,q,target) {
+  const listEl=document.getElementById('_batch-drop-list'); if(!listEl) return;
+  let html='';
+  if(q&&q.trim()){
+    const safe=q.trim().replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    html+=`<div onmousedown="_fmBatchSelect('${safe}',true,'${target}')" style="display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border);background:var(--accent-light);border-radius:10px 10px 0 0;" onmouseover="this.style.background='var(--accent)'" onmouseout="this.style.background='var(--accent-light)'"><span style="font-size:18px;flex-shrink:0;">✚</span><div><div style="font-size:13px;font-weight:700;">Use "${_esc(q.trim())}" as new</div><div style="font-size:11px;color:var(--text3);">Create with this batch number</div></div></div>`;
+  }
+  if(!items.length){
+    html+=`<div style="padding:16px;color:var(--text3);font-size:13px;text-align:center;">${q?'No matching batch found':'No existing batch numbers yet'}</div>`;
+  } else {
+    items.forEach(item=>{
+      const safe=item.batchNo.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+      html+=`<div onmousedown="_fmBatchSelect('${safe}',false,'${target}')" style="display:flex;align-items:center;justify-content:space-between;padding:9px 14px;cursor:pointer;border-bottom:1px solid var(--border);" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''"><div style="min-width:0;"><div style="font-size:13px;font-weight:700;color:var(--text)">${_esc(item.batchNo)}</div><div style="font-size:11px;color:var(--text3);">${_esc(item.productName)}${item.productCode?' · '+_esc(item.productCode):''}${item.mfgDate?' · '+item.mfgDate:''}</div></div><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="2.5" style="flex-shrink:0;margin-left:8px"><polyline points="9 18 15 12 9 6"/></svg></div>`;
+    });
+  }
+  listEl.innerHTML=html;
+}
+
+function _fmBatchOpen(inputEl) {
+  _batchDropEnsure();
+  _batchDropTarget=inputEl?(inputEl.id==='ebc-batch-search'?'ebc':'fm'):'fm';
+  const anchor=inputEl||document.getElementById('fm-batch-search');
+  _batchDropPosition(anchor);
+  const q=anchor?anchor.value:'';
+  const all=_fmBatchGetAll(); const ql=q.toLowerCase().trim();
+  const filtered=ql?all.filter(x=>x.batchNo.toLowerCase().includes(ql)||x.productName.toLowerCase().includes(ql)):all;
+  _batchDropRender(filtered,q,_batchDropTarget);
+  const drop=document.getElementById('_batch-drop-portal');
+  if(drop) drop.style.display='block';
+  _batchDropOpen=true;
+}
+
+function _fmBatchFilter(q) {
+  const hiddenId=_batchDropTarget==='ebc'?'ebc-batch':'fm-batch';
+  const hidden=document.getElementById(hiddenId); if(hidden) hidden.value=q;
+  if(_batchDropTarget==='fm') _saveFormDraft();
+  _batchDropEnsure();
+  const anchor=document.getElementById(_batchDropTarget==='ebc'?'ebc-batch-search':'fm-batch-search');
+  _batchDropPosition(anchor);
+  const all=_fmBatchGetAll(); const ql=q.toLowerCase().trim();
+  const filtered=ql?all.filter(x=>x.batchNo.toLowerCase().includes(ql)||x.productName.toLowerCase().includes(ql)):all;
+  _batchDropRender(filtered,q,_batchDropTarget);
+  const drop=document.getElementById('_batch-drop-portal');
+  if(drop) drop.style.display='block';
+  _batchDropOpen=true;
+  const hintId=_batchDropTarget==='ebc'?'ebc-batch-hint':'fm-batch-hint';
+  const hint=document.getElementById(hintId);
+  if(hint) hint.textContent=filtered.length?`${filtered.length} batch${filtered.length>1?'es':''} found — click to select`:q?'No match — will be a new batch number':'Type to search or scroll to browse';
+}
+
+function _fmBatchToggle() {
+  if(_batchDropOpen){_fmBatchClose();}
+  else{const anchor=document.getElementById('fm-batch-search')||document.getElementById('ebc-batch-search');_fmBatchOpen(anchor);}
+}
+
+function _fmBatchClose() {
+  const drop=document.getElementById('_batch-drop-portal'); if(drop) drop.style.display='none'; _batchDropOpen=false;
+}
+
+function _fmBatchSelect(batchNo,isNew,target) {
+  target=target||_batchDropTarget||'fm';
+  const searchEl=document.getElementById(target==='ebc'?'ebc-batch-search':'fm-batch-search');
+  const hiddenEl=document.getElementById(target==='ebc'?'ebc-batch':'fm-batch');
+  const hintEl=document.getElementById(target==='ebc'?'ebc-batch-hint':'fm-batch-hint');
+  if(searchEl) searchEl.value=batchNo;
+  if(hiddenEl) hiddenEl.value=batchNo;
+  if(target==='fm') _saveFormDraft();
+  _fmBatchClose();
+  if(hintEl){
+    if(isNew){ hintEl.innerHTML=`<span style="color:var(--green);font-weight:700;">✚ New batch: ${_esc(batchNo)}</span>`; }
+    else{
+      const used=DB.formulations.filter(f=>(f.batchNo||'').trim()===batchNo);
+      const names=[...new Set(used.map(f=>f.productName))].slice(0,3).join(', ');
+      hintEl.innerHTML=`<span style="color:var(--accent2);font-weight:700;">♻ Reusing: ${_esc(batchNo)}</span>`+(names?` &nbsp;·&nbsp; <span style="color:var(--text3)">Used for: ${_esc(names)}</span>`:'');
+    }
+  }
+}
+
 function _saveFormDraft(){
   const pname = document.getElementById('fm-pname')?.value||'';
   const pcode = document.getElementById('fm-pcode')?.value||'';
@@ -3440,7 +3634,12 @@ function saveFormulation(){
   const refNo=document.getElementById('fm-refno')?.value.trim()||'';
   const productType=document.getElementById('fm-ptype')?.value||'';
   const productFinish=document.getElementById('fm-pfinish')?.value||'';
-  const partyId='';  // auto-populated in Google Sheet via VLOOKUP on refNo
+  // v3.8: Auto-lookup partyId + partyName from Sheet2 using refNo
+  let resolvedPartyId='', resolvedPartyName='';
+  if(refNo && DB.partyLookup && DB.partyLookup.length){
+    const _pm=DB.partyLookup.find(p=>String(p.refNo||'').trim().toLowerCase()===refNo.trim().toLowerCase());
+    if(_pm){resolvedPartyId=String(_pm.partyId||'').trim();resolvedPartyName=String(_pm.partyName||'').trim();}
+  }
   const lots=1;  // lots removed from new formulation form; always saved as 1
   // Formulation save NEVER debits inventory anymore.
   // Inventory debit is a separate explicit action by Sudhir Ji via the Debit button.
@@ -3462,7 +3661,7 @@ function saveFormulation(){
 
   // v3.5 FIX-ID: Send id:0 — GAS assigns the real ID under LockService and returns {newId}.
   // We do NOT push to DB.formulations here; we do it in the .then() after server confirms.
-  const f={id:0,productName:pname,productCode:pcode,productType,productFinish,batchNo:batch,mfgDate:mfgDateTime,remarks,refNo,partyId,by:currentUser.username,byName:currentUser.name,createdAt:mfgDateTime,lots,inventoryDebited:false,inventoryPartialDebit:false,skippedDebitRmIds:[],debitRemarks:'',items};
+  const f={id:0,productName:pname,productCode:pcode,productType,productFinish,batchNo:batch,mfgDate:mfgDateTime,remarks,refNo,partyId:resolvedPartyId,partyName:resolvedPartyName,by:currentUser.username,byName:currentUser.name,createdAt:mfgDateTime,lots,inventoryDebited:false,inventoryPartialDebit:false,skippedDebitRmIds:[],debitRemarks:'',items};
 
   const auditEntry={time:mfgDateTime,user:currentUser.name,action:'Created formulation',detail:`${pcode} — Batch ${batch} — inventory NOT yet debited (pending Sudhir Ji approval)`};
   DB.auditLog.unshift(auditEntry);
@@ -5617,10 +5816,7 @@ td{padding:6px 9px;color:#1a1a1a;vertical-align:middle;}
     <tbody>${itemRows}</tbody>
     <tfoot><tr style="background:#f0f0f0"><td class="c" colspan="3" style="font-weight:700;text-align:right;padding-right:10px;">TOTAL →</td><td class="r" style="font-weight:700;font-size:11pt;font-family:'JetBrains Mono'">${calcTotalQtyDisplay(f)}</td>${showCost?`<td></td><td class="r" style="font-weight:700;font-size:10pt;font-family:'JetBrains Mono'">&#8377;${cost.rmCost.toLocaleString('en-IN',{minimumFractionDigits:2})}</td>`:''}</tr></tfoot>
   </table>
-  <div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-    <span style="font-size:7.5pt;color:#666;font-weight:600;text-transform:uppercase;letter-spacing:.6px;margin-right:2px;">Category:</span>
-    ${[['B','Binder','#1e40af','#dbeafe'],['P','Pigment','#9d174d','#fce7f3'],['H','Hardener','#14532d','#dcfce7'],['F','Filler','#92400e','#fef3c7'],['A','Additive','#6b21a8','#f3e8ff'],['O','Other','#475569','#f1f5f9']].map(([l,n,c,bg])=>`<span style="display:inline-flex;align-items:center;gap:4px;font-size:7.5pt;color:#444;"><span style="display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;background:${bg};color:${c};font-size:7pt;font-weight:800;border:1px solid ${c};">${l}</span>${n}</span>`).join('')}
-  </div>
+  <div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;"><span style="font-size:7.5pt;color:#666;font-weight:600;text-transform:uppercase;letter-spacing:.6px;margin-right:2px;">Category:</span>${[["B","Binder","#1e40af","#dbeafe"],["P","Pigment","#9d174d","#fce7f3"],["H","Hardener","#14532d","#dcfce7"],["F","Filler","#92400e","#fef3c7"],["A","Additive","#6b21a8","#f3e8ff"],["O","Other","#475569","#f1f5f9"]].map(([l,n,c,bg])=>`<span style="display:inline-flex;align-items:center;gap:4px;font-size:7.5pt;color:#444;"><span style="display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;background:${bg};color:${c};font-size:7pt;font-weight:800;border:1px solid ${c};">${l}</span>${n}</span>`).join("")}</div>
 
   <div class="cost-box">${showCost?`<table>
     <tr class="sub"><td>Cost / KG &nbsp;<span style="color:#aaa">(RM only)</span></td><td>&#8377;${(cost.rmCost/totalQty).toLocaleString('en-IN',{minimumFractionDigits:2})}</td></tr>
@@ -6187,379 +6383,6 @@ function closeModal(id){document.getElementById(id)?.remove();formItemCount=0;ca
 <!-- ════════════════════════════════════════════════════ -->
 <!--  SURFACE AI CHATBOT                                  -->
 <!-- ════════════════════════════════════════════════════ -->
-<style>
-/* ── Chatbot Launcher ── */
-#sai-launcher {
-  position: fixed;
-  bottom: 28px;
-  right: 28px;
-  z-index: 99999;
-  width: 58px;
-  height: 58px;
-  border-radius: 18px;
-  background: linear-gradient(135deg, #2563eb, #1d4ed8);
-  border: none;
-  cursor: pointer;
-  box-shadow: 0 8px 28px rgba(37,99,235,0.40), 0 2px 8px rgba(0,0,0,0.12);
-  display: none;
-  align-items: center;
-  justify-content: center;
-  transition: transform 0.2s, box-shadow 0.2s;
-  flex-direction: column;
-  gap: 0;
-  pointer-events: auto;
-}
-#sai-launcher.sai-active {
-  display: flex;
-}
-#sai-launcher.sai-visible {
-  display: flex;
-}
-#sai-launcher:hover {
-  transform: translateY(-3px) scale(1.05);
-  box-shadow: 0 14px 36px rgba(37,99,235,0.50);
-}
-#sai-launcher svg { display: block; }
-#sai-badge {
-  position: absolute;
-  top: -5px;
-  right: -5px;
-  width: 18px;
-  height: 18px;
-  background: #16a34a;
-  border-radius: 50%;
-  border: 2.5px solid #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-#sai-badge-dot {
-  width: 7px;
-  height: 7px;
-  background: #fff;
-  border-radius: 50%;
-  animation: sai-pulse 2s infinite;
-}
-@keyframes sai-pulse {
-  0%,100%{opacity:1;transform:scale(1);}
-  50%{opacity:.6;transform:scale(0.75);}
-}
-
-/* ── Chat Panel ── */
-#sai-panel {
-  position: fixed;
-  bottom: 100px;
-  right: 28px;
-  z-index: 99998;
-  width: 400px;
-  max-height: 640px;
-  background: #ffffff;
-  border: 1px solid #e1e6f0;
-  border-radius: 20px;
-  box-shadow: 0 24px 80px rgba(37,99,235,0.16), 0 4px 16px rgba(0,0,0,0.08);
-  display: none;
-  flex-direction: column;
-  overflow: hidden;
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  animation: sai-open 0.25s cubic-bezier(0.34,1.56,0.64,1);
-}
-@keyframes sai-open {
-  from{opacity:0;transform:translateY(20px) scale(0.96);}
-  to{opacity:1;transform:translateY(0) scale(1);}
-}
-#sai-panel.open { display: flex; }
-
-/* Header */
-#sai-header {
-  background: linear-gradient(135deg, #1e3a8a, #2563eb);
-  padding: 16px 18px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-shrink: 0;
-}
-#sai-avatar {
-  width: 38px;
-  height: 38px;
-  border-radius: 12px;
-  background: rgba(255,255,255,0.15);
-  border: 1.5px solid rgba(255,255,255,0.25);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
-  flex-shrink: 0;
-}
-#sai-header-info { flex: 1; }
-#sai-header-name { font-size: 14px; font-weight: 800; color: #fff; letter-spacing: -0.2px; }
-#sai-header-sub { font-size: 11px; color: rgba(255,255,255,0.65); margin-top: 1px; }
-#sai-header-status {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 11px;
-  color: rgba(255,255,255,0.75);
-}
-#sai-status-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #4ade80;
-  animation: sai-pulse 2s infinite;
-}
-#sai-close-btn {
-  background: rgba(255,255,255,0.12);
-  border: 1px solid rgba(255,255,255,0.20);
-  border-radius: 8px;
-  width: 30px;
-  height: 30px;
-  cursor: pointer;
-  color: rgba(255,255,255,0.80);
-  font-size: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.15s;
-  flex-shrink: 0;
-}
-#sai-close-btn:hover { background: rgba(255,255,255,0.22); color: #fff; }
-
-/* Chips */
-#sai-chips {
-  padding: 10px 14px;
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-  border-bottom: 1px solid #f1f5f9;
-  background: #f8fafc;
-  flex-shrink: 0;
-}
-.sai-chip {
-  background: #eff6ff;
-  border: 1px solid #bfdbfe;
-  border-radius: 20px;
-  padding: 4px 11px;
-  font-size: 11px;
-  font-weight: 600;
-  color: #1d4ed8;
-  cursor: pointer;
-  transition: all 0.15s;
-  white-space: nowrap;
-}
-.sai-chip:hover { background: #2563eb; color: #fff; border-color: #2563eb; }
-
-/* Messages */
-#sai-messages {
-  flex: 1;
-  overflow-y: auto;
-  padding: 16px 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  background: #f8fafc;
-}
-#sai-messages::-webkit-scrollbar { width: 4px; }
-#sai-messages::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
-
-.sai-msg {
-  display: flex;
-  gap: 9px;
-  align-items: flex-end;
-}
-.sai-msg.user { flex-direction: row-reverse; }
-.sai-msg-avatar {
-  width: 28px;
-  height: 28px;
-  border-radius: 9px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 13px;
-  flex-shrink: 0;
-  margin-bottom: 2px;
-}
-.sai-msg-avatar.bot { background: linear-gradient(135deg, #2563eb, #1d4ed8); }
-.sai-msg-avatar.user-av { background: #e2e8f0; font-size: 11px; font-weight: 700; color: #475569; }
-.sai-bubble {
-  max-width: 78%;
-  padding: 10px 13px;
-  border-radius: 14px;
-  font-size: 13px;
-  line-height: 1.55;
-  color: #1a1f36;
-}
-.sai-msg.bot .sai-bubble {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-bottom-left-radius: 4px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
-}
-.sai-msg.user .sai-bubble {
-  background: linear-gradient(135deg, #2563eb, #1d4ed8);
-  color: #fff;
-  border-bottom-right-radius: 4px;
-}
-.sai-bubble strong { font-weight: 700; }
-.sai-bubble .sai-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 11.5px;
-  margin: 6px 0 2px;
-}
-.sai-bubble .sai-table th {
-  background: #f1f5f9;
-  padding: 5px 8px;
-  text-align: left;
-  font-weight: 700;
-  color: #475569;
-  font-size: 10.5px;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
-  border-bottom: 1px solid #e2e8f0;
-}
-.sai-bubble .sai-table td {
-  padding: 5px 8px;
-  border-bottom: 1px solid #f1f5f9;
-  color: #334155;
-}
-.sai-bubble .sai-highlight {
-  display: inline-block;
-  background: #eff6ff;
-  color: #1d4ed8;
-  font-weight: 700;
-  border-radius: 6px;
-  padding: 1px 7px;
-  font-size: 12px;
-}
-.sai-bubble .sai-ok { color: #16a34a; font-weight: 700; }
-.sai-bubble .sai-warn { color: #ea580c; font-weight: 700; }
-.sai-bubble .sai-err { color: #dc2626; font-weight: 700; }
-.sai-time {
-  font-size: 10px;
-  color: #94a3b8;
-  margin-top: 3px;
-  padding: 0 2px;
-}
-.sai-msg.user .sai-time { text-align: right; }
-
-/* Typing indicator */
-.sai-typing {
-  display: flex;
-  gap: 4px;
-  align-items: center;
-  padding: 10px 13px;
-}
-.sai-typing span {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #94a3b8;
-  animation: sai-bounce 1.2s infinite;
-}
-.sai-typing span:nth-child(2) { animation-delay: 0.2s; }
-.sai-typing span:nth-child(3) { animation-delay: 0.4s; }
-@keyframes sai-bounce {
-  0%,80%,100%{transform:translateY(0);opacity:.5;}
-  40%{transform:translateY(-6px);opacity:1;}
-}
-
-/* Input area */
-#sai-input-area {
-  padding: 10px 12px 12px;
-  background: #fff;
-  border-top: 1px solid #e8edf5;
-  display: flex;
-  gap: 8px;
-  align-items: flex-end;
-  flex-shrink: 0;
-}
-#sai-input {
-  flex: 1;
-  background: #f1f5f9;
-  border: 1.5px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 9px 13px;
-  font-size: 13px;
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  color: #1a1f36;
-  outline: none;
-  resize: none;
-  max-height: 100px;
-  min-height: 40px;
-  line-height: 1.4;
-  transition: border-color 0.2s, box-shadow 0.2s;
-}
-#sai-input:focus {
-  border-color: #2563eb;
-  box-shadow: 0 0 0 3px rgba(37,99,235,0.10);
-  background: #fff;
-}
-#sai-input::placeholder { color: #94a3b8; }
-#sai-send {
-  width: 40px;
-  height: 40px;
-  border-radius: 11px;
-  background: linear-gradient(135deg, #2563eb, #1d4ed8);
-  border: none;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  transition: all 0.15s;
-  box-shadow: 0 2px 8px rgba(37,99,235,0.30);
-}
-#sai-send:hover { transform: scale(1.07); box-shadow: 0 4px 14px rgba(37,99,235,0.40); }
-#sai-send:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-
-/* Loading banner */
-#sai-loading-bar {
-  height: 2px;
-  background: linear-gradient(90deg, #2563eb, #60a5fa, #2563eb);
-  background-size: 200% 100%;
-  animation: sai-shimmer 1.5s infinite;
-  display: none;
-  flex-shrink: 0;
-}
-@keyframes sai-shimmer { 0%{background-position:200% 0;} 100%{background-position:-200% 0;} }
-#sai-loading-bar.active { display: block; }
-
-/* Context banner */
-#sai-ctx-banner {
-  background: linear-gradient(90deg, #f0fdf4, #ecfdf5);
-  border-bottom: 1px solid #bbf7d0;
-  padding: 7px 14px;
-  font-size: 11px;
-  font-weight: 600;
-  color: #15803d;
-  display: none;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
-}
-#sai-ctx-banner.visible { display: flex; }
-
-/* Refresh data button */
-#sai-refresh-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: #2563eb;
-  font-size: 11px;
-  font-weight: 700;
-  margin-left: auto;
-  font-family: inherit;
-  padding: 2px 6px;
-  border-radius: 5px;
-  transition: background 0.15s;
-}
-#sai-refresh-btn:hover { background: #dbeafe; }
-
-@media(max-width:480px){
-  #sai-panel { width: calc(100vw - 24px); right: 12px; bottom: 90px; }
-  #sai-launcher { right: 16px; bottom: 16px; }
-}
-</style>
 
 
 <!-- Chatbot panel HTML -->
@@ -6571,7 +6394,6 @@ function closeModal(id){document.getElementById(id)?.remove();formItemCount=0;ca
       <div id="sai-header-sub">Powered by live Google Sheets data</div>
     </div>
     <div id="sai-header-status"><div id="sai-status-dot"></div> Live</div>
-    <button id="sai-close-btn" onclick="saiToggle()">✕</button>
   </div>
   <div id="sai-loading-bar"></div>
   <div id="sai-ctx-banner">
@@ -6955,7 +6777,6 @@ function saiOnLogin() {
   if (banner) banner.classList.remove('visible');
 
   // Show launcher with direct style — simplest most reliable method
-  const launcher = document.getElementById('sai-launcher');
   if (launcher) {
     launcher.classList.add('sai-active');
     launcher.classList.add('sai-visible');
@@ -6964,13 +6785,11 @@ function saiOnLogin() {
   // Re-apply after data load in case anything reset it
   setTimeout(() => {
     if (!SAI.dataLoaded) saiLoadData(true);
-    const l = document.getElementById('sai-launcher');
     if (l) l.classList.add('sai-active');
   }, 500);
 }
 
 function saiOnLogout() {
-  const launcher = document.getElementById('sai-launcher');
   const panel = document.getElementById('sai-panel');
   if (launcher) { launcher.classList.remove('sai-active'); launcher.classList.remove('sai-visible'); }
   if (panel) panel.classList.remove('open');
@@ -9005,100 +8824,119 @@ if(_sidebarNav) _navObserver.observe(_sidebarNav, {childList:true, subtree:true}
 //    4. Frontend renders per-order forecast cards + detailed RM table
 // ════════════════════════════════════════════════════════════════════
 
-let _fcOrders      = [];   // array of order objects returned by GAS
-let _fcActiveIdx   = null; // index of currently expanded order
+let _fcOrders      = [];
+let _fcActiveIdx   = null;
 let _fcLoading     = false;
+let _fcFilterDate  = '';   // YYYY-MM-DD or '' (all) or '_week_'
+let _fcViewMode    = 'summary'; // 'summary' | 'consolidated' | 'orders'
 
-// ── Page renderer ─────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+//  renderForecasting — HTML shell
+// ─────────────────────────────────────────────────────────────────────────────
 function renderForecasting() {
+  const todayStr = new Date().toISOString().slice(0,10);
   return `
-  <!-- Hero -->
   <div class="forecast-hero">
     <div class="forecast-hero-left">
       <h2>
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round" style="display:inline;vertical-align:text-bottom;margin-right:6px"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-        Raw Material Forecasting
+        RM Forecasting — Stock Availability
       </h2>
-      <p>GSheet-driven • Enter orders in the <strong style="color:#38bdf8">ForecastInput</strong> sheet → refresh here to see RM requirements</p>
+      <p>Check raw material stock against orders · Uses reference batch BOM scaled to order qty · Filter by order date</p>
     </div>
     <div class="forecast-hero-right">
       <button class="btn btn-blue btn-sm" onclick="fcLoadOrders()" id="fc-refresh-btn">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
         Sync from Sheet
       </button>
-      <button class="btn btn-secondary btn-sm" onclick="fcExportAllExcel()" id="fc-xls-btn" style="display:none">
+      <button class="btn btn-secondary btn-sm" onclick="fcExportProcurementExcel()" id="fc-xls-btn" style="display:none">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        Export Excel
+        Procurement Excel
       </button>
-      <button class="btn btn-secondary btn-sm" onclick="fcExportPDF()" id="fc-pdf-btn" style="display:none">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-        Export PDF
+      <button class="btn btn-secondary btn-sm" onclick="fcExportAllExcel()" id="fc-xls-all-btn" style="display:none">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Full Export
       </button>
     </div>
   </div>
 
-  <!-- How-to banner (shown when no orders) -->
+  <!-- How-to banner -->
   <div id="fc-howto" class="setup-banner" style="margin-bottom:18px">
     <div class="sb-icon">📋</div>
     <div>
-      <h3>How to use Forecasting</h3>
-      <p>Open your Google Sheet → go to the <strong>ForecastInput</strong> tab → fill in:
-        <strong>batchNo</strong> (must match an existing batch) ·
-        <strong>refNo</strong> (e.g. PO-2026-042) ·
-        <strong>productName</strong> ·
-        <strong>orderQty</strong> (KG) ·
-        <strong>orderDate</strong> (e.g. 2026-05-27).
-        Then click <em>Sync from Sheet</em> above.</p>
+      <h3>How to use RM Forecasting</h3>
+      <p>In Google Sheet → <strong>ForecastInput</strong> tab → fill: <strong>batchNo</strong> (reference batch) · <strong>refNo</strong> · <strong>productName</strong> · <strong>orderQty</strong> (KG) · <strong>orderDate</strong> (YYYY-MM-DD).
+      The app uses the BOM from the reference batch, scales it to orderQty, and checks stock.</p>
     </div>
   </div>
 
   <!-- KPI strip -->
   <div class="forecast-kpi-grid" id="fc-kpi-grid" style="display:none"></div>
 
-  <!-- Order cards -->
-  <div id="fc-orders-wrap" style="margin-bottom:20px"></div>
+  <!-- Filter + view toggle bar -->
+  <div id="fc-filter-bar" style="display:none;background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 18px;margin-bottom:16px;box-shadow:var(--shadow);">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <!-- Date picker -->
+      <div style="display:flex;align-items:center;gap:7px;background:var(--bg3);border:1.5px solid var(--border);border-radius:9px;padding:7px 12px;min-width:200px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        <span style="font-size:12px;font-weight:600;color:var(--text2);white-space:nowrap">Order Date:</span>
+        <input type="date" id="fc-date-filter" value="${todayStr}"
+          style="border:none;background:transparent;font-size:13px;font-weight:700;color:var(--text);outline:none;flex:1;"
+          onchange="fcApplyFilter()">
+        <button onclick="fcSetDateChip('all')" title="Clear filter — show all" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:15px;padding:0;line-height:1;">✕</button>
+      </div>
+      <!-- Quick chips -->
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <button id="fc-chip-today"     onclick="fcSetDateChip('today')"     style="padding:5px 12px;font-size:12px;border-radius:20px;border:none;background:var(--accent);color:#fff;cursor:pointer;font-weight:700;">Today</button>
+        <button id="fc-chip-yesterday" onclick="fcSetDateChip('yesterday')" style="padding:5px 12px;font-size:12px;border-radius:20px;border:1.5px solid var(--border);background:var(--bg3);color:var(--text2);cursor:pointer;font-weight:600;">Yesterday</button>
+        <button id="fc-chip-week"      onclick="fcSetDateChip('week')"      style="padding:5px 12px;font-size:12px;border-radius:20px;border:1.5px solid var(--border);background:var(--bg3);color:var(--text2);cursor:pointer;font-weight:600;">This Week</button>
+        <button id="fc-chip-lastweek"  onclick="fcSetDateChip('lastweek')"  style="padding:5px 12px;font-size:12px;border-radius:20px;border:1.5px solid var(--border);background:var(--bg3);color:var(--text2);cursor:pointer;font-weight:600;">Last Week</button>
+        <button id="fc-chip-all"       onclick="fcSetDateChip('all')"       style="padding:5px 12px;font-size:12px;border-radius:20px;border:1.5px solid var(--border);background:var(--bg3);color:var(--text2);cursor:pointer;font-weight:600;">All Orders</button>
+      </div>
+      <!-- Search -->
+      <div class="search-input-wrap" style="min-width:180px;max-width:240px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input class="search-input" id="fc-search" placeholder="Search product / batch / ref..." oninput="fcApplySearch()">
+      </div>
+      <!-- View toggles -->
+      <div style="display:flex;gap:5px;margin-left:auto;">
+        <button id="fc-btn-summary"      onclick="fcSwitchView('summary')"      style="padding:6px 13px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;border:1.5px solid var(--accent);background:var(--accent);color:#fff;">📊 Summary</button>
+        <button id="fc-btn-consolidated" onclick="fcSwitchView('consolidated')" style="padding:6px 13px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;border:1.5px solid var(--border);background:var(--bg3);color:var(--text2);">🧪 All RMs</button>
+        <button id="fc-btn-orders"       onclick="fcSwitchView('orders')"       style="padding:6px 13px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;border:1.5px solid var(--border);background:var(--bg3);color:var(--text2);">📋 Order-wise</button>
+      </div>
+    </div>
+    <div id="fc-filter-info" style="margin-top:9px;font-size:12px;color:var(--text3);"></div>
+  </div>
 
-  <!-- Detailed forecast result panel -->
-  <div id="fc-detail-panel" style="display:none"></div>
+  <!-- Views -->
+  <div id="fc-view-summary"      style="display:none"></div>
+  <div id="fc-view-consolidated" style="display:none"></div>
+  <div id="fc-orders-wrap"       style="display:none;margin-bottom:20px"></div>
+  <div id="fc-detail-panel"      style="display:none"></div>
 
-  <!-- Loading / empty states -->
+  <!-- States -->
   <div id="fc-state-loading" class="loading-page" style="display:none">
     <div class="spinner"></div><span>Loading forecast orders from Google Sheet…</span>
   </div>
-  <!-- v3.6b-DEBUG: visible debug panel (remove after fix confirmed) -->
-  <div id="fc-debug-panel" style="display:none;background:#1e293b;border:1px solid #334155;border-radius:8px;padding:12px 16px;margin-top:14px;font-size:11px;font-family:monospace;color:#94a3b8;"></div>
-
-  <!-- v3.6b-DEBUG panel: shows raw GAS values, remove once date issue confirmed fixed -->
-  <div id="fc-debug-panel" style="display:none;background:#1e293b;border:1px solid #334155;border-radius:8px;padding:12px 16px;margin-top:14px;font-size:11px;font-family:'JetBrains Mono',monospace;color:#94a3b8;line-height:1.8"></div>
-
   <div id="fc-state-empty" style="display:none">
     <div class="forecast-empty">
-      <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
       <h3>No orders in ForecastInput sheet</h3>
-      <p>Add rows to the <strong>ForecastInput</strong> sheet in Google Sheets, then click <em>Sync from Sheet</em>.</p>
+      <p>Add rows to the <strong>ForecastInput</strong> sheet, then click <em>Sync from Sheet</em>.</p>
     </div>
   </div>
   `;
 }
 
-// ── Called by renderPage after HTML is injected ───────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+//  initForecasting
+// ─────────────────────────────────────────────────────────────────────────────
 function initForecasting() {
   _fcOrders    = [];
   _fcActiveIdx = null;
-  // v3.6b-DEBUG: show raw GAS data so we can see if orderDate arrives correctly
-  console.log('[FC-DEBUG] DB.forecastInputRows on init:', JSON.stringify(DB.forecastInputRows));
+  _fcFilterDate = new Date().toISOString().slice(0,10); // default today
+  _fcViewMode   = 'summary';
   const existing = _fcBuildOrdersFromDB();
-  console.log('[FC-DEBUG] Built orders:', JSON.stringify(existing.map(o=>({batchNo:o.batchNo,orderDate:o.orderDate,createdAt:o.createdAt,status:o.status}))));
-  // Visible debug panel — shows raw values from GAS
-  const dbgEl = document.getElementById('fc-debug-panel');
-  if (dbgEl) {
-    const rows = DB.forecastInputRows || [];
-    if (rows.length) {
-      dbgEl.style.display = 'block';
-      dbgEl.innerHTML = '<b style="color:#38bdf8">Debug — Raw data arriving from GAS:</b><br>' +
-        rows.map((r,i) => 'Row '+(i+1)+': batchNo=<b style="color:#f1f5f9">'+(r.batchNo||'EMPTY')+'</b>  orderDate=<b style="color:'+(r.orderDate?'#4ade80':'#f87171')+'">'+(r.orderDate||'EMPTY — date not coming from GAS')+'</b>  createdAt=<b style="color:#f1f5f9">'+(r.createdAt||'empty')+'</b>').join('<br>');
-    }
-  }
   if (existing.length) {
     _fcOrders = existing;
     setTimeout(() => _fcRenderOrders(), 80);
@@ -9107,80 +8945,68 @@ function initForecasting() {
   }
 }
 
-// ── Load orders from GAS ──────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+//  fcLoadOrders — sync from GAS then re-render
+// ─────────────────────────────────────────────────────────────────────────────
 async function fcLoadOrders() {
-  // ── v3.6b: forecastInputRows arrive with loadAll — no separate GAS action ──
-  // "Sync from Sheet" re-runs loadAll to get fresh sheet data, then calculates
-  // everything client-side from DB.formulations + DB.inventory.
   if (_fcLoading) return;
   _fcLoading = true;
   _fcSetState('loading');
   const btn = document.getElementById('fc-refresh-btn');
-  if (btn) {
-    btn.disabled = true;
-    btn.innerHTML = '<div class="spinner" style="width:13px;height:13px;border-color:#bfdbfe;border-top-color:var(--accent)"></div> Syncing…';
-  }
+  if (btn) { btn.disabled = true; btn.innerHTML = '<div class="spinner" style="width:13px;height:13px;border-color:#bfdbfe;border-top-color:var(--accent)"></div> Syncing…'; }
   try {
-    // Refresh all data from GAS (uses the existing loadAll action that always worked)
     await loadFromGAS();
-    // Build forecast orders client-side from the raw rows now in DB
     _fcOrders = _fcBuildOrdersFromDB();
     _fcActiveIdx = null;
     _fcRenderOrders();
-    if (_fcOrders.length)
-      toast('Forecast orders loaded ✓ (' + _fcOrders.length + ' order' + (_fcOrders.length>1?'s':'') + ')', 'success');
-    else
-      toast('ForecastInput sheet is empty — add rows there first', 'info');
+    toast(_fcOrders.length
+      ? 'Loaded ' + _fcOrders.length + ' orders ✓'
+      : 'ForecastInput sheet is empty — add rows first', _fcOrders.length ? 'success' : 'info');
   } catch (e) {
-    // Even if GAS fails, try to render from whatever is already in DB
     _fcOrders = _fcBuildOrdersFromDB();
     _fcRenderOrders();
     if (!_fcOrders.length) _fcSetState('empty');
   } finally {
     _fcLoading = false;
-    if (btn) {
-      btn.disabled = false;
-      btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> Sync from Sheet';
-    }
+    if (btn) { btn.disabled = false; btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> Sync from Sheet'; }
   }
 }
 
-// v3.6b-FIX: Format a date string (YYYY-MM-DD HH:MM:SS) to DD/MM/YYYY HH:MM for display.
-// Also handles ISO strings with 'T' separator. Falls back to raw value if unrecognised.
+// ─────────────────────────────────────────────────────────────────────────────
+//  Date helpers
+// ─────────────────────────────────────────────────────────────────────────────
 function _fcFmtDate(d) {
   if (!d) return '';
-  const s = String(d).trim();
-  if (!s) return '';
-  // Normalise: replace 'T' separator with space, drop seconds
-  const dt = s.slice(0, 16).replace('T', ' ');
-  // Convert YYYY-MM-DD HH:MM → DD/MM/YYYY HH:MM (Indian display format)
-  const m = dt.match(/^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}:\d{2})$/);
+  const s = String(d).trim().slice(0, 16).replace('T', ' ');
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}:\d{2})$/);
   if (m) return m[3] + '/' + m[2] + '/' + m[1] + '  ' + m[4];
-  return dt; // fallback: return as-is
+  return s;
 }
 
-// ── Build processed orders entirely client-side ───────────────────
-// Reads DB.forecastInputRows (raw sheet rows), matches each to a
-// formulation by batchNo, scales BOM to orderQty, compares inventory.
+// ─────────────────────────────────────────────────────────────────────────────
+//  _fcBuildOrdersFromDB — client-side forecast calculation
+//  Uses reference batch BOM × scale factor to get per-RM requirement
+// ─────────────────────────────────────────────────────────────────────────────
 function _fcBuildOrdersFromDB() {
   const rawRows = DB.forecastInputRows || [];
   if (!rawRows.length) return [];
 
-  // batchNo (lowercase) → formulation
   const batchMap = {};
-  DB.formulations.forEach(f => {
-    if (f.batchNo) batchMap[f.batchNo.trim().toLowerCase()] = f;
-  });
+  DB.formulations.forEach(f => { if (f.batchNo) batchMap[f.batchNo.trim().toLowerCase()] = f; });
 
   return rawRows.map((row, idx) => {
-    const batchNo    = (row.batchNo    || '').trim();
-    const refNo      = (row.refNo      || '').trim();
-    const prodName   = (row.productName|| '').trim();
-    const orderQty   = Number(row.orderQty) || 0;
-    const rowIndex   = Number(row.rowIndex) || (idx + 2);
+    const batchNo  = (row.batchNo    || '').trim();
+    const refNo    = (row.refNo      || '').trim();
+    const prodName = (row.productName|| '').trim();
+    const orderQty = Number(row.orderQty) || 0;
+    const rowIndex = Number(row.rowIndex) || (idx + 2);
+    // Normalize date — orderDate arrives as "YYYY-MM-DD HH:MM:SS" from GAS
+    const orderDate  = (row.orderDate  || '').trim();
+    const createdAt  = (row.createdAt  || '').trim();
 
     if (!batchNo || orderQty <= 0) {
       return { rowIndex, batchNo, refNo, productName: prodName, orderQty,
+               orderDate, createdAt, by: row.by||'',
                status:'error', error: !batchNo ? 'Batch No missing' : 'Order Qty must be > 0',
                formulation: null, forecast: null };
     }
@@ -9188,41 +9014,38 @@ function _fcBuildOrdersFromDB() {
     const fm = batchMap[batchNo.toLowerCase()];
     if (!fm) {
       return { rowIndex, batchNo, refNo, productName: prodName, orderQty,
+               orderDate, createdAt, by: row.by||'',
                status:'error', error: 'Batch "' + batchNo + '" not found in Formulations',
                formulation: null, forecast: null };
     }
 
     const items = fm.items || [];
-
-    // Original batch weight in KG
+    // Original batch weight in KG (sum all BOM items)
     const origBatchKg = items.reduce((s, it) => {
       const u = (it.unit || 'KG').toUpperCase();
-      const q = it.qty || 0;
-      return s + ((u === 'G' || u === 'ML') ? q / 1000 : q);
+      return s + ((u === 'G' || u === 'ML') ? (it.qty||0)/1000 : (it.qty||0));
     }, 0);
 
+    // Scale factor: how many times the base BOM batch fits in the order
     const scaleFactor = origBatchKg > 0 ? orderQty / origBatchKg : 1;
 
     let shortItems = 0, totalReqKg = 0, totalShortKg = 0, totalExcessKg = 0;
-
     const rows = items.map(it => {
       const rm = getRMById(it.rmId);
       if (!rm) return null;
       const origQty = it.qty || 0;
       const unit    = (it.unit || rm.unit || 'KG').toUpperCase();
-      const origKg  = (unit === 'G' || unit === 'ML') ? origQty / 1000 : origQty;
+      const origKg  = (unit === 'G' || unit === 'ML') ? origQty/1000 : origQty;
       const reqKg   = origKg * scaleFactor;
       const available = getInvByRMId(it.rmId).quantity || 0;
       const shortQty  = Math.max(0, reqKg - available);
       const excessQty = Math.max(0, available - reqKg);
-
-      totalReqKg    += reqKg;
-      totalShortKg  += shortQty;
-      totalExcessKg += excessQty;
+      totalReqKg   += reqKg;
+      totalShortKg += shortQty;
+      totalExcessKg+= excessQty;
       if (shortQty > 0) shortItems++;
-
-      return { rmId: it.rmId, rmName: rm.name, rmCode: rm.code,
-               origUnit: unit, origQty, origKg, scaleFactor,
+      return { rmId:it.rmId, rmName:rm.name, rmCode:rm.code, category:rm.category||'',
+               origUnit:unit, origQty, origKg, scaleFactor,
                reqKg, available, shortQty, excessQty,
                status: shortQty > 0 ? 'Procurement Required' : 'Available in Inventory' };
     }).filter(Boolean);
@@ -9230,303 +9053,676 @@ function _fcBuildOrdersFromDB() {
     return {
       rowIndex, batchNo, refNo,
       productName: prodName || fm.productName,
-      orderQty, orderDate: row.orderDate || '', createdAt: row.createdAt || '', by: row.by || '',
-      status: 'ok', error: null,
-      formulation: {
-        id: fm.id, productName: fm.productName, productCode: fm.productCode,
-        batchNo: fm.batchNo, mfgDate: fm.mfgDate,
-        origBatchKg, scaleFactor
-      },
-      forecast: {
-        rows, totalMaterials: rows.length,
-        availableCount: rows.length - shortItems,
-        shortItemCount: shortItems,
-        totalRequiredKg: totalReqKg,
-        totalShortKg, totalExcessKg,
-        procurementRequired: shortItems > 0
-      }
+      orderQty, orderDate, createdAt, by: row.by||'',
+      status:'ok', error:null,
+      formulation: { id:fm.id, productName:fm.productName, productCode:fm.productCode,
+                     batchNo:fm.batchNo, mfgDate:fm.mfgDate, origBatchKg, scaleFactor },
+      forecast: { rows, totalMaterials:rows.length,
+                  availableCount:rows.length - shortItems, shortItemCount:shortItems,
+                  totalRequiredKg:totalReqKg, totalShortKg, totalExcessKg,
+                  procurementRequired: shortItems > 0 }
     };
   });
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+//  State / filter helpers
+// ─────────────────────────────────────────────────────────────────────────────
 function _fcSetState(state) {
-  const ids = ['fc-howto','fc-kpi-grid','fc-orders-wrap','fc-detail-panel','fc-state-loading','fc-state-empty'];
-  ids.forEach(id => { const el = document.getElementById(id); if(el) el.style.display = 'none'; });
-  const xls = document.getElementById('fc-xls-btn');
-  const pdf = document.getElementById('fc-pdf-btn');
+  ['fc-howto','fc-kpi-grid','fc-filter-bar','fc-view-summary','fc-view-consolidated',
+   'fc-orders-wrap','fc-detail-panel','fc-state-loading','fc-state-empty']
+    .forEach(id => { const el=document.getElementById(id); if(el) el.style.display='none'; });
+  const xls    = document.getElementById('fc-xls-btn');
+  const xlsAll = document.getElementById('fc-xls-all-btn');
   if (state === 'loading') {
-    const el = document.getElementById('fc-state-loading'); if(el) el.style.display = 'flex';
+    const el = document.getElementById('fc-state-loading'); if(el) el.style.display='flex';
   } else if (state === 'empty') {
-    const el = document.getElementById('fc-howto');        if(el) el.style.display = 'flex';
-    const el2 = document.getElementById('fc-state-empty'); if(el2) el2.style.display = 'block';
+    const el  = document.getElementById('fc-howto');        if(el)  el.style.display='flex';
+    const el2 = document.getElementById('fc-state-empty');  if(el2) el2.style.display='block';
   } else if (state === 'ready') {
-    const el = document.getElementById('fc-kpi-grid');     if(el) el.style.display = 'grid';
-    const el2 = document.getElementById('fc-orders-wrap'); if(el2) el2.style.display = 'block';
-    if(xls) xls.style.display = ''; if(pdf) pdf.style.display = '';
+    const el = document.getElementById('fc-kpi-grid');    if(el) el.style.display='grid';
+    const el2= document.getElementById('fc-filter-bar'); if(el2) el2.style.display='block';
+    if(xls) xls.style.display=''; if(xlsAll) xlsAll.style.display='';
   }
 }
 
-// ── Render order cards ────────────────────────────────────────────
-function _fcRenderOrders() {
-  if (!_fcOrders.length) { _fcSetState('empty'); return; }
-  _fcSetState('ready');
+function _fcGetFiltered() {
+  let orders = _fcOrders;
+  // Date filter
+  if (_fcFilterDate === '_week_') {
+    const today = new Date(); today.setHours(0,0,0,0);
+    const wEnd  = new Date(today); wEnd.setDate(wEnd.getDate()+6);
+    orders = orders.filter(o => {
+      const d = new Date((o.orderDate||o.createdAt||'').slice(0,10));
+      return !isNaN(d) && d>=today && d<=wEnd;
+    });
+  } else if (_fcFilterDate === '_lastweek_') {
+    const today = new Date(); today.setHours(0,0,0,0);
+    const wStart = new Date(today); wStart.setDate(wStart.getDate()-7);
+    const wEnd   = new Date(today); wEnd.setDate(wEnd.getDate()-1);
+    orders = orders.filter(o => {
+      const d = new Date((o.orderDate||o.createdAt||'').slice(0,10));
+      return !isNaN(d) && d>=wStart && d<=wEnd;
+    });
+  } else if (_fcFilterDate) {
+    orders = orders.filter(o => (o.orderDate||o.createdAt||'').slice(0,10) === _fcFilterDate);
+  }
+  // Search filter
+  const q = (document.getElementById('fc-search')?.value||'').toLowerCase().trim();
+  if (q) {
+    orders = orders.filter(o =>
+      (o.productName||'').toLowerCase().includes(q) ||
+      (o.batchNo||'').toLowerCase().includes(q) ||
+      (o.refNo||'').toLowerCase().includes(q));
+  }
+  return orders;
+}
 
-  // KPI strip
-  const allFc    = _fcOrders.filter(o => o.status === 'ok' && o.forecast);
-  const totalMat = allFc.reduce((s,o) => s + o.forecast.totalMaterials, 0);
-  const shortCnt = allFc.reduce((s,o) => s + o.forecast.shortItemCount, 0);
-  const totalKg  = allFc.reduce((s,o) => s + o.forecast.totalRequiredKg, 0);
-  const errCnt   = _fcOrders.filter(o => o.status === 'error').length;
+function fcApplyFilter() {
+  const inp = document.getElementById('fc-date-filter');
+  _fcFilterDate = inp ? inp.value : '';
+  _fcActiveIdx = null;
+  _fcRenderCurrentView();
+  _fcUpdateFilterInfo();
+}
 
-  const kpiGrid = document.getElementById('fc-kpi-grid');
-  if (kpiGrid) kpiGrid.innerHTML = [
-    {icon:'📋', label:'Orders in Sheet',    value: _fcOrders.length,  sub:'From ForecastInput',      color:'blue'},
-    {icon:'📦', label:'Total RM Lines',     value: totalMat,           sub:'Across all orders',        color:'purple'},
-    {icon:'⚠️', label:'Total Shortages',    value: shortCnt,           sub: shortCnt?'Procurement needed':'All clear', color:shortCnt?'red':'green'},
-    {icon:'⚖️', label:'Total Order Weight', value: totalKg.toFixed(1)+' KG', sub:'Combined requirement', color:'teal'},
+function fcApplySearch() {
+  _fcActiveIdx = null;
+  _fcRenderCurrentView();
+  _fcUpdateFilterInfo();
+}
+
+function fcSetDateChip(chip) {
+  const today = new Date();
+  const toStr = d => d.toISOString().slice(0,10);
+  const inp = document.getElementById('fc-date-filter');
+  ['today','yesterday','week','lastweek','all'].forEach(c => {
+    const btn = document.getElementById('fc-chip-'+c); if(!btn) return;
+    if(c===chip){ btn.style.background='var(--accent)'; btn.style.color='#fff'; btn.style.border='none'; }
+    else        { btn.style.background='var(--bg3)'; btn.style.color='var(--text2)'; btn.style.border='1.5px solid var(--border)'; }
+  });
+  if (chip==='today') {
+    _fcFilterDate=toStr(today); if(inp) inp.value=_fcFilterDate;
+  } else if (chip==='yesterday') {
+    const y=new Date(today); y.setDate(y.getDate()-1); _fcFilterDate=toStr(y); if(inp) inp.value=_fcFilterDate;
+  } else if (chip==='week') {
+    _fcFilterDate='_week_'; if(inp) inp.value='';
+  } else if (chip==='lastweek') {
+    _fcFilterDate='_lastweek_'; if(inp) inp.value='';
+  } else {
+    _fcFilterDate=''; if(inp) inp.value='';
+  }
+  _fcActiveIdx=null;
+  _fcRenderCurrentView();
+  _fcUpdateFilterInfo();
+}
+
+function _fcUpdateFilterInfo() {
+  const el = document.getElementById('fc-filter-info');
+  if(!el) return;
+  const filtered = _fcGetFiltered();
+  const total = _fcOrders.length;
+  const q = (document.getElementById('fc-search')?.value||'').trim();
+  let msg = '';
+  if (_fcFilterDate === '_week_') {
+    msg += `📅 This week: showing <strong>${filtered.length}</strong> of ${total} orders`;
+  } else if (_fcFilterDate === '_lastweek_') {
+    msg += `📅 Last 7 days: showing <strong>${filtered.length}</strong> of ${total} orders`;
+  } else if (_fcFilterDate) {
+    msg += `📅 <strong>${_fcFmtDate(_fcFilterDate+' 00:00').split('  ')[0]}</strong>: showing <strong>${filtered.length}</strong> of ${total} orders`;
+  } else {
+    msg += `Showing all <strong>${total}</strong> orders`;
+  }
+  if (q) msg += ` · search: "<em>${_esc(q)}</em>"`;
+  if (filtered.length !== total)
+    msg += ` &nbsp;<span style="color:var(--accent);cursor:pointer;" onclick="fcSetDateChip('all')">Show all</span>`;
+  el.innerHTML = msg;
+}
+
+function fcSwitchView(mode) {
+  _fcViewMode = mode;
+  _fcActiveIdx = null;
+  ['summary','consolidated','orders'].forEach(m => {
+    const btn = document.getElementById('fc-btn-'+m); if(!btn) return;
+    if(m===mode){ btn.style.background='var(--accent)'; btn.style.color='#fff'; btn.style.borderColor='var(--accent)'; }
+    else        { btn.style.background='var(--bg3)';    btn.style.color='var(--text2)'; btn.style.borderColor='var(--border)'; }
+  });
+  _fcRenderCurrentView();
+}
+
+function _fcRenderCurrentView() {
+  ['fc-view-summary','fc-view-consolidated','fc-orders-wrap','fc-detail-panel']
+    .forEach(id => { const el=document.getElementById(id); if(el) el.style.display='none'; });
+  const filtered = _fcGetFiltered();
+  _fcUpdateKPI(filtered);
+  if (_fcViewMode==='summary') {
+    const el=document.getElementById('fc-view-summary');
+    if(el){ el.style.display='block'; el.innerHTML=_fcBuildSummaryView(filtered); }
+  } else if (_fcViewMode==='consolidated') {
+    const el=document.getElementById('fc-view-consolidated');
+    if(el){ el.style.display='block'; el.innerHTML=_fcBuildConsolidatedView(filtered); }
+  } else {
+    const wrap=document.getElementById('fc-orders-wrap');
+    if(wrap){ wrap.style.display='block'; wrap.innerHTML=_fcBuildOrdersView(filtered); }
+  }
+}
+
+function _fcUpdateKPI(filtered) {
+  const kpiGrid = document.getElementById('fc-kpi-grid'); if(!kpiGrid) return;
+  const valid   = filtered.filter(o=>o.status==='ok'&&o.forecast);
+  const shortCnt= valid.filter(o=>o.forecast.procurementRequired).length;
+  const readyCnt= valid.length - shortCnt;
+  const totalKg = valid.reduce((s,o)=>s+o.orderQty,0);
+  kpiGrid.innerHTML = [
+    {icon:'📋', label:'Orders',            value:filtered.length,           sub:'In selected range',          color:'blue'},
+    {icon:'🏭', label:'FG Products',       value:valid.length,              sub:'Can be calculated',          color:'purple'},
+    {icon:'✅', label:'Ready to Produce',  value:readyCnt,                  sub:'All RM in stock',            color:'green'},
+    {icon:'⚠️', label:'Need Procurement',  value:shortCnt,                  sub:shortCnt?'RM shortage':'All clear', color:shortCnt?'red':'green'},
+    {icon:'⚖️', label:'Total Order Qty',   value:totalKg.toFixed(1)+' KG', sub:'Combined weight',            color:'teal'},
   ].map(k=>`
     <div class="forecast-kpi">
       <div class="forecast-kpi-icon" style="background:var(--${k.color}-light)">${k.icon}</div>
       <div class="forecast-kpi-label">${k.label}</div>
-      <div class="forecast-kpi-value" style="${k.color==='red'&&Number(k.value)>0?'color:var(--red)':''}">${k.value}</div>
+      <div class="forecast-kpi-value" style="${(k.color==='red'||k.color==='green')&&k.value!==0?'color:var(--'+k.color+')':''}">${k.value}</div>
       <div class="forecast-kpi-sub">${k.sub}</div>
     </div>`).join('');
+}
 
-  // Order cards
-  const wrap = document.getElementById('fc-orders-wrap');
-  if (!wrap) return;
-  wrap.innerHTML = `
+// ─────────────────────────────────────────────────────────────────────────────
+//  _fcRenderOrders — called after sync, sets defaults and renders
+// ─────────────────────────────────────────────────────────────────────────────
+function _fcRenderOrders() {
+  if (!_fcOrders.length) { _fcSetState('empty'); return; }
+  _fcSetState('ready');
+  _fcViewMode = 'summary';
+  if (!_fcFilterDate) _fcFilterDate = new Date().toISOString().slice(0,10);
+  // Activate today chip
+  setTimeout(() => { fcSetDateChip('today'); _fcUpdateFilterInfo(); }, 60);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  SUMMARY VIEW
+// ─────────────────────────────────────────────────────────────────────────────
+function _fcBuildSummaryView(filtered) {
+  const valid  = filtered.filter(o=>o.status==='ok'&&o.forecast);
+  const errors = filtered.filter(o=>o.status==='error');
+
+  if (!filtered.length) {
+    return `<div class="forecast-empty">
+      <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      <h3>No orders for the selected date / search</h3>
+      <p>Try "All Orders" or change the date filter.</p></div>`;
+  }
+
+  // ── 1. FG Production list at the TOP ──────────────────────────────────────
+  const fgMap = {};
+  valid.forEach(o => {
+    const key = o.productName;
+    if(!fgMap[key]) fgMap[key]={productName:key,orders:[],totalQty:0,anyShort:false,totalShortKg:0};
+    fgMap[key].orders.push(o);
+    fgMap[key].totalQty += o.orderQty;
+    if(o.forecast.procurementRequired){ fgMap[key].anyShort=true; fgMap[key].totalShortKg+=o.forecast.totalShortKg; }
+  });
+  const fgList = Object.values(fgMap);
+
+  let html = '';
+
+  // FG header card
+  html += `<div class="card" style="padding:18px;margin-bottom:16px;border-left:4px solid var(--accent);">
     <div class="card-title" style="margin-bottom:12px">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-      Forecast Orders from Sheet (${_fcOrders.length})
+      🏭 Finished Goods to Produce — ${_fcFilterDate&&_fcFilterDate!=='_week_'?_fcFmtDate(_fcFilterDate+' 00:00').split('  ')[0]:'Selected Period'}
+      <span style="font-size:11px;font-weight:400;color:var(--text3);margin-left:8px">${valid.length} orders · ${fgList.length} products</span>
     </div>
-    ${_fcOrders.map((o,i) => _fcOrderCard(o, i)).join('')}`;
-
-  // Auto-expand first valid order
-  const firstOk = _fcOrders.findIndex(o => o.status === 'ok');
-  if (firstOk >= 0) fcExpandOrder(firstOk);
-}
-
-// ── Single order card HTML ────────────────────────────────────────
-function _fcOrderCard(o, idx) {
-  const isActive = idx === _fcActiveIdx;
-  const isErr    = o.status === 'error';
-  const fc       = o.forecast;
-  const shortCnt = fc ? fc.shortItemCount : 0;
-  const badgeHtml= isErr
-    ? `<span class="status-pill status-out">⚠ Error</span>`
-    : shortCnt > 0
-      ? `<span class="status-pill status-out">⚠ ${shortCnt} Shortage${shortCnt>1?'s':''}</span>`
-      : `<span class="status-pill status-ok">✓ All Clear</span>`;
-  const borderColor = isErr ? 'var(--red)' : shortCnt > 0 ? '#fca5a5' : (isActive ? 'var(--accent)' : 'var(--border)');
-  const scaleStr = (o.formulation && o.formulation.scaleFactor)
-    ? ` <span style="font-size:10px;color:var(--text3);font-family:'JetBrains Mono',monospace">×${o.formulation.scaleFactor.toFixed(3)}</span>` : '';
-  return `
-    <div class="batch-card" id="fc-card-${idx}" style="border-color:${borderColor};cursor:pointer;margin-bottom:8px" onclick="fcExpandOrder(${idx})">
-      <div class="batch-card-top">
-        <div>
-          <div class="batch-card-title">
-            ${_esc(o.batchNo || '—')}
-            ${o.refNo ? `<span class="forecast-ref-chip">📋 ${_esc(o.refNo)}</span>` : ''}
-          </div>
-          <div class="batch-card-code">${_esc(o.productName || (o.formulation && o.formulation.productName) || '—')}${scaleStr}</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px;">
+    ${fgList.map(fg => `
+      <div style="display:flex;align-items:center;gap:10px;padding:11px 14px;background:var(--bg3);border-radius:10px;border-left:3px solid ${fg.anyShort?'var(--red)':'var(--green)'};">
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:700;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${_esc(fg.productName)}">${_esc(fg.productName)}</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px;">${fg.orders.length} order${fg.orders.length>1?'s':''} · <strong>${fg.totalQty} KG</strong></div>
         </div>
-        <div style="display:flex;align-items:center;gap:8px">
-          ${badgeHtml}
-          <span style="font-size:22px;color:var(--text3);line-height:1;transition:transform 0.2s" id="fc-chevron-${idx}">${isActive ? '▲' : '▼'}</span>
-        </div>
-      </div>
-      <div class="batch-card-meta">
-        <span>📦 Order: <strong>${o.orderQty} KG</strong></span>
-        ${o.formulation ? `<span>🏭 Orig batch: ${o.formulation.origBatchKg.toFixed(2)} KG</span>` : ''}
-        ${fc ? `<span>🧪 ${fc.totalMaterials} materials</span>` : ''}
-        ${fc ? `<span>✅ ${fc.availableCount} avail</span>` : ''}
-        ${fc && fc.totalRequiredKg ? `<span>⚖️ ${fc.totalRequiredKg.toFixed(2)} KG total req</span>` : ''}
-        ${(o.orderDate||o.createdAt) ? `<span>📅 Order Date: <strong>${_esc(_fcFmtDate(o.orderDate||o.createdAt))}</strong></span>` : ''}
-        ${isErr ? `<span style="color:var(--red)">❌ ${_esc(o.error)}</span>` : ''}
-      </div>
-    </div>`;
-}
+        ${fg.anyShort
+          ? `<span style="background:#fef2f2;color:#dc2626;border:1px solid #fca5a5;border-radius:16px;padding:2px 9px;font-size:11px;font-weight:700;white-space:nowrap;">⚠ Short</span>`
+          : `<span style="background:#f0fdf4;color:#16a34a;border:1px solid #6ee7b7;border-radius:16px;padding:2px 9px;font-size:11px;font-weight:700;white-space:nowrap;">✓ Ready</span>`}
+      </div>`).join('')}
+    </div>
+  </div>`;
 
-// ── Expand / collapse order detail ───────────────────────────────
-function fcExpandOrder(idx) {
-  if (_fcActiveIdx === idx) {
-    // Collapse
-    _fcActiveIdx = null;
-    document.getElementById('fc-detail-panel').style.display = 'none';
-    _fcOrders.forEach((_,i) => {
-      const ch = document.getElementById('fc-chevron-'+i); if(ch) ch.textContent='▼';
-      const cd = document.getElementById('fc-card-'+i);
-      if(cd) cd.style.borderColor = _fcOrders[i].status==='error'?'var(--red)': _fcOrders[i].forecast&&_fcOrders[i].forecast.shortItemCount>0?'#fca5a5':'var(--border)';
+  // ── 2. Two-column: order statuses + shortage summary ──────────────────────
+  html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">`;
+
+  // Order status column
+  html += `<div class="card" style="padding:18px;">
+    <div class="card-title" style="margin-bottom:10px;">📋 Order Status (${filtered.length})</div>
+    <div style="display:flex;flex-direction:column;gap:6px;max-height:340px;overflow-y:auto;">
+    ${valid.map(o => {
+      const fc=o.forecast;
+      const gIdx=_fcOrders.indexOf(o);
+      return `<div onclick="fcSwitchView('orders');setTimeout(()=>fcExpandOrder(${gIdx}),80)"
+        style="display:flex;align-items:center;gap:9px;padding:8px 11px;background:var(--bg3);border-radius:8px;cursor:pointer;border:1px solid ${fc.procurementRequired?'#fca5a5':'var(--border)'};transition:border-color .15s;"
+        onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='${fc.procurementRequired?'#fca5a5':'var(--border)'}'">
+        <div style="width:7px;height:7px;border-radius:50%;background:${fc.procurementRequired?'var(--red)':'var(--green)'};flex-shrink:0;"></div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:12px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${_esc(o.productName||o.batchNo)}</div>
+          <div style="font-size:11px;color:var(--text3);">${_esc(o.batchNo)} · ${o.orderQty} KG${o.refNo?' · '+_esc(o.refNo):''} · ${_fcFmtDate(o.orderDate||o.createdAt).split('  ')[0]||'—'}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0;">
+          ${fc.shortItemCount>0
+            ? `<div style="font-size:12px;font-weight:700;color:var(--red);">⚠ ${fc.shortItemCount} short</div><div style="font-size:10px;color:var(--text3);">${fc.totalShortKg.toFixed(1)} KG</div>`
+            : `<div style="font-size:12px;font-weight:700;color:var(--green);">✓ Ready</div>`}
+        </div>
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>`;
+    }).join('')}
+    ${errors.map(o=>`
+      <div style="display:flex;align-items:center;gap:9px;padding:8px 11px;background:#fff8f8;border-radius:8px;border:1px solid #fca5a5;">
+        <div style="width:7px;height:7px;border-radius:50%;background:var(--red);flex-shrink:0;"></div>
+        <div style="flex:1;"><div style="font-size:12px;font-weight:700;color:var(--red);">${_esc(o.batchNo||'?')}</div><div style="font-size:11px;color:var(--text3);">${_esc(o.error)}</div></div>
+      </div>`).join('')}
+    </div>
+  </div>`;
+
+  // Procurement required column
+  const shortOrders = valid.filter(o=>o.forecast.procurementRequired);
+  const rmShortMap  = {};
+  shortOrders.forEach(o => {
+    (o.forecast.rows||[]).filter(r=>r.shortQty>0).forEach(r => {
+      if(!rmShortMap[r.rmId]) rmShortMap[r.rmId]={rmName:r.rmName,rmCode:r.rmCode,category:r.category||'',totalShort:0,usedIn:[]};
+      rmShortMap[r.rmId].totalShort += r.shortQty;
+      if(!rmShortMap[r.rmId].usedIn.includes(o.productName)) rmShortMap[r.rmId].usedIn.push(o.productName);
     });
-    return;
-  }
-  // Deselect previous
-  if (_fcActiveIdx !== null) {
-    const prevCh = document.getElementById('fc-chevron-'+_fcActiveIdx); if(prevCh) prevCh.textContent='▼';
-    const prevCd = document.getElementById('fc-card-'+_fcActiveIdx);
-    if(prevCd) prevCd.style.borderColor = _fcOrders[_fcActiveIdx].status==='error'?'var(--red)': _fcOrders[_fcActiveIdx].forecast&&_fcOrders[_fcActiveIdx].forecast.shortItemCount>0?'#fca5a5':'var(--border)';
-  }
-  _fcActiveIdx = idx;
-  const ch = document.getElementById('fc-chevron-'+idx); if(ch) ch.textContent='▲';
-  const cd = document.getElementById('fc-card-'+idx);    if(cd) cd.style.borderColor='var(--accent)';
-  const panel = document.getElementById('fc-detail-panel');
-  if (!panel) return;
-  panel.style.display = 'block';
-  panel.scrollIntoView({ behavior:'smooth', block:'nearest' });
+  });
+  const shorts = Object.values(rmShortMap).sort((a,b)=>b.totalShort-a.totalShort);
 
-  const o  = _fcOrders[idx];
-  if (o.status === 'error') {
-    panel.innerHTML = `<div class="alert alert-error"><strong>Cannot forecast:</strong> ${_esc(o.error)}</div>`;
-    return;
-  }
-  const fc = o.forecast;
-  const fm = o.formulation;
-  panel.innerHTML = _fcDetailHTML(o, fc, fm);
+  html += `<div class="card" style="padding:18px;">
+    <div class="card-title" style="margin-bottom:10px;${shorts.length?'color:var(--red);':''}">
+      ${shorts.length?'⚠ Materials Needed for Procurement ('+shorts.length+')':'✅ No Procurement Required'}
+    </div>
+    ${shorts.length ? `
+    <div style="display:flex;flex-direction:column;gap:6px;max-height:340px;overflow-y:auto;">
+    ${shorts.map((r,i)=>`
+      <div style="display:flex;align-items:center;gap:9px;padding:8px 11px;background:#fff8f8;border-radius:8px;border-left:3px solid var(--red);">
+        <div style="font-size:11px;color:#94a3b8;min-width:18px;">${i+1}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:12px;font-weight:700;color:var(--text);">${_esc(r.rmName)}</div>
+          <div style="font-size:10px;color:var(--text3);">${_esc(r.rmCode)}${r.category?' · '+r.category:''}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0;">
+          <div style="font-size:13px;font-weight:800;color:var(--red);">${r.totalShort.toFixed(3)} KG</div>
+          <div style="font-size:10px;color:var(--text3);">${r.usedIn.slice(0,2).join(', ')}${r.usedIn.length>2?'...':''}</div>
+        </div>
+      </div>`).join('')}
+    </div>
+    <div style="margin-top:10px;">
+      <button class="btn btn-danger btn-sm" style="width:100%;justify-content:center;margin-top:4px;" onclick="fcExportProcurementExcel()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Export Procurement List to Excel
+      </button>
+    </div>` : `<div style="text-align:center;padding:40px 20px;color:var(--green);">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      <div style="font-size:14px;font-weight:700;margin-top:8px;">All materials are available!</div>
+      <div style="font-size:12px;color:var(--text3);margin-top:4px;">Ready to start production.</div>
+    </div>`}
+  </div>`;
+
+  html += `</div>`; // end grid
+
+  return html;
 }
 
-// ── Detail panel HTML ─────────────────────────────────────────────
-function _fcDetailHTML(o, fc, fm) {
-  const rows = fc.rows || [];
-  const tableRows = rows.map(r => {
-    const isShort = r.shortQty > 0;
-    return `
-      <tr class="${isShort ? 'forecast-short-row' : ''}">
-        <td>
-          <div class="td-rm">${_esc(r.rmName)}</div>
-          <div class="td-rm-code">${_esc(r.rmCode)}</div>
-        </td>
-        <td class="td-num">${r.origQty.toFixed(3)} <span style="font-size:10px;color:var(--text3)">${r.origUnit}</span></td>
-        <td class="td-num" style="color:var(--accent2);font-weight:700">${r.reqKg.toFixed(3)}</td>
-        <td><span style="font-size:10px;font-weight:600;color:var(--text3)">KG</span></td>
-        <td class="td-num">${r.available.toFixed(3)}</td>
-        <td>${isShort ? `<span class="td-short">${r.shortQty.toFixed(3)}</span>` : '<span class="td-zero">—</span>'}</td>
-        <td>${!isShort && r.excessQty>0 ? `<span class="td-excess">${r.excessQty.toFixed(3)}</span>` : '<span class="td-zero">—</span>'}</td>
-        <td>${isShort
-          ? '<span class="forecast-status-short">⚠ Procurement Required</span>'
-          : '<span class="forecast-status-ok">✓ Available in Inventory</span>'}</td>
-      </tr>`;
-  }).join('');
+// ─────────────────────────────────────────────────────────────────────────────
+//  CONSOLIDATED RM VIEW — all materials merged across filtered orders
+// ─────────────────────────────────────────────────────────────────────────────
+function _fcBuildConsolidatedView(filtered) {
+  const valid = filtered.filter(o=>o.status==='ok'&&o.forecast);
+  if (!valid.length) return `<div class="forecast-empty"><h3>No valid orders in selected range</h3></div>`;
 
-  return `
-  <div class="card" style="padding:0;overflow:hidden;margin-bottom:0">
-    <!-- Panel header -->
-    <div style="background:linear-gradient(135deg,#0f172a,#1e3a5f);padding:16px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
-      <div>
-        <div style="font-size:15px;font-weight:800;color:#f1f5f9">
-          ${_esc(o.productName || fm.productName)} — Order ${o.orderQty} KG
-          ${o.refNo ? `<span style="background:rgba(56,189,248,0.15);color:#38bdf8;border:1px solid rgba(56,189,248,0.3);border-radius:20px;padding:2px 10px;font-size:11px;margin-left:8px">📋 ${_esc(o.refNo)}</span>` : ''}
-        </div>
-        <div style="font-size:12px;color:#94a3b8;margin-top:3px">
-          Reference batch: ${_esc(fm.batchNo)} (${fm.origBatchKg.toFixed(2)} KG)  ·  
-          Scale: <strong style="color:#38bdf8">×${fm.scaleFactor.toFixed(4)}</strong>  ·  
-          ${rows.length} materials
-          ${(o.orderDate||o.createdAt) ? `  ·  📅 Order Date: <strong style="color:#7dd3fc">${_esc(_fcFmtDate(o.orderDate||o.createdAt))}</strong>` : ''}
-        </div>
+  // Merge RM requirements across all valid orders
+  const rmMap = {};
+  valid.forEach(o => {
+    (o.forecast.rows||[]).forEach(r => {
+      if(!rmMap[r.rmId]) {
+        rmMap[r.rmId]={rmId:r.rmId,rmName:r.rmName,rmCode:r.rmCode,category:r.category||'',
+          totalReqKg:0, available:r.available, totalShortKg:0, usedIn:[]};
+      }
+      rmMap[r.rmId].totalReqKg   += r.reqKg;
+      rmMap[r.rmId].totalShortKg += r.shortQty;
+      rmMap[r.rmId].available     = r.available;
+      if(!rmMap[r.rmId].usedIn.find(x=>x===o.productName)) rmMap[r.rmId].usedIn.push(o.productName);
+    });
+  });
+  const allRMs   = Object.values(rmMap).sort((a,b)=>b.totalReqKg-a.totalReqKg);
+  const shortRMs = allRMs.filter(r=>r.totalShortKg>0);
+  const readyRMs = allRMs.filter(r=>r.totalShortKg<=0);
+
+  return `<div class="card" style="padding:18px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+      <div class="card-title" style="margin:0;">🧪 Consolidated RM Requirement — ${valid.length} orders · ${allRMs.length} materials
+        ${shortRMs.length?`<span style="color:var(--red);font-size:12px;font-weight:700;margin-left:8px;">⚠ ${shortRMs.length} short</span>`:'<span style="color:var(--green);font-size:12px;margin-left:8px;">✓ All clear</span>'}
       </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn btn-secondary btn-sm" onclick="fcExportAllExcel()">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          Excel
-        </button>
-        <button class="btn btn-secondary btn-sm" onclick="fcExportPDF()">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-          PDF
-        </button>
+      <div style="display:flex;gap:8px;">
+        <div class="search-input-wrap" style="min-width:200px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input class="search-input" id="fc-cons-search" placeholder="Search material..." oninput="filterBITable('fc-cons-search','fc-cons-table')">
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="fcExportConsolidatedExcel()">↓ Excel</button>
       </div>
     </div>
-
-    <!-- Table -->
-    <div class="forecast-table-wrap">
-      <table class="forecast-table">
-        <thead>
-          <tr>
-            <th>Raw Material</th>
-            <th style="text-align:right">BOM Qty</th>
-            <th style="text-align:right">Required Qty</th>
-            <th>Unit</th>
-            <th style="text-align:right">Available Inv.</th>
-            <th style="text-align:right">Short Qty</th>
-            <th style="text-align:right">Excess Qty</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody>${tableRows}</tbody>
-      </table>
-    </div>
-
-    <!-- Summary bar -->
-    <div class="forecast-summary-bar">
-      <div class="fsb-item">
-        <div class="fsb-label">Order Weight</div>
-        <div class="fsb-value">${o.orderQty} KG</div>
-      </div>
-      <div class="fsb-item">
-        <div class="fsb-label">Total RM Required</div>
-        <div class="fsb-value">${fc.totalRequiredKg.toFixed(2)} KG</div>
-      </div>
-      <div class="fsb-item">
-        <div class="fsb-label">Short Items</div>
-        <div class="fsb-value ${fc.shortItemCount?'red':'green'}">${fc.shortItemCount}</div>
-      </div>
-      <div class="fsb-item">
-        <div class="fsb-label">Total Shortfall</div>
-        <div class="fsb-value ${fc.totalShortKg>0?'red':'green'}">${fc.totalShortKg.toFixed(2)} KG</div>
-      </div>
-      <div class="fsb-item">
-        <div class="fsb-label">Total Excess</div>
-        <div class="fsb-value green">${fc.totalExcessKg.toFixed(2)} KG</div>
-      </div>
-      <div class="fsb-item">
-        <div class="fsb-label">Procurement</div>
-        <div class="fsb-value ${fc.procurementRequired?'red':'green'}">${fc.procurementRequired?'⚠ ACTION NEEDED':'✓ ALL CLEAR'}</div>
-      </div>
+    <div class="table-wrap"><table id="fc-cons-table">
+      <thead><tr>
+        <th>#</th><th>Raw Material</th><th>Code</th><th>Category</th>
+        <th style="text-align:right">Total Required (KG)</th>
+        <th style="text-align:right">In Stock (KG)</th>
+        <th style="text-align:right">Short (KG)</th>
+        <th style="text-align:right">Excess (KG)</th>
+        <th>Status</th><th>Used In</th>
+      </tr></thead>
+      <tbody>
+      ${allRMs.map((r,i)=>{
+        const excess=Math.max(0,r.available-r.totalReqKg);
+        const isShort=r.totalShortKg>0;
+        return `<tr style="${isShort?'background:#fff8f8':''}">
+          <td style="font-size:11px;color:#94a3b8">${i+1}</td>
+          <td class="td-primary" style="${isShort?'color:var(--red)':''}">${isShort?'⚠ ':''} ${_esc(r.rmName)}</td>
+          <td class="mono" style="font-size:11px;color:#64748b">${_esc(r.rmCode)}</td>
+          <td style="font-size:11px;color:var(--text3)">${_esc(r.category)}</td>
+          <td style="text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--accent2)">${r.totalReqKg.toFixed(3)}</td>
+          <td style="text-align:right;font-family:'JetBrains Mono',monospace">${r.available.toFixed(3)}</td>
+          <td style="text-align:right;font-family:'JetBrains Mono',monospace;font-weight:${isShort?'800':'400'};color:${isShort?'var(--red)':'var(--text3)'};">${isShort?r.totalShortKg.toFixed(3):'—'}</td>
+          <td style="text-align:right;font-family:'JetBrains Mono',monospace;color:${excess>0?'var(--green)':'var(--text3)'};">${excess>0?excess.toFixed(3):'—'}</td>
+          <td>${isShort?'<span class="forecast-status-short">⚠ Procurement</span>':'<span class="forecast-status-ok">✓ In Stock</span>'}</td>
+          <td style="font-size:11px">${r.usedIn.slice(0,2).map(n=>`<span style="background:var(--accent-light);color:var(--accent2);border-radius:10px;padding:1px 6px;font-size:10px;">${_esc(n)}</span>`).join(' ')}${r.usedIn.length>2?`<span style="color:var(--text3)"> +${r.usedIn.length-2}</span>`:''}</td>
+        </tr>`;
+      }).join('')}
+      </tbody>
+    </table></div>
+    <div class="forecast-summary-bar" style="margin-top:14px">
+      <div class="fsb-item"><div class="fsb-label">Total Materials</div><div class="fsb-value">${allRMs.length}</div></div>
+      <div class="fsb-item"><div class="fsb-label">In Stock</div><div class="fsb-value green">${readyRMs.length}</div></div>
+      <div class="fsb-item"><div class="fsb-label">Short</div><div class="fsb-value ${shortRMs.length?'red':'green'}">${shortRMs.length}</div></div>
+      <div class="fsb-item"><div class="fsb-label">Total Required</div><div class="fsb-value">${allRMs.reduce((s,r)=>s+r.totalReqKg,0).toFixed(2)} KG</div></div>
+      <div class="fsb-item"><div class="fsb-label">Total Shortfall</div><div class="fsb-value ${shortRMs.length?'red':'green'}">${allRMs.reduce((s,r)=>s+r.totalShortKg,0).toFixed(2)} KG</div></div>
     </div>
   </div>`;
 }
 
-// ── Export ALL orders to Excel ────────────────────────────────────
-function fcExportAllExcel() {
-  const valid = _fcOrders.filter(o => o.status === 'ok' && o.forecast);
-  if (!valid.length) { toast('No valid orders to export', 'info'); return; }
-  const wb = XLSX.utils.book_new();
-  valid.forEach(o => {
-    const fc = o.forecast; const fm = o.formulation;
-    const wsData = [
-      ['Raw Material Forecast — ' + (o.productName || fm.productName)],
-      ['Batch: ' + o.batchNo + '  |  Ref: ' + (o.refNo||'—') + '  |  Order: ' + o.orderQty + ' KG  |  Order Date: ' + _fcFmtDate(o.orderDate||o.createdAt||'—') + '  |  Scale: ×' + fm.scaleFactor.toFixed(4)],
-      [],
-      ['Raw Material','Code','BOM Qty','BOM Unit','Required Qty (KG)','Available Inv (KG)','Short Qty (KG)','Excess Qty (KG)','Status'],
-      ...(fc.rows||[]).map(r => [r.rmName,r.rmCode,r.origQty,r.origUnit,r.reqKg,r.available,r.shortQty,r.excessQty,r.status]),
-      [],
-      ['SUMMARY'],
-      ['Order Weight (KG)',        o.orderQty],
-      ['Total Required (KG)',      fc.totalRequiredKg.toFixed(3)],
-      ['Short Items',              fc.shortItemCount],
-      ['Total Shortfall (KG)',     fc.totalShortKg.toFixed(3)],
-      ['Total Excess (KG)',        fc.totalExcessKg.toFixed(3)],
-      ['Order Date',               _fcFmtDate(o.orderDate||o.createdAt||'—')],
-      ['Procurement Required',     fc.procurementRequired ? 'YES' : 'NO'],
-    ];
-    const ws = XLSX.utils.aoa_to_sheet(wsData);
-    ws['!cols'] = [{wch:30},{wch:10},{wch:10},{wch:8},{wch:18},{wch:18},{wch:14},{wch:14},{wch:26}];
-    const shName = (o.batchNo||'Order').replace(/[^a-zA-Z0-9_-]/g,'_').slice(0,28);
-    XLSX.utils.book_append_sheet(wb, ws, shName);
-  });
-  const fname = `RM_Forecast_${new Date().toISOString().slice(0,10)}.xlsx`;
-  XLSX.writeFile(wb, fname);
-  toast('Excel exported ✓', 'success');
+// ─────────────────────────────────────────────────────────────────────────────
+//  ORDER-WISE VIEW
+// ─────────────────────────────────────────────────────────────────────────────
+function _fcBuildOrdersView(filtered) {
+  if(!filtered.length) return `<div class="forecast-empty"><h3>No orders in selected range</h3></div>`;
+  return `<div class="card-title" style="margin-bottom:12px">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+    Order-wise Detail (${filtered.length})
+  </div>`+filtered.map(o=>_fcOrderCard(o,_fcOrders.indexOf(o))).join('');
 }
 
-// ── Export active order to PDF ────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+//  Order card (collapsible header)
+// ─────────────────────────────────────────────────────────────────────────────
+function _fcOrderCard(o, idx) {
+  const isActive=idx===_fcActiveIdx, isErr=o.status==='error', fc=o.forecast;
+  const shortCnt=fc?fc.shortItemCount:0;
+  const badge = isErr
+    ? `<span class="status-pill status-out">⚠ Error</span>`
+    : shortCnt>0
+      ? `<span class="status-pill status-out">⚠ ${shortCnt} Shortage${shortCnt>1?'s':''}</span>`
+      : `<span class="status-pill status-ok">✓ All Clear</span>`;
+  const borderColor = isErr?'var(--red)':shortCnt>0?'#fca5a5':isActive?'var(--accent)':'var(--border)';
+  const scaleStr = (o.formulation&&o.formulation.scaleFactor)
+    ? `<span style="font-size:10px;color:var(--text3);font-family:'JetBrains Mono',monospace"> ×${o.formulation.scaleFactor.toFixed(3)}</span>` : '';
+  return `
+  <div class="batch-card" id="fc-card-${idx}" style="border-color:${borderColor};cursor:pointer;margin-bottom:8px" onclick="fcExpandOrder(${idx})">
+    <div class="batch-card-top">
+      <div>
+        <div class="batch-card-title">
+          ${_esc(o.batchNo||'—')}
+          ${o.refNo?`<span class="forecast-ref-chip">📋 ${_esc(o.refNo)}</span>`:''}
+        </div>
+        <div class="batch-card-code">${_esc(o.productName||(o.formulation&&o.formulation.productName)||'—')}${scaleStr}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        ${badge}
+        <span style="font-size:22px;color:var(--text3);line-height:1;transition:transform .2s" id="fc-chevron-${idx}">${isActive?'▲':'▼'}</span>
+      </div>
+    </div>
+    <div class="batch-card-meta">
+      <span>📦 Order: <strong>${o.orderQty} KG</strong></span>
+      ${o.formulation?`<span>🏭 Ref batch: ${o.formulation.origBatchKg.toFixed(2)} KG</span>`:''}
+      ${fc?`<span>🧪 ${fc.totalMaterials} RMs</span>`:''}
+      ${fc?`<span>✅ ${fc.availableCount} in stock</span>`:''}
+      ${fc&&fc.totalShortKg>0?`<span style="color:var(--red)">⚠ Short: ${fc.totalShortKg.toFixed(2)} KG</span>`:''}
+      <span>📅 ${_fcFmtDate(o.orderDate||o.createdAt)||'No date'}</span>
+      ${isErr?`<span style="color:var(--red)">❌ ${_esc(o.error)}</span>`:''}
+    </div>
+  </div>`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Expand / collapse order detail
+// ─────────────────────────────────────────────────────────────────────────────
+function fcExpandOrder(idx) {
+  // Switch to orders view if not already
+  if (_fcViewMode !== 'orders') {
+    _fcViewMode='orders';
+    ['summary','consolidated','orders'].forEach(m=>{
+      const btn=document.getElementById('fc-btn-'+m); if(!btn) return;
+      if(m==='orders'){btn.style.background='var(--accent)';btn.style.color='#fff';btn.style.borderColor='var(--accent)';}
+      else{btn.style.background='var(--bg3)';btn.style.color='var(--text2)';btn.style.borderColor='var(--border)';}
+    });
+    ['fc-view-summary','fc-view-consolidated','fc-detail-panel'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display='none';});
+    const wrap=document.getElementById('fc-orders-wrap');
+    if(wrap){wrap.style.display='block';wrap.innerHTML=_fcBuildOrdersView(_fcGetFiltered());}
+  }
+  if (_fcActiveIdx===idx) {
+    _fcActiveIdx=null;
+    document.getElementById('fc-detail-panel').style.display='none';
+    _fcOrders.forEach((_,i)=>{
+      const ch=document.getElementById('fc-chevron-'+i); if(ch) ch.textContent='▼';
+      const cd=document.getElementById('fc-card-'+i);
+      if(cd) cd.style.borderColor=_fcOrders[i].status==='error'?'var(--red)':_fcOrders[i].forecast&&_fcOrders[i].forecast.shortItemCount>0?'#fca5a5':'var(--border)';
+    });
+    return;
+  }
+  if (_fcActiveIdx!==null) {
+    const pc=document.getElementById('fc-chevron-'+_fcActiveIdx); if(pc) pc.textContent='▼';
+    const pd=document.getElementById('fc-card-'+_fcActiveIdx);
+    if(pd) pd.style.borderColor=_fcOrders[_fcActiveIdx].status==='error'?'var(--red)':_fcOrders[_fcActiveIdx].forecast&&_fcOrders[_fcActiveIdx].forecast.shortItemCount>0?'#fca5a5':'var(--border)';
+  }
+  _fcActiveIdx=idx;
+  const ch=document.getElementById('fc-chevron-'+idx); if(ch) ch.textContent='▲';
+  const cd=document.getElementById('fc-card-'+idx);    if(cd) cd.style.borderColor='var(--accent)';
+  const panel=document.getElementById('fc-detail-panel');
+  if(!panel) return;
+  panel.style.display='block';
+  panel.scrollIntoView({behavior:'smooth',block:'nearest'});
+  const o=_fcOrders[idx];
+  if(o.status==='error'){panel.innerHTML=`<div class="alert alert-error"><strong>Cannot forecast:</strong> ${_esc(o.error)}</div>`;return;}
+  panel.innerHTML=_fcDetailHTML(o,o.forecast,o.formulation);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Detail panel — full RM table for one order
+// ─────────────────────────────────────────────────────────────────────────────
+function _fcDetailHTML(o, fc, fm) {
+  const rows = fc.rows||[];
+  const tableRows = rows.map(r=>{
+    const isShort=r.shortQty>0;
+    return `<tr class="${isShort?'forecast-short-row':''}">
+      <td><div class="td-rm">${_esc(r.rmName)}</div><div class="td-rm-code">${_esc(r.rmCode)}${r.category?' · '+r.category:''}</div></td>
+      <td class="td-num">${r.origQty.toFixed(3)} <span style="font-size:10px;color:var(--text3)">${r.origUnit}</span></td>
+      <td class="td-num" style="color:var(--accent2);font-weight:700">${r.reqKg.toFixed(3)}</td>
+      <td><span style="font-size:10px;font-weight:600;color:var(--text3)">KG</span></td>
+      <td class="td-num">${r.available.toFixed(3)}</td>
+      <td>${isShort?`<span class="td-short">${r.shortQty.toFixed(3)}</span>`:'<span class="td-zero">—</span>'}</td>
+      <td>${!isShort&&r.excessQty>0?`<span class="td-excess">${r.excessQty.toFixed(3)}</span>`:'<span class="td-zero">—</span>'}</td>
+      <td>${isShort?'<span class="forecast-status-short">⚠ Procurement Required</span>':'<span class="forecast-status-ok">✓ Available</span>'}</td>
+    </tr>`;
+  }).join('');
+  return `<div class="card" style="padding:0;overflow:hidden;margin-bottom:0">
+    <div style="background:linear-gradient(135deg,#0f172a,#1e3a5f);padding:16px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+      <div>
+        <div style="font-size:15px;font-weight:800;color:#f1f5f9">
+          ${_esc(o.productName||fm.productName)} — Order ${o.orderQty} KG
+          ${o.refNo?`<span style="background:rgba(56,189,248,.15);color:#38bdf8;border:1px solid rgba(56,189,248,.3);border-radius:20px;padding:2px 10px;font-size:11px;margin-left:8px">📋 ${_esc(o.refNo)}</span>`:''}
+        </div>
+        <div style="font-size:12px;color:#94a3b8;margin-top:3px">
+          Ref batch: ${_esc(fm.batchNo)} (${fm.origBatchKg.toFixed(2)} KG) · Scale: <strong style="color:#38bdf8">×${fm.scaleFactor.toFixed(4)}</strong> · ${rows.length} materials
+          ${(o.orderDate||o.createdAt)?`  ·  📅 <strong style="color:#7dd3fc">${_esc(_fcFmtDate(o.orderDate||o.createdAt))}</strong>`:''}
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-secondary btn-sm" onclick="fcExportAllExcel()">↓ Full Excel</button>
+        <button class="btn btn-secondary btn-sm" onclick="fcExportPDF()">📄 PDF</button>
+      </div>
+    </div>
+    <div class="forecast-table-wrap">
+      <table class="forecast-table">
+        <thead><tr>
+          <th>Raw Material</th>
+          <th style="text-align:right">BOM Qty</th>
+          <th style="text-align:right">Required (KG)</th>
+          <th>Unit</th>
+          <th style="text-align:right">In Stock (KG)</th>
+          <th style="text-align:right">Short (KG)</th>
+          <th style="text-align:right">Excess (KG)</th>
+          <th>Status</th>
+        </tr></thead>
+        <tbody>${tableRows}</tbody>
+      </table>
+    </div>
+    <div class="forecast-summary-bar">
+      <div class="fsb-item"><div class="fsb-label">Order Weight</div><div class="fsb-value">${o.orderQty} KG</div></div>
+      <div class="fsb-item"><div class="fsb-label">Total RM Required</div><div class="fsb-value">${fc.totalRequiredKg.toFixed(2)} KG</div></div>
+      <div class="fsb-item"><div class="fsb-label">Short Items</div><div class="fsb-value ${fc.shortItemCount?'red':'green'}">${fc.shortItemCount}</div></div>
+      <div class="fsb-item"><div class="fsb-label">Total Shortfall</div><div class="fsb-value ${fc.totalShortKg>0?'red':'green'}">${fc.totalShortKg.toFixed(2)} KG</div></div>
+      <div class="fsb-item"><div class="fsb-label">Total Excess</div><div class="fsb-value green">${fc.totalExcessKg.toFixed(2)} KG</div></div>
+      <div class="fsb-item"><div class="fsb-label">Procurement</div><div class="fsb-value ${fc.procurementRequired?'red':'green'}">${fc.procurementRequired?'⚠ ACTION NEEDED':'✓ ALL CLEAR'}</div></div>
+    </div>
+  </div>`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  EXCEL EXPORTS
+// ─────────────────────────────────────────────────────────────────────────────
+
+// 1. Procurement export — only short materials, optimized for placing orders
+function fcExportProcurementExcel() {
+  const filtered = _fcGetFiltered();
+  const valid = filtered.filter(o=>o.status==='ok'&&o.forecast&&o.forecast.procurementRequired);
+  if (!valid.length) { toast('No procurement needed for selected orders', 'info'); return; }
+
+  const wb = XLSX.utils.book_new();
+  const dateLabel = _fcFilterDate&&_fcFilterDate!=='_week_' ? _fcFmtDate(_fcFilterDate+' 00:00').split('  ')[0] : 'All';
+
+  // Sheet 1: Procurement List (consolidated unique RMs)
+  const rmShortMap = {};
+  valid.forEach(o => {
+    (o.forecast.rows||[]).filter(r=>r.shortQty>0).forEach(r => {
+      if(!rmShortMap[r.rmId]) rmShortMap[r.rmId]={rmName:r.rmName,rmCode:r.rmCode,category:r.category||'',totalShort:0,usedIn:[],orders:[]};
+      rmShortMap[r.rmId].totalShort += r.shortQty;
+      if(!rmShortMap[r.rmId].usedIn.includes(o.productName)) rmShortMap[r.rmId].usedIn.push(o.productName);
+      rmShortMap[r.rmId].orders.push({product:o.productName,orderQty:o.orderQty,shortQty:r.shortQty});
+    });
+  });
+  const shorts = Object.values(rmShortMap).sort((a,b)=>b.totalShort-a.totalShort);
+
+  const procData = [
+    ['PROCUREMENT ORDER LIST — Surface Paints Pvt. Ltd.'],
+    ['Date: '+dateLabel+'    Generated: '+new Date().toLocaleString('en-IN')],
+    ['Total items to procure: '+shorts.length],
+    [],
+    ['#','Raw Material','Code','Category','Qty to Purchase (KG)','Used In Products','Remarks'],
+    ...shorts.map((r,i)=>[i+1, r.rmName, r.rmCode, r.category, r.totalShort.toFixed(3), r.usedIn.join(' / '), '']),
+    [],
+    ['TOTAL','','','',shorts.reduce((s,r)=>s+r.totalShort,0).toFixed(3),'',''],
+  ];
+  const ws1 = XLSX.utils.aoa_to_sheet(procData);
+  ws1['!cols']=[{wch:5},{wch:32},{wch:12},{wch:14},{wch:20},{wch:40},{wch:18}];
+  XLSX.utils.book_append_sheet(wb, ws1, 'Procurement List');
+
+  // Sheet 2: Order-wise breakdown
+  const orderData = [
+    ['ORDER-WISE RM REQUIREMENT'],
+    ['Date: '+dateLabel],
+    [],
+    ['Order#','Product','Batch Ref','Ref No','Order Qty (KG)','RM Name','RM Code','Required (KG)','In Stock (KG)','Short (KG)','Status'],
+  ];
+  valid.forEach((o,oi)=>{
+    (o.forecast.rows||[]).forEach(r=>{
+      orderData.push([oi+1,o.productName,o.batchNo,o.refNo||'',o.orderQty,r.rmName,r.rmCode,r.reqKg.toFixed(3),r.available.toFixed(3),r.shortQty>0?r.shortQty.toFixed(3):'0','',r.shortQty>0?'SHORT':'OK']);
+    });
+    orderData.push([]);
+  });
+  const ws2 = XLSX.utils.aoa_to_sheet(orderData);
+  ws2['!cols']=[{wch:7},{wch:28},{wch:12},{wch:12},{wch:14},{wch:28},{wch:12},{wch:16},{wch:16},{wch:12},{wch:8}];
+  XLSX.utils.book_append_sheet(wb, ws2, 'Order-wise Breakdown');
+
+  XLSX.writeFile(wb, 'Procurement_'+dateLabel.replace(/\//g,'-')+'_'+new Date().toISOString().slice(0,10)+'.xlsx');
+  toast('Procurement Excel exported ✓', 'success');
+}
+
+// 2. Consolidated RM export
+function fcExportConsolidatedExcel() {
+  const filtered = _fcGetFiltered();
+  const valid = filtered.filter(o=>o.status==='ok'&&o.forecast);
+  if (!valid.length) { toast('No valid orders', 'info'); return; }
+  const rmMap={};
+  valid.forEach(o=>{
+    (o.forecast.rows||[]).forEach(r=>{
+      if(!rmMap[r.rmId]) rmMap[r.rmId]={rmName:r.rmName,rmCode:r.rmCode,category:r.category||'',totalReqKg:0,available:r.available,totalShortKg:0,usedIn:[]};
+      rmMap[r.rmId].totalReqKg+=r.reqKg; rmMap[r.rmId].totalShortKg+=r.shortQty;
+      if(!rmMap[r.rmId].usedIn.includes(o.productName)) rmMap[r.rmId].usedIn.push(o.productName);
+    });
+  });
+  const allRMs=Object.values(rmMap).sort((a,b)=>b.totalReqKg-a.totalReqKg);
+  const ws=XLSX.utils.aoa_to_sheet([
+    ['Consolidated RM Requirement — '+new Date().toLocaleString('en-IN')],['Orders: '+valid.length],[''],
+    ['#','Raw Material','Code','Category','Required (KG)','In Stock (KG)','Short (KG)','Excess (KG)','Status','Used In'],
+    ...allRMs.map((r,i)=>{const ex=Math.max(0,r.available-r.totalReqKg);return[i+1,r.rmName,r.rmCode,r.category,r.totalReqKg.toFixed(3),r.available.toFixed(3),r.totalShortKg>0?r.totalShortKg.toFixed(3):'',ex>0?ex.toFixed(3):'',r.totalShortKg>0?'PROCUREMENT REQUIRED':'Available',r.usedIn.join(' / ')];})
+  ]);
+  ws['!cols']=[{wch:5},{wch:32},{wch:12},{wch:14},{wch:16},{wch:16},{wch:12},{wch:12},{wch:22},{wch:36}];
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'RM Consolidated');
+  XLSX.writeFile(wb,'RM_Consolidated_'+new Date().toISOString().slice(0,10)+'.xlsx');
+  toast('Consolidated Excel exported ✓','success');
+}
+
+// 3. Full export — all orders, all sheets
+function fcExportAllExcel() {
+  const valid = _fcOrders.filter(o=>o.status==='ok'&&o.forecast);
+  if (!valid.length) { toast('No valid orders to export','info'); return; }
+  const wb = XLSX.utils.book_new();
+  valid.forEach(o=>{
+    const fc=o.forecast, fm=o.formulation;
+    const wsData=[
+      ['Raw Material Forecast — '+(o.productName||fm.productName)],
+      ['Batch: '+o.batchNo+'  |  Ref: '+(o.refNo||'—')+'  |  Order: '+o.orderQty+' KG  |  Date: '+_fcFmtDate(o.orderDate||o.createdAt||'—')+'  |  Scale: ×'+fm.scaleFactor.toFixed(4)],
+      [],
+      ['Raw Material','Code','Category','BOM Qty','BOM Unit','Required (KG)','In Stock (KG)','Short (KG)','Excess (KG)','Status'],
+      ...(fc.rows||[]).map(r=>[r.rmName,r.rmCode,r.category||'',r.origQty,r.origUnit,r.reqKg.toFixed(3),r.available.toFixed(3),r.shortQty>0?r.shortQty.toFixed(3):'',r.excessQty>0?r.excessQty.toFixed(3):'',r.status]),
+      [],['SUMMARY'],
+      ['Order Weight (KG)',o.orderQty],['Total Required (KG)',fc.totalRequiredKg.toFixed(3)],
+      ['Short Items',fc.shortItemCount],['Total Shortfall (KG)',fc.totalShortKg.toFixed(3)],
+      ['Total Excess (KG)',fc.totalExcessKg.toFixed(3)],
+      ['Order Date',_fcFmtDate(o.orderDate||o.createdAt||'—')],
+      ['Procurement Required',fc.procurementRequired?'YES':'NO'],
+    ];
+    const ws=XLSX.utils.aoa_to_sheet(wsData);
+    ws['!cols']=[{wch:30},{wch:10},{wch:14},{wch:10},{wch:8},{wch:16},{wch:16},{wch:12},{wch:12},{wch:26}];
+    XLSX.utils.book_append_sheet(wb,ws,(o.batchNo||'Order').replace(/[^a-zA-Z0-9_-]/g,'_').slice(0,28));
+  });
+  XLSX.writeFile(wb,'RM_Forecast_Full_'+new Date().toISOString().slice(0,10)+'.xlsx');
+  toast('Full Excel exported ✓','success');
+}
+
+// 4. PDF — active order
 function fcExportPDF() {
-  if (_fcActiveIdx === null) { toast('Click an order card first', 'info'); return; }
-  const o  = _fcOrders[_fcActiveIdx];
-  if (o.status !== 'ok') { toast('Cannot export errored order', 'info'); return; }
-  const fc = o.forecast; const fm = o.formulation;
-  const tableRows = (fc.rows||[]).map(r => `
+  if(_fcActiveIdx===null){toast('Click an order card first','info');return;}
+  const o=_fcOrders[_fcActiveIdx];
+  if(o.status!=='ok'){toast('Cannot export errored order','info');return;}
+  const fc=o.forecast, fm=o.formulation;
+  const tableRows=(fc.rows||[]).map(r=>`
     <tr style="${r.shortQty>0?'background:#fff5f5':''}">
-      <td style="padding:7px 10px;border-bottom:1px solid #e5e7eb">${_esc(r.rmName)}<br><span style="font-size:10px;color:#6b7280">${_esc(r.rmCode)}</span></td>
+      <td style="padding:7px 10px;border-bottom:1px solid #e5e7eb">${_esc(r.rmName)}<br><span style="font-size:10px;color:#6b7280">${_esc(r.rmCode)}${r.category?' · '+r.category:''}</span></td>
       <td style="text-align:right;padding:7px 10px;border-bottom:1px solid #e5e7eb">${r.origQty.toFixed(3)} ${r.origUnit}</td>
       <td style="text-align:right;padding:7px 10px;border-bottom:1px solid #e5e7eb;font-weight:700;color:#2563eb">${r.reqKg.toFixed(3)}</td>
       <td style="padding:7px 10px;border-bottom:1px solid #e5e7eb;font-size:10px;color:#6b7280">KG</td>
@@ -9534,68 +9730,50 @@ function fcExportPDF() {
       <td style="text-align:right;padding:7px 10px;border-bottom:1px solid #e5e7eb;${r.shortQty>0?'color:#dc2626;font-weight:800':''}">${r.shortQty>0?r.shortQty.toFixed(3):'—'}</td>
       <td style="text-align:right;padding:7px 10px;border-bottom:1px solid #e5e7eb;${r.excessQty>0?'color:#16a34a;font-weight:700':''}">${r.excessQty>0?r.excessQty.toFixed(3):'—'}</td>
       <td style="padding:7px 10px;border-bottom:1px solid #e5e7eb">${r.shortQty>0
-        ? '<span style="background:#fef2f2;color:#dc2626;border:1px solid #fca5a5;border-radius:20px;padding:2px 8px;font-size:10px;font-weight:700">⚠ Procurement Required</span>'
-        : '<span style="background:#f0fdf4;color:#16a34a;border:1px solid #6ee7b7;border-radius:20px;padding:2px 8px;font-size:10px;font-weight:700">✓ Available</span>'}</td>
+        ?'<span style="background:#fef2f2;color:#dc2626;border:1px solid #fca5a5;border-radius:20px;padding:2px 8px;font-size:10px;font-weight:700">⚠ Procurement</span>'
+        :'<span style="background:#f0fdf4;color:#16a34a;border:1px solid #6ee7b7;border-radius:20px;padding:2px 8px;font-size:10px;font-weight:700">✓ Available</span>'}</td>
     </tr>`).join('');
-  const win = window.open('', '_blank', 'width=1050,height=850');
-  win.document.write(`<!DOCTYPE html><html><head>
-    <title>RM Forecast — ${_esc(o.batchNo)}</title>
-    <style>
-      body{font-family:'Segoe UI',Arial,sans-serif;color:#1a1f36;margin:0;padding:24px 32px;font-size:13px;}
-      .header{background:linear-gradient(135deg,#0f172a,#1e3a5f);color:#f1f5f9;border-radius:10px;padding:18px 24px;margin-bottom:16px;}
-      .header h1{margin:0;font-size:17px;font-weight:800;}
-      .header p{margin:4px 0 0;font-size:12px;color:#94a3b8;}
-      .meta-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px;}
-      .meta-card{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:9px 12px;}
-      .meta-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#6b7280;}
-      .meta-value{font-size:14px;font-weight:800;color:#0f172a;margin-top:2px;}
-      table{width:100%;border-collapse:collapse;font-size:12px;}
-      th{background:#1e293b;color:#94a3b8;padding:7px 10px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;}
-      .summary{background:#0f172a;color:#f1f5f9;border-radius:8px;padding:12px 16px;margin-top:12px;display:flex;gap:20px;flex-wrap:wrap;}
-      .sl{font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;}
-      .sv{font-size:14px;font-weight:800;color:#f1f5f9;margin-top:2px;}
-      .sv.red{color:#f87171} .sv.green{color:#34d399}
-      .footer{margin-top:16px;font-size:10px;color:#9ca3af;text-align:center;border-top:1px solid #e5e7eb;padding-top:8px;}
-      @media print{.no-print{display:none}}
-    </style>
-  </head><body>
-    <div class="header">
-      <h1>Raw Material Forecast${o.refNo?' — '+_esc(o.refNo):''}</h1>
-      <p>Surface Paints Pvt. Ltd. • Powder Coating Costing Software v3.6b</p>
-    </div>
-    <div class="meta-grid">
-      <div class="meta-card"><div class="meta-label">Product</div><div class="meta-value">${_esc(o.productName||fm.productName)}</div></div>
-      <div class="meta-card"><div class="meta-label">Reference Batch</div><div class="meta-value">${_esc(o.batchNo)}</div></div>
-      <div class="meta-card"><div class="meta-label">Order Qty</div><div class="meta-value">${o.orderQty} KG</div></div>
-      <div class="meta-card"><div class="meta-label">Orig Batch</div><div class="meta-value">${fm.origBatchKg.toFixed(2)} KG</div></div>
-      <div class="meta-card"><div class="meta-label">Scale Factor</div><div class="meta-value" style="color:#2563eb">×${fm.scaleFactor.toFixed(4)}</div></div>
-      ${(o.orderDate||o.createdAt) ? `<div class="meta-card"><div class="meta-label">Order Date</div><div class="meta-value">${_esc(_fcFmtDate(o.orderDate||o.createdAt))}</div></div>` : ''}
-    </div>
-    <table>
-      <thead><tr>
-        <th>Raw Material</th><th style="text-align:right">BOM Qty</th>
-        <th style="text-align:right">Required (KG)</th><th>Unit</th>
-        <th style="text-align:right">Available (KG)</th>
-        <th style="text-align:right">Short (KG)</th>
-        <th style="text-align:right">Excess (KG)</th><th>Status</th>
-      </tr></thead>
-      <tbody>${tableRows}</tbody>
-    </table>
-    <div class="summary">
-      <div><div class="sl">Order Weight</div><div class="sv">${o.orderQty} KG</div></div>
-      <div><div class="sl">Total Required</div><div class="sv">${fc.totalRequiredKg.toFixed(2)} KG</div></div>
-      <div><div class="sl">Short Items</div><div class="sv ${fc.shortItemCount?'red':'green'}">${fc.shortItemCount}</div></div>
-      <div><div class="sl">Total Shortfall</div><div class="sv ${fc.totalShortKg>0?'red':'green'}">${fc.totalShortKg.toFixed(2)} KG</div></div>
-      <div><div class="sl">Total Excess</div><div class="sv green">${fc.totalExcessKg.toFixed(2)} KG</div></div>
-      <div><div class="sl">Procurement</div><div class="sv ${fc.procurementRequired?'red':'green'}">${fc.procurementRequired?'⚠ ACTION NEEDED':'✓ ALL CLEAR'}</div></div>
-    </div>
-    <div class="footer">ManufactureOS v3.6b • ${new Date().toLocaleString('en-IN')} • Batch: ${_esc(o.batchNo)}</div>
-    <br><button class="no-print" onclick="window.print()" style="padding:8px 18px;background:#2563eb;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px">🖨 Print / Save PDF</button>
+  const win=window.open('','_blank','width=1050,height=850');
+  win.document.write(`<!DOCTYPE html><html><head><title>RM Forecast — ${_esc(o.batchNo)}</title>
+  <style>body{font-family:'Segoe UI',Arial,sans-serif;color:#1a1f36;margin:0;padding:24px 32px;font-size:13px}
+  .hdr{background:linear-gradient(135deg,#0f172a,#1e3a5f);color:#f1f5f9;border-radius:10px;padding:18px 24px;margin-bottom:16px}
+  .hdr h1{margin:0;font-size:17px;font-weight:800}.hdr p{margin:4px 0 0;font-size:12px;color:#94a3b8}
+  .mg{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px}
+  .mc{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:9px 12px}
+  .ml{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#6b7280}
+  .mv{font-size:14px;font-weight:800;color:#0f172a;margin-top:2px}
+  table{width:100%;border-collapse:collapse;font-size:12px}
+  th{background:#1e293b;color:#94a3b8;padding:7px 10px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px}
+  .sum{background:#0f172a;color:#f1f5f9;border-radius:8px;padding:12px 16px;margin-top:12px;display:flex;gap:20px;flex-wrap:wrap}
+  .sl{font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px}.sv{font-size:14px;font-weight:800;color:#f1f5f9;margin-top:2px}
+  .sv.red{color:#f87171}.sv.green{color:#34d399}
+  .foot{margin-top:16px;font-size:10px;color:#9ca3af;text-align:center;border-top:1px solid #e5e7eb;padding-top:8px}
+  @media print{.np{display:none}}</style></head><body>
+  <div class="hdr"><h1>Raw Material Forecast${o.refNo?' — '+_esc(o.refNo):''}</h1><p>Surface Paints Pvt. Ltd.</p></div>
+  <div class="mg">
+    <div class="mc"><div class="ml">Product</div><div class="mv">${_esc(o.productName||fm.productName)}</div></div>
+    <div class="mc"><div class="ml">Ref Batch</div><div class="mv">${_esc(o.batchNo)}</div></div>
+    <div class="mc"><div class="ml">Order Qty</div><div class="mv">${o.orderQty} KG</div></div>
+    <div class="mc"><div class="ml">Orig Batch</div><div class="mv">${fm.origBatchKg.toFixed(2)} KG</div></div>
+    <div class="mc"><div class="ml">Scale Factor</div><div class="mv" style="color:#2563eb">×${fm.scaleFactor.toFixed(4)}</div></div>
+    ${(o.orderDate||o.createdAt)?`<div class="mc"><div class="ml">Order Date</div><div class="mv">${_esc(_fcFmtDate(o.orderDate||o.createdAt))}</div></div>`:''}
+  </div>
+  <table><thead><tr><th>Raw Material</th><th style="text-align:right">BOM Qty</th><th style="text-align:right">Required (KG)</th><th>Unit</th><th style="text-align:right">In Stock (KG)</th><th style="text-align:right">Short (KG)</th><th style="text-align:right">Excess (KG)</th><th>Status</th></tr></thead>
+  <tbody>${tableRows}</tbody></table>
+  <div class="sum">
+    <div><div class="sl">Order Weight</div><div class="sv">${o.orderQty} KG</div></div>
+    <div><div class="sl">Total Required</div><div class="sv">${fc.totalRequiredKg.toFixed(2)} KG</div></div>
+    <div><div class="sl">Short Items</div><div class="sv ${fc.shortItemCount?'red':'green'}">${fc.shortItemCount}</div></div>
+    <div><div class="sl">Total Shortfall</div><div class="sv ${fc.totalShortKg>0?'red':'green'}">${fc.totalShortKg.toFixed(2)} KG</div></div>
+    <div><div class="sl">Total Excess</div><div class="sv green">${fc.totalExcessKg.toFixed(2)} KG</div></div>
+    <div><div class="sl">Procurement</div><div class="sv ${fc.procurementRequired?'red':'green'}">${fc.procurementRequired?'⚠ ACTION NEEDED':'✓ ALL CLEAR'}</div></div>
+  </div>
+  <div class="foot">ManufactureOS · ${new Date().toLocaleString('en-IN')} · Batch: ${_esc(o.batchNo)}</div>
+  <br><button class="np" onclick="window.print()" style="padding:8px 18px;background:#2563eb;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px">🖨 Print / Save PDF</button>
   </body></html>`);
   win.document.close();
 }
 
-// ── XSS-safe escape ──────────────────────────────────────────────
 function _esc(s) {
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
@@ -9853,11 +10031,25 @@ function renderAnalytics(){
 <div id="bi-panels"></div>`;
 }
 
+// BI data cache - rebuilding analytics is expensive (iterates all formulations)
+let _biCache = null;
+let _biCacheKey = '';
+
+function _biGetCacheKey(){
+  return DB.formulations.length+'_'+
+    (document.getElementById('bi-from')?.value||'')+
+    (document.getElementById('bi-to')?.value||'')+
+    (document.getElementById('bi-party')?.value||'')+
+    (document.getElementById('bi-product')?.value||'');
+}
+
 function refreshBI(){
   const from=document.getElementById('bi-from')?.value||'';
   const to=document.getElementById('bi-to')?.value||'';
   const party=document.getElementById('bi-party')?.value||'';
-  window._biData=buildAnalyticsData({fromDate:from,toDate:to,partyFilter:party});
+  const cacheKey=from+'|'+to+'|'+party+'|'+DB.formulations.length;
+  if(_biCache && _biCacheKey===cacheKey){ window._biData=_biCache; }
+  else { window._biData=buildAnalyticsData({fromDate:from,toDate:to,partyFilter:party}); _biCache=window._biData; _biCacheKey=cacheKey; }
   renderBITab(window._biActiveTab||0);
 }
 
@@ -10449,7 +10641,13 @@ function renderBIInventory(d){
   return`<div class="card">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
       <div class="card-title" style="margin:0;">📦 Inventory Turnover & Stock Aging Analysis</div>
-      <button class="btn btn-secondary btn-sm" onclick="exportBISheet('inventory')">↓ Excel</button>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <div class="search-input-wrap" style="min-width:220px;max-width:280px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input class="search-input" id="bi-inv-search" placeholder="Search material, category..." oninput="filterBITable('bi-inv-search','bi-inv-table')">
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="exportBISheet('inventory')">↓ Excel</button>
+      </div>
     </div>
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px;">
       <div class="card" style="border-top:3px solid #10b981;text-align:center;">
@@ -10468,7 +10666,7 @@ function renderBIInventory(d){
         <div style="font-size:12px;color:#64748b;">Turnover < 0.5</div>
       </div>
     </div>
-    <div class="table-wrap"><table>
+    <div class="table-wrap"><table id="bi-inv-table">
       <thead><tr>
         <th>#</th><th>Material</th><th>Category</th>
         <th style="text-align:right">Current Stock (KG)</th>
@@ -10506,14 +10704,20 @@ function renderBICosting(d){
   return`<div class="card">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
       <div class="card-title" style="margin:0;">💰 Costing & Profitability Analysis — Product & Customer Wise</div>
-      <button class="btn btn-secondary btn-sm" onclick="exportBISheet('costing')">↓ Excel</button>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <div class="search-input-wrap" style="min-width:220px;max-width:280px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input class="search-input" id="bi-cost-search" placeholder="Search product, code..." oninput="filterBITable('bi-cost-search','bi-cost-table')">
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="exportBISheet('costing')">↓ Excel</button>
+      </div>
     </div>
     <div style="overflow-x:auto;padding:8px 0;margin-bottom:16px;">
       ${miniBar(sorted.slice(0,10).map(p=>Math.round(p.totalCost)),
         sorted.slice(0,10).map(p=>p.name.slice(0,12)),
         '#f59e0b',null,90)}
     </div>
-    <div class="table-wrap"><table>
+    <div class="table-wrap"><table id="bi-cost-table">
       <thead><tr>
         <th>#</th><th>Product Name</th><th>Code</th>
         <th style="text-align:right">Batches</th>
