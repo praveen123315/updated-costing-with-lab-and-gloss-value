@@ -952,7 +952,7 @@ const NAV_ICONS = {
   prodreports:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><polyline points="8 13 10 15 14 11"/></svg>`,
   machines:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>`,
   forecasting:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><rect x="2" y="2" width="20" height="20" rx="3" fill="none"/></svg>`,
-  shiftmaster:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
+  aiassistant:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 2a7 7 0 0 1 7 7c0 3-1.5 5-4 6.5V17a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1v-1.5C6.5 14 5 12 5 9a7 7 0 0 1 7-7z"/><line x1="9" y1="21" x2="15" y2="21"/><line x1="10" y1="17" x2="10" y2="21"/><line x1="14" y1="17" x2="14" y2="21"/></svg>`,
 };
 
 const NAV_CONFIG = {
@@ -961,6 +961,7 @@ const NAV_CONFIG = {
     {section:'Production',items:[{id:'formulations',label:'Formulations'},{id:'costing',label:'Costing Engine'},{id:'costanalysis',label:'Cost Analysis'},{id:'production',label:'Production Entry'},{id:'prodreports',label:'Prod. Reports'},{id:'machines',label:'Machine Setup'},{id:'shiftmaster',label:'Shift Master'}]},
     {section:'Materials',items:[{id:'rawmaterials',label:'Raw Materials'},{id:'inventory',label:'Inventory'},{id:'kitting',label:'Full Kitting'},{id:'forecasting',label:'RM Forecasting'}]},
     {section:'Reports',items:[{id:'reports',label:'Reports & Export'},{id:'analytics',label:'📊 Business Intelligence'}]},
+    {section:'🤖 AI',items:[{id:'aiassistant',label:'✨ AI Formulation Assistant'}]},
     {section:'System',items:[{id:'users',label:'User Management'},{id:'settings',label:'Settings'}]},
   ],
   formulation:[
@@ -968,6 +969,7 @@ const NAV_CONFIG = {
     {section:'Production',items:[{id:'formulations',label:'My Formulations'}]},
     {section:'Forecasting',items:[{id:'forecasting',label:'RM Forecasting'}]},
     {section:'Materials',items:[{id:'inventory',label:'Stock View'}]},
+    {section:'🤖 AI',items:[{id:'aiassistant',label:'✨ AI Assistant'}]},
     {section:'Settings',items:[{id:'debitstatus',label:'Debit Status'}]},
   ],
   inventory:[
@@ -1073,7 +1075,7 @@ function navigate(page){
   document.querySelectorAll('.nav-item').forEach(e=>e.classList.remove('active'));
   const ni=document.getElementById('nav-'+page);
   if(ni)ni.classList.add('active');
-  const titles={dashboard:'Dashboard',formulations:'Formulations',costing:'Costing Engine',costanalysis:'Cost Analysis',rawmaterials:'Raw Materials',inventory:'Inventory',reports:'Reports & Export',users:'User Management',settings:'System Settings',kitting:'Full Kitting',debitstatus:'Inventory Debit Status',production:'Production Entry',prodreports:'Production Reports & Analytics',machines:'Machine Setup',shiftmaster:'Shift Master',forecasting:'Raw Material Forecasting'};
+  const titles={dashboard:'Dashboard',formulations:'Formulations',costing:'Costing Engine',costanalysis:'Cost Analysis',rawmaterials:'Raw Materials',inventory:'Inventory',reports:'Reports & Export',users:'User Management',settings:'System Settings',kitting:'Full Kitting',debitstatus:'Inventory Debit Status',production:'Production Entry',prodreports:'Production Reports & Analytics',machines:'Machine Setup',shiftmaster:'Shift Master',forecasting:'Raw Material Forecasting',aiassistant:'✨ AI Formulation Assistant'};
   document.getElementById('page-heading').textContent=titles[page]||page;
   const content=document.getElementById('page-content');
   content.style.cssText='opacity:0;transform:translateY(12px);transition:none;';
@@ -1108,6 +1110,7 @@ function renderPage(page,el){
     case 'machines':el.innerHTML=can('manageMachines')?renderMachineSetup():'<div class="alert alert-error">Access denied.</div>';break;
     case 'shiftmaster':el.innerHTML=can('shiftmaster')?renderShiftMaster():'<div class="alert alert-error">Access denied.</div>';break;
     case 'forecasting':el.innerHTML=can('forecasting')?renderForecasting():'<div class="alert alert-error">Access denied.</div>';initForecasting();break;
+    case 'aiassistant':el.innerHTML=renderAIAssistant();setTimeout(()=>initAIAssistant(),80);break;
     default:el.innerHTML='<p>Page not found</p>';
   }
 }
@@ -1521,6 +1524,9 @@ function renderFormulations(){
           </button>`:can('formulations')?`<button class="btn btn-sm" style="background:var(--purple-light);color:var(--purple);border:1.5px solid #c4b5fd;" onclick="openLabGlossModal(${f.id})">
             🧪 LAB/Gloss
           </button>`:''}
+          <button class="btn btn-sm" style="background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;border:none;font-weight:700;" onclick="saiAskAboutFormulation(${f.id})" title="Ask Claude AI about this formulation">
+            🤖 Ask AI
+          </button>
         </div>
       </div>
       <div class="batch-card-meta" style="margin-top:10px;">
@@ -1604,7 +1610,22 @@ function openEditBatchCodeModal(id){
     <div class="modal-header"><div class="modal-title">✏️ Edit Batch Number</div><button class="close-btn" onclick="closeModal('editbc-modal')">✕</button></div>
     <div class="modal-body">
       <div class="alert alert-info" style="font-size:12px;">${isBatchEditRole?'You can update the Batch Number for formulations created by Sudhir Ji.':'You can edit Batch Number and Product Code.'}</div>
-      <div class="form-group"><label>Batch Number</label><input class="form-control" id="ebc-batch" value="${f.batchNo}" placeholder="e.g. B2026-045"></div>
+      <div class="form-group">
+        <label>Batch Number</label>
+        <div style="position:relative;">
+          <input class="form-control" id="ebc-batch-search"
+            value="${f.batchNo||''}"
+            placeholder="🔍 Search existing or type new batch number..."
+            oninput="_fmBatchFilter(this.value)"
+            onfocus="_fmBatchOpen(this)"
+            onblur="setTimeout(_fmBatchClose,200)"
+            autocomplete="off" style="padding-right:32px;">
+          <span onclick="_fmBatchToggle()" title="Browse all batches"
+            style="position:absolute;right:10px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--text3);font-size:11px;user-select:none;">▼</span>
+        </div>
+        <input type="hidden" id="ebc-batch" value="${f.batchNo||''}">
+        <div class="form-hint" id="ebc-batch-hint">Select an existing batch or type a new one</div>
+      </div>
       ${!isBatchEditRole?`<div class="form-group"><label>Product Code</label><input class="form-control" id="ebc-code" value="${f.productCode}"></div>`:`<input type="hidden" id="ebc-code" value="${f.productCode}">`}
     </div>
     <div class="modal-footer">
@@ -1613,6 +1634,8 @@ function openEditBatchCodeModal(id){
     </div>
   </div></div>`;
   document.body.insertAdjacentHTML('beforeend',modal);
+  // Set target for dropdown
+  setTimeout(()=>{ _batchDropTarget='ebc'; },50);
 }
 
 function saveEditBatchCode(id){
@@ -2672,7 +2695,22 @@ function openNewFormModal(template=null, forceEmpty=false){
         </div>
       </div>
       <div class="form-row">
-        <div class="form-group"><label>Batch Number <span style="font-size:10px;color:var(--text3);font-weight:400;text-transform:none;">(optional, can add later)</span></label><input class="form-control" id="fm-batch" value="${draft?draft.batch:''}" placeholder="e.g. B2025-003 (optional)" oninput="_saveFormDraft()"></div>
+        <div class="form-group">
+          <label>Batch Number <span style="font-size:10px;color:var(--text3);font-weight:400;text-transform:none;">(optional, can add later)</span></label>
+          <div style="position:relative;">
+            <input class="form-control" id="fm-batch-search"
+              value="${draft?draft.batch:''}"
+              placeholder="🔍 Search or type batch number..."
+              oninput="_fmBatchFilter(this.value)"
+              onfocus="_fmBatchOpen(this)"
+              onblur="setTimeout(_fmBatchClose,200)"
+              autocomplete="off" style="padding-right:32px;">
+            <span onclick="_fmBatchToggle()" title="Browse all batches"
+              style="position:absolute;right:10px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--text3);font-size:11px;user-select:none;">▼</span>
+          </div>
+          <input type="hidden" id="fm-batch" value="${draft?draft.batch:''}">
+          <div class="form-hint" id="fm-batch-hint">Select an existing batch to reuse, or type a new batch number</div>
+        </div>
         <div class="form-group">
           <label>Manufacturing Date & Time</label>
           <input class="form-control" id="fm-date" type="text" value="${ts}" readonly style="background:var(--bg3);color:var(--text3);cursor:not-allowed;">
@@ -3214,6 +3252,190 @@ function runScaler(){
 let formItemCount=0;
 // ── Draft persistence: remembers form data across page navigation ──
 let _formDraft = null;
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Batch Number searchable dropdown
+//  Dropdown is appended to <body> and positioned via getBoundingClientRect
+//  so it never gets clipped by overflow:hidden parents.
+// ─────────────────────────────────────────────────────────────────────────────
+let _batchDropOpen = false;
+let _batchDropTarget = null; // 'fm' or 'ebc'
+
+function _fmBatchGetAll() {
+  const seen = new Set();
+  const list = [];
+  [...DB.formulations]
+    .sort((a,b) => (b.createdAt||'').localeCompare(a.createdAt||''))
+    .forEach(f => {
+      const b = (f.batchNo||'').trim();
+      if (b && !seen.has(b)) {
+        seen.add(b);
+        list.push({ batchNo:b, productName:f.productName||'', productCode:f.productCode||'', mfgDate:(f.mfgDate||'').slice(0,10) });
+      }
+    });
+  return list;
+}
+
+function _batchDropEnsure() {
+  if (document.getElementById('_batch-drop-portal')) return;
+  const div = document.createElement('div');
+  div.id = '_batch-drop-portal';
+  div.style.cssText = `
+    display:none;position:fixed;z-index:99999;
+    background:var(--card);border:1.5px solid var(--accent);
+    border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.22);
+    max-height:280px;overflow-y:auto;min-width:260px;
+  `;
+  div.innerHTML = '<div id="_batch-drop-list"></div>';
+  document.body.appendChild(div);
+  // Close on outside click
+  document.addEventListener('mousedown', function(e){
+    const drop = document.getElementById('_batch-drop-portal');
+    if (drop && !drop.contains(e.target)) {
+      const inp1 = document.getElementById('fm-batch-search');
+      const inp2 = document.getElementById('ebc-batch-search');
+      if (e.target !== inp1 && e.target !== inp2) _fmBatchClose();
+    }
+  });
+}
+
+function _batchDropPosition(inputEl) {
+  const drop = document.getElementById('_batch-drop-portal');
+  if (!drop || !inputEl) return;
+  const rect = inputEl.getBoundingClientRect();
+  drop.style.top  = (rect.bottom + 4) + 'px';
+  drop.style.left = rect.left + 'px';
+  drop.style.width = rect.width + 'px';
+}
+
+function _batchDropRender(items, q, target) {
+  const listEl = document.getElementById('_batch-drop-list');
+  if (!listEl) return;
+  let html = '';
+
+  if (q && q.trim()) {
+    const safe = q.trim().replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    html += `<div onmousedown="_fmBatchSelect('${safe}',true,'${target}')"
+      style="display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;
+             border-bottom:1px solid var(--border);background:var(--accent-light);
+             border-radius:10px 10px 0 0;"
+      onmouseover="this.style.background='var(--accent)';this.querySelectorAll('*').forEach(el=>el.style.color='#fff')"
+      onmouseout="this.style.background='var(--accent-light)';this.querySelectorAll('*').forEach(el=>el.style.color='')">
+      <span style="font-size:18px;flex-shrink:0;">✚</span>
+      <div>
+        <div style="font-size:13px;font-weight:700;">Use "${_esc(q.trim())}" as new</div>
+        <div style="font-size:11px;color:var(--text3);">Create with this batch number</div>
+      </div>
+    </div>`;
+  }
+
+  if (!items.length) {
+    html += `<div style="padding:16px;color:var(--text3);font-size:13px;text-align:center;">
+      ${q ? 'No matching batch found' : 'No existing batch numbers yet'}
+    </div>`;
+  } else {
+    items.forEach(item => {
+      const safe = item.batchNo.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+      html += `<div onmousedown="_fmBatchSelect('${safe}',false,'${target}')"
+        style="display:flex;align-items:center;justify-content:space-between;
+               padding:9px 14px;cursor:pointer;border-bottom:1px solid var(--border);"
+        onmouseover="this.style.background='var(--bg3)'"
+        onmouseout="this.style.background=''">
+        <div style="min-width:0;">
+          <div style="font-size:13px;font-weight:700;color:var(--text)">${_esc(item.batchNo)}</div>
+          <div style="font-size:11px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+            ${_esc(item.productName)}${item.productCode?' · '+_esc(item.productCode):''}${item.mfgDate?' · '+item.mfgDate:''}
+          </div>
+        </div>
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="2.5" style="flex-shrink:0;margin-left:8px"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>`;
+    });
+  }
+  listEl.innerHTML = html;
+}
+
+function _fmBatchOpen(inputEl) {
+  _batchDropEnsure();
+  _batchDropTarget = inputEl ? (inputEl.id === 'ebc-batch-search' ? 'ebc' : 'fm') : 'fm';
+  const anchor = inputEl || document.getElementById('fm-batch-search');
+  _batchDropPosition(anchor);
+  const q = anchor ? anchor.value : '';
+  const all = _fmBatchGetAll();
+  const ql = q.toLowerCase().trim();
+  const filtered = ql ? all.filter(x => x.batchNo.toLowerCase().includes(ql) || x.productName.toLowerCase().includes(ql)) : all;
+  _batchDropRender(filtered, q, _batchDropTarget);
+  const drop = document.getElementById('_batch-drop-portal');
+  if (drop) drop.style.display = 'block';
+  _batchDropOpen = true;
+}
+
+function _fmBatchFilter(q) {
+  // Sync hidden value while typing
+  const hiddenId = _batchDropTarget === 'ebc' ? 'ebc-batch' : 'fm-batch';
+  const hidden = document.getElementById(hiddenId);
+  if (hidden) hidden.value = q;
+  if (_batchDropTarget === 'fm') _saveFormDraft();
+
+  _batchDropEnsure();
+  const anchor = document.getElementById(_batchDropTarget === 'ebc' ? 'ebc-batch-search' : 'fm-batch-search');
+  _batchDropPosition(anchor);
+
+  const all = _fmBatchGetAll();
+  const ql = q.toLowerCase().trim();
+  const filtered = ql ? all.filter(x => x.batchNo.toLowerCase().includes(ql) || x.productName.toLowerCase().includes(ql)) : all;
+  _batchDropRender(filtered, q, _batchDropTarget);
+  const drop = document.getElementById('_batch-drop-portal');
+  if (drop) drop.style.display = 'block';
+  _batchDropOpen = true;
+
+  // Update hint
+  const hintId = _batchDropTarget === 'ebc' ? 'ebc-batch-hint' : 'fm-batch-hint';
+  const hint = document.getElementById(hintId);
+  if (hint) hint.textContent = filtered.length
+    ? `${filtered.length} batch${filtered.length>1?'es':''} found — click to select`
+    : q ? 'No match — will be created as new batch number' : 'Type to search or scroll to browse';
+}
+
+function _fmBatchToggle() {
+  if (_batchDropOpen) { _fmBatchClose(); }
+  else {
+    const anchor = document.getElementById('fm-batch-search') || document.getElementById('ebc-batch-search');
+    _fmBatchOpen(anchor);
+  }
+}
+
+function _fmBatchClose() {
+  const drop = document.getElementById('_batch-drop-portal');
+  if (drop) drop.style.display = 'none';
+  _batchDropOpen = false;
+}
+
+function _fmBatchSelect(batchNo, isNew, target) {
+  target = target || _batchDropTarget || 'fm';
+  const searchId = target === 'ebc' ? 'ebc-batch-search' : 'fm-batch-search';
+  const hiddenId = target === 'ebc' ? 'ebc-batch' : 'fm-batch';
+  const hintId   = target === 'ebc' ? 'ebc-batch-hint' : 'fm-batch-hint';
+
+  const searchEl = document.getElementById(searchId);
+  const hiddenEl = document.getElementById(hiddenId);
+  const hintEl   = document.getElementById(hintId);
+
+  if (searchEl) searchEl.value = batchNo;
+  if (hiddenEl) hiddenEl.value = batchNo;
+  if (target === 'fm') _saveFormDraft();
+  _fmBatchClose();
+
+  if (hintEl) {
+    if (isNew) {
+      hintEl.innerHTML = `<span style="color:var(--green);font-weight:700;">✚ New batch number: ${_esc(batchNo)}</span>`;
+    } else {
+      const used = DB.formulations.filter(f => (f.batchNo||'').trim() === batchNo);
+      const names = [...new Set(used.map(f=>f.productName))].slice(0,3).join(', ');
+      hintEl.innerHTML = `<span style="color:var(--accent2);font-weight:700;">♻ Reusing: ${_esc(batchNo)}</span>`
+        + (names ? ` &nbsp;·&nbsp; <span style="color:var(--text3)">Previously: ${_esc(names)}</span>` : '');
+    }
+  }
+}
 
 function _saveFormDraft(){
   const pname = document.getElementById('fm-pname')?.value||'';
@@ -6559,7 +6781,7 @@ function closeModal(id){document.getElementById(id)?.remove();formItemCount=0;ca
     <div id="sai-avatar">🧠</div>
     <div id="sai-header-info">
       <div id="sai-header-name">Surface AI Assistant</div>
-      <div id="sai-header-sub">Powered by live Google Sheets data</div>
+      <div id="sai-header-sub">Powered by Claude · Live data</div>
     </div>
     <div id="sai-header-status"><div id="sai-status-dot"></div> Live</div>
     <button id="sai-close-btn" onclick="saiToggle()">✕</button>
@@ -6571,13 +6793,12 @@ function closeModal(id){document.getElementById(id)?.remove();formItemCount=0;ca
     <button id="sai-refresh-btn" onclick="saiRefreshData()">↻ Refresh</button>
   </div>
   <div id="sai-chips">
-    <span class="sai-chip" onclick="saiChip(this)">📦 Stock status</span>
-    <span class="sai-chip" onclick="saiChip(this)">💰 Costliest RM</span>
+    <span class="sai-chip" onclick="saiChip(this)">💰 Cost reduction ideas</span>
+    <span class="sai-chip" onclick="saiChip(this)">🔄 Suggest cheaper RM substitutes</span>
     <span class="sai-chip" onclick="saiChip(this)">⚠️ Low stock items</span>
-    <span class="sai-chip" onclick="saiChip(this)">🧪 Recent batches</span>
+    <span class="sai-chip" onclick="saiChip(this)">📦 Stock status</span>
+    <span class="sai-chip" onclick="saiChip(this)">🧪 Most expensive formulations</span>
     <span class="sai-chip" onclick="saiChip(this)">📊 Total inventory value</span>
-    <span class="sai-chip" onclick="saiChip(this)">🌐 Current TiO2 market price</span>
-    <span class="sai-chip" onclick="saiChip(this)">🔬 Epoxy vs polyester resin</span>
   </div>
   <div id="sai-messages"></div>
   <div id="sai-input-area">
@@ -6599,8 +6820,8 @@ const SAI = {
   loading: false,
   dataLoaded: false,
   dataSnapshot: null,
-  history: [],  // last 4 messages kept for context memory
-  GEMINI_KEY: 'AIzaSyBB9PAtBoJitSi-z70GyfMSECdenYK-yPU',
+  history: [],
+  CLAUDE_MODEL: 'claude-sonnet-4-6',
 };
 
 function saiToggle() {
@@ -6617,16 +6838,16 @@ function saiToggle() {
 }
 
 function saiWelcome() {
-  saiAddMsg('bot', `👋 <strong>Namaste!</strong> I'm your Surface AI assistant — powered by <strong>Gemini AI (Free)</strong>.<br><br>
-I have live access to your <strong>Google Sheets data</strong> — raw materials, inventory, formulations, costs, and transactions.<br><br>
-📊 <strong>Analytics:</strong> cost trends, margin analysis, inventory health<br>
-💡 <strong>Smart suggestions:</strong> cheaper raw material alternatives, formulation tweaks to save money<br>
-⚡ <strong>Real-time alerts:</strong> low stock, overstocked items, cost spikes<br><br>
+  saiAddMsg('bot', `👋 <strong>Hi!</strong> I'm your Surface AI assistant — powered by <strong>Claude</strong>.<br><br>
+I have live access to your data — raw materials, inventory, formulations, costs, and stock levels.<br><br>
+🧪 <strong>Formulation help:</strong> suggest cheaper recipes, RM substitutions<br>
+💰 <strong>Cost analysis:</strong> find where money is being spent, how to save<br>
+📦 <strong>Stock advice:</strong> what to use from current stock, what to procure<br><br>
 Try asking:<br>
-• <em>"Which formulations cost the most?"</em><br>
-• <em>"Where can I save money on raw materials?"</em><br>
-• <em>"What's my inventory value?"</em><br>
-• <em>"Show batch [batch no] details"</em> 🚀`);
+• <em>"How can I reduce cost of WHITE SATIN GLOSSY?"</em><br>
+• <em>"Which raw material can replace EPOXY E-12?"</em><br>
+• <em>"What formulations can I make with current stock?"</em><br>
+• <em>"Show me the most expensive batches"</em> 🚀`);
 }
 
 function saiChip(el) {
@@ -6868,30 +7089,30 @@ async function saiSend() {
   SAI.history.push({ role: 'user', content: text });
 
   try {
-    // Build system prompt with full live data snapshot
     const systemPrompt = saiBuildSystemPrompt(SAI.dataSnapshot || saiSnapshotFromDB(), text);
 
-    // ── Claude AI via GAS proxy (no CORS issues, API key safe in Script Properties) ──
-    const gasPayload = {
-      action: 'claudeAI',
-      systemPrompt: systemPrompt,
-      messages: SAI.history.slice(-4).map(m => ({ role: m.role === 'assistant' ? 'assistant' : 'user', content: m.content }))
-    };
-
-    const claudeRes = await fetch(GAS_URL, {
+    // ── Direct Claude API call ──────────────────────────────────────────────
+    const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify(gasPayload),
-      redirect: 'follow'
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: SAI.CLAUDE_MODEL,
+        max_tokens: 1000,
+        system: systemPrompt,
+        messages: SAI.history.slice(-6).map(m => ({
+          role: m.role === 'assistant' ? 'assistant' : 'user',
+          content: m.content
+        }))
+      })
     });
 
     let reply = '';
     if (claudeRes.ok) {
-      const claudeData = await claudeRes.json();
-      if (!claudeData.success) throw new Error(claudeData.error || 'GAS returned error');
-      reply = claudeData.reply || '';
+      const data = await claudeRes.json();
+      reply = data.content?.find(b => b.type === 'text')?.text || '';
     } else {
-      throw new Error('GAS error ' + claudeRes.status);
+      const err = await claudeRes.json().catch(() => ({}));
+      throw new Error(err.error?.message || 'Claude API error ' + claudeRes.status);
     }
 
     if (!reply) reply = 'Sorry, no response received. Please try again.';
@@ -9001,6 +9222,320 @@ let _fcActiveIdx   = null; // index of currently expanded order
 let _fcLoading     = false;
 
 // ── Page renderer ─────────────────────────────────────────────────
+// ═════════════════════════════════════════════════════════════════════════════
+//  AI FORMULATION ASSISTANT — Full Page
+// ═════════════════════════════════════════════════════════════════════════════
+
+// State for the full-page AI
+const AIA = {
+  history: [],
+  loading: false,
+  context: null, // null = global, formulation object = specific formulation
+};
+
+function renderAIAssistant() {
+  return `
+  <div style="display:grid;grid-template-columns:280px 1fr;gap:20px;height:calc(100vh - 130px);max-height:820px;">
+
+    <!-- Left panel: context selector + quick prompts -->
+    <div style="display:flex;flex-direction:column;gap:14px;overflow-y:auto;">
+
+      <!-- Context card -->
+      <div class="card" style="padding:16px;">
+        <div class="card-title" style="margin-bottom:10px;">🎯 Focus On</div>
+        <select id="aia-context-sel" class="form-control" onchange="aiaSetContext(this.value)" style="margin-bottom:8px;">
+          <option value="">🌐 All Formulations (Global)</option>
+          ${DB.formulations.slice().sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||'')).slice(0,60).map(f=>
+            `<option value="${f.id}">${f.productName}${f.batchNo?' ('+f.batchNo+')':''}</option>`
+          ).join('')}
+        </select>
+        <div id="aia-ctx-info" style="font-size:11px;color:var(--text3);margin-top:6px;">Asking about your entire database</div>
+      </div>
+
+      <!-- Quick prompts -->
+      <div class="card" style="padding:16px;">
+        <div class="card-title" style="margin-bottom:10px;">⚡ Quick Questions</div>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          ${[
+            ['💰','How can I reduce cost of this formulation?'],
+            ['🔄','Suggest cheaper raw material substitutes'],
+            ['📦','What can I produce with current stock?'],
+            ['⚠️','Which materials are running low?'],
+            ['📊','Show me cost breakdown analysis'],
+            ['🧪','Compare this with similar formulations'],
+            ['💡','What is the biggest cost driver?'],
+            ['🏭','How to improve this formulation quality?'],
+          ].map(([icon,q])=>`
+            <button onclick="aiaQuickAsk('${q.replace(/'/g,"\\'")}')"
+              style="text-align:left;padding:8px 10px;background:var(--bg3);border:1px solid var(--border);
+                     border-radius:8px;cursor:pointer;font-size:12px;font-weight:600;color:var(--text2);
+                     font-family:inherit;transition:all .15s;"
+              onmouseover="this.style.background='var(--accent-light)';this.style.color='var(--accent2)';this.style.borderColor='var(--accent)'"
+              onmouseout="this.style.background='var(--bg3)';this.style.color='var(--text2)';this.style.borderColor='var(--border)'">
+              ${icon} ${q}
+            </button>`).join('')}
+        </div>
+      </div>
+
+      <!-- Data summary -->
+      <div class="card" style="padding:16px;">
+        <div class="card-title" style="margin-bottom:8px;">📋 Data Loaded</div>
+        <div style="font-size:12px;color:var(--text3);line-height:1.8;">
+          <div>🧪 <strong style="color:var(--text)">${DB.formulations.length}</strong> formulations</div>
+          <div>📦 <strong style="color:var(--text)">${DB.rawMaterials.length}</strong> raw materials</div>
+          <div>📊 <strong style="color:var(--text)">${DB.inventory.length}</strong> inventory items</div>
+          <div style="margin-top:6px;padding:6px 8px;background:var(--green-light);border-radius:6px;color:var(--green);font-weight:700;font-size:11px;">✅ Claude AI Connected</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right panel: chat -->
+    <div class="card" style="padding:0;display:flex;flex-direction:column;overflow:hidden;">
+
+      <!-- Chat header -->
+      <div style="background:linear-gradient(135deg,#1e3a8a,#2563eb);padding:16px 20px;display:flex;align-items:center;gap:12px;flex-shrink:0;border-radius:var(--radius-lg) var(--radius-lg) 0 0;">
+        <div style="width:40px;height:40px;border-radius:12px;background:rgba(255,255,255,0.15);border:1.5px solid rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">🤖</div>
+        <div style="flex:1;">
+          <div style="font-size:15px;font-weight:800;color:#fff;">Claude AI — Formulation Assistant</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.65);margin-top:1px;">Powered by Claude Sonnet · Knows your full database</div>
+        </div>
+        <button onclick="aiaClearChat()" style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:6px 12px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">🗑 Clear</button>
+      </div>
+
+      <!-- Messages -->
+      <div id="aia-messages" style="flex:1;overflow-y:auto;padding:18px;display:flex;flex-direction:column;gap:14px;"></div>
+
+      <!-- Loading bar -->
+      <div id="aia-loading-bar" style="height:2px;background:linear-gradient(90deg,#2563eb,#60a5fa,#2563eb);background-size:200% 100%;animation:sai-shimmer 1.5s infinite;display:none;flex-shrink:0;"></div>
+
+      <!-- Input -->
+      <div style="padding:12px 16px;background:var(--card);border-top:1px solid var(--border);display:flex;gap:8px;align-items:flex-end;flex-shrink:0;">
+        <textarea id="aia-input" rows="1"
+          placeholder="Ask anything — cost reduction, RM substitutes, stock analysis..."
+          style="flex:1;background:var(--bg3);border:1.5px solid var(--border);border-radius:12px;padding:10px 14px;font-size:13px;font-family:inherit;color:var(--text);outline:none;resize:none;max-height:100px;min-height:42px;line-height:1.4;transition:border-color .2s;"
+          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();aiaSend();}"
+          oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,100)+'px'"></textarea>
+        <button id="aia-send" onclick="aiaSend()"
+          style="width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,#2563eb,#1d4ed8);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 8px rgba(37,99,235,.3);transition:all .15s;"
+          onmouseover="this.style.transform='scale(1.07)'" onmouseout="this.style.transform='scale(1)'">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M22 2L11 13M22 2L15 22l-4-9-9-4 20-7Z" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function initAIAssistant() {
+  AIA.history = [];
+  AIA.context = null;
+  AIA.loading = false;
+  // Welcome message
+  aiaAddMsg('assistant', `👋 **Hi!** I'm Claude — your AI formulation assistant.
+
+I have full access to your database:
+- **${DB.formulations.length} formulations** with complete BOM and costs
+- **${DB.rawMaterials.length} raw materials** with current rates
+- **Live stock levels** for all materials
+
+**What I can help with:**
+💰 Reduce cost per KG of any formulation
+🔄 Suggest cheaper raw material substitutes
+📦 Tell you what you can produce with current stock
+📊 Analyze cost breakdown and find savings
+🧪 Compare formulations and suggest improvements
+
+Select a specific formulation on the left to focus, or ask me anything about your whole database!`);
+}
+
+function aiaSetContext(fId) {
+  const info = document.getElementById('aia-ctx-info');
+  if (!fId) {
+    AIA.context = null;
+    if(info) info.textContent = 'Asking about your entire database';
+  } else {
+    AIA.context = DB.formulations.find(f=>f.id===parseInt(fId))||null;
+    if(info&&AIA.context) info.textContent = `Focused on: ${AIA.context.productName}${AIA.context.batchNo?' ('+AIA.context.batchNo+')':''}`;
+  }
+  AIA.history = [];
+  const msgs = document.getElementById('aia-messages'); if(msgs) msgs.innerHTML='';
+  if(AIA.context) {
+    initAIAssistantWithFormulation(AIA.context);
+  } else {
+    aiaAddMsg('assistant','Context changed to **all formulations**. What would you like to know?');
+  }
+}
+
+function initAIAssistantWithFormulation(f) {
+  const rmMap = {};
+  DB.rawMaterials.forEach(r=>rmMap[r.id]=r);
+  const totalKg = (f.items||[]).reduce((s,it)=>{ const u=(it.unit||'KG').toUpperCase();return s+(u==='G'||u==='ML'?it.qty/1000:it.qty); },0);
+  const totalCost = (f.items||[]).reduce((s,it)=>{ const rm=rmMap[it.rmId]||{}; const r=it.rate??rm.rate??0; const u=(it.unit||'KG').toUpperCase(); const kg=u==='G'||u==='ML'?it.qty/1000:it.qty; return s+kg*r; },0);
+  const cpk = totalKg>0?((totalCost+(totalKg*(DB.packagingCost||26)))/totalKg).toFixed(2):'—';
+  aiaAddMsg('assistant',`Focused on **${f.productName}** ${f.batchNo?'(Batch: '+f.batchNo+')':''}
+
+📊 **Quick Summary:**
+- Total batch: **${totalKg.toFixed(2)} KG**
+- RM cost: **₹${totalCost.toFixed(2)}**
+- Cost per KG (with packaging): **₹${cpk}**
+- Materials: **${(f.items||[]).length} items**
+
+What would you like to know? I can suggest cost reductions, RM substitutes, or analyze the recipe.`);
+}
+
+function aiaQuickAsk(q) {
+  const input = document.getElementById('aia-input');
+  if(input){ input.value = q; input.focus(); }
+  aiaSend();
+}
+
+function aiaClearChat() {
+  AIA.history = [];
+  const msgs = document.getElementById('aia-messages'); if(msgs) msgs.innerHTML='';
+  aiaAddMsg('assistant','Chat cleared. What would you like to explore?');
+}
+
+function aiaAddMsg(role, text) {
+  const msgs = document.getElementById('aia-messages'); if(!msgs) return;
+  const isUser = role==='user';
+  const div = document.createElement('div');
+  div.style.cssText = `display:flex;gap:10px;align-items:flex-start;${isUser?'flex-direction:row-reverse;':''}`;
+  const avatar = document.createElement('div');
+  avatar.style.cssText = `width:32px;height:32px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;${isUser?'background:var(--accent);color:#fff;':'background:linear-gradient(135deg,#1e3a8a,#2563eb);'}`;
+  avatar.textContent = isUser ? (currentUser?.name?.[0]||'U') : '🤖';
+  const bubble = document.createElement('div');
+  bubble.style.cssText = `max-width:82%;padding:12px 15px;border-radius:${isUser?'16px 4px 16px 16px':'4px 16px 16px 16px'};font-size:13px;line-height:1.6;${isUser?'background:var(--accent);color:#fff;':'background:var(--bg3);color:var(--text);border:1px solid var(--border);'}`;
+  bubble.innerHTML = aiaFormatText(text);
+  div.appendChild(avatar);
+  div.appendChild(bubble);
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+  return div;
+}
+
+function aiaFormatText(text) {
+  return text
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g,'<em>$1</em>')
+    .replace(/`(.+?)`/g,'<code style="background:rgba(0,0,0,.08);padding:1px 5px;border-radius:4px;font-size:12px;">$1</code>')
+    .replace(/^#{1,3}\s(.+)$/gm,'<div style="font-weight:800;font-size:14px;margin:8px 0 4px;">$1</div>')
+    .replace(/^[-•]\s(.+)$/gm,'<div style="padding-left:14px;margin:2px 0;">• $1</div>')
+    .replace(/\n\n/g,'<br><br>').replace(/\n/g,'<br>');
+}
+
+async function aiaSend() {
+  const input = document.getElementById('aia-input');
+  const text = (input?.value||'').trim();
+  if (!text || AIA.loading) return;
+  input.value = ''; input.style.height = 'auto';
+  aiaAddMsg('user', text);
+
+  AIA.loading = true;
+  const sendBtn = document.getElementById('aia-send'); if(sendBtn) sendBtn.disabled=true;
+  const bar = document.getElementById('aia-loading-bar'); if(bar) bar.style.display='block';
+
+  // Typing bubble
+  const typingDiv = aiaAddMsg('assistant','<div class="sai-typing"><span></span><span></span><span></span></div>');
+
+  AIA.history.push({role:'user',content:text});
+
+  try {
+    const systemPrompt = aiaBuildPrompt(text);
+    const res = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-6',
+        max_tokens:1000,
+        system: systemPrompt,
+        messages: AIA.history.slice(-8).map(m=>({role:m.role,content:m.content}))
+      })
+    });
+    if(typingDiv) typingDiv.remove();
+    if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error(e.error?.message||'Claude API error '+res.status);}
+    const data = await res.json();
+    const reply = data.content?.find(b=>b.type==='text')?.text||'Sorry, no response.';
+    AIA.history.push({role:'assistant',content:reply});
+    aiaAddMsg('assistant',reply);
+  } catch(err) {
+    if(typingDiv) typingDiv.remove();
+    aiaAddMsg('assistant',`❌ **Error:** ${err.message}\n\nMake sure your Claude API is connected.`);
+  } finally {
+    AIA.loading=false;
+    if(sendBtn) sendBtn.disabled=false;
+    if(bar) bar.style.display='none';
+  }
+}
+
+function aiaBuildPrompt(userText) {
+  const rmMap = {};
+  DB.rawMaterials.forEach(r=>rmMap[r.id]=r);
+  const invMap = {};
+  DB.inventory.forEach(i=>invMap[i.rmId]=i.quantity||0);
+  const packCost = DB.packagingCost||26;
+
+  // Always include RM list with rates + stock
+  const rmLines = DB.rawMaterials.map(r=>{
+    const stock = invMap[r.id]||0;
+    const stockFlag = stock<=0?'❌OUT':stock<(r.minStock||0)?'⚠️LOW':'✅';
+    return `${r.name}[${r.code}] ${r.category||'?'} ₹${r.rate}/${r.unit} Stock:${stock}${r.unit} ${stockFlag} Supplier:${r.supplier||'—'}`;
+  }).join('\n');
+
+  let contextSection = '';
+  if (AIA.context) {
+    // Full detail for focused formulation
+    const f = AIA.context;
+    const items = (f.items||[]).map(it=>{
+      const rm=rmMap[it.rmId]||{}; const rate=it.rate??rm.rate??0;
+      const u=(it.unit||'KG').toUpperCase(); const kg=u==='G'||u==='ML'?it.qty/1000:it.qty;
+      const cost=kg*rate; const stock=invMap[it.rmId]||0;
+      const pct=0;
+      return `  ${rm.name||'#'+it.rmId}[${rm.code}] ${rm.category||'?'}: ${it.qty}${u} (${kg.toFixed(3)}KG) @₹${rate}=₹${cost.toFixed(2)} Stock:${stock}${rm.unit||'KG'}`;
+    });
+    const totalKg=(f.items||[]).reduce((s,it)=>{ const u=(it.unit||'KG').toUpperCase();return s+(u==='G'||u==='ML'?it.qty/1000:it.qty);},0);
+    const rmCost=(f.items||[]).reduce((s,it)=>{ const rm=rmMap[it.rmId]||{};const r=it.rate??rm.rate??0;const u=(it.unit||'KG').toUpperCase();const kg=u==='G'||u==='ML'?it.qty/1000:it.qty;return s+kg*r;},0);
+    const total=rmCost+totalKg*packCost;
+    const cpk=totalKg>0?(total/totalKg).toFixed(3):'—';
+    contextSection = `\n[FOCUSED FORMULATION]\nProduct: ${f.productName} | Code: ${f.productCode} | Batch: ${f.batchNo||'—'}\nType: ${f.productType||'—'} | Finish: ${f.productFinish||'—'} | By: ${f.byName}\nIngredients:\n${items.join('\n')}\nTotals: ${totalKg.toFixed(3)}KG | RM Cost: ₹${rmCost.toFixed(2)} | Total: ₹${total.toFixed(2)} | CPK: ₹${cpk}`;
+  } else {
+    // Summary of all formulations
+    const lines = DB.formulations.slice(0,50).map(f=>{
+      const totalKg=(f.items||[]).reduce((s,it)=>{ const u=(it.unit||'KG').toUpperCase();return s+(u==='G'||u==='ML'?it.qty/1000:it.qty);},0);
+      const rmCost=(f.items||[]).reduce((s,it)=>{ const rm=rmMap[it.rmId]||{};const r=it.rate??rm.rate??0;const u=(it.unit||'KG').toUpperCase();const kg=u==='G'||u==='ML'?it.qty/1000:it.qty;return s+kg*r;},0);
+      const cpk=totalKg>0?((rmCost+totalKg*packCost)/totalKg).toFixed(2):'—';
+      return `${f.productName}[${f.productCode}] Batch:${f.batchNo||'—'} ${totalKg.toFixed(1)}KG CPK:₹${cpk} Items:${(f.items||[]).length}`;
+    });
+    contextSection = `\n[ALL FORMULATIONS — ${DB.formulations.length} total]\n`+lines.join('\n');
+  }
+
+  return `You are an expert powder coating formulation consultant for Surface Paints Pvt. Ltd., India.
+You have deep knowledge of powder coating chemistry — epoxy, polyester, epoxy-polyester hybrid, binders, fillers, pigments, hardeners, additives.
+Currency: Indian Rupees (₹). Weight: KG. Packaging cost: ₹${packCost}/KG.
+
+Your goals:
+1. COST REDUCTION: Find specific savings — name the material, current cost, suggested alternative, expected saving per KG
+2. RM SUBSTITUTION: Suggest real powder coating alternatives (e.g. replace expensive pigment with cheaper equivalent)
+3. STOCK OPTIMIZATION: Prioritize using materials already in stock (marked ✅) over procuring new ones
+4. QUALITY BALANCE: Don't sacrifice product quality for cost — always mention trade-offs
+5. Be specific with numbers — exact KG amounts, exact ₹ savings, exact percentage changes
+
+[RAW MATERIALS WITH STOCK]
+${rmLines}
+${contextSection}
+
+Respond concisely with specific actionable suggestions. Use bullet points. Always quantify savings in ₹ per KG.`;
+}
+
+// Ask AI about a specific formulation from the formulation card
+function saiAskAboutFormulation(fId) {
+  const f = DB.formulations.find(x=>x.id===fId);
+  if(!f) return;
+  navigate('aiassistant');
+  setTimeout(()=>{
+    const sel = document.getElementById('aia-context-sel');
+    if(sel){ sel.value = String(fId); aiaSetContext(String(fId)); }
+  }, 200);
+}
+
 function renderForecasting() {
   return `
   <!-- Hero -->
