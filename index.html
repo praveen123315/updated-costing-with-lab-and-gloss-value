@@ -941,7 +941,6 @@ async function doLogin(){
   document.getElementById('login-error').style.display='none';
   currentUser=user;
   initApp();
-  saiOnLogin();
 }
 function logout(){
   currentUser=null;
@@ -950,8 +949,6 @@ function logout(){
   document.getElementById('login-screen').style.display='flex';
   document.getElementById('login-user').value='';
   document.getElementById('login-pass').value='';
-  if (chatBtn) chatBtn.classList.remove('sai-active');
-  saiOnLogout();
 }
 document.getElementById('login-pass').addEventListener('keypress',e=>{if(e.key==='Enter')doLogin();});
 
@@ -1430,82 +1427,17 @@ function exportReorderReport(){
 // ════════════════════════════════════════════════════════
 //  FORMULATIONS  (with copy-as-new, lot multiplier, locked fields)
 // ════════════════════════════════════════════════════════
-function renderFormulations(){
-  let myForms=DB.formulations;
-  if(currentUser.role==='formulation')myForms=DB.formulations.filter(f=>f.by===currentUser.username);
-  // Vivek (labentry): only show batches with NO lab/gloss filled yet
-  if(currentUser.role==='labentry')myForms=DB.formulations.filter(f=>
-    !f.labValues && (f.glossValue==null||f.glossValue===undefined||f.glossValue==='')
-  );
-  // Amar (batchedit): only show batches with missing/empty batch number
-  if(currentUser.role==='batchedit')myForms=DB.formulations.filter(f=>
-    !f.batchNo || String(f.batchNo).trim()===''
-  );
-
-  // Search filter
-  let searchQ = '';
-
-  const _pendingBadge = currentUser.role==='labentry'
-    ? `<span style="background:#f5f3ff;color:#7c3aed;padding:2px 10px;border-radius:20px;font-size:12px;font-weight:700;margin-left:8px;">\u{1F9EA} ${myForms.length} pending</span>`
-    : currentUser.role==='batchedit'
-    ? `<span style="background:#fffbeb;color:#92400e;padding:2px 10px;border-radius:20px;font-size:12px;font-weight:700;margin-left:8px;">\u{1F4CB} ${myForms.length} pending</span>`
-    : '';
-  const _subtitle = currentUser.role==='labentry'
-    ? 'Batches waiting for LAB \u0026 Gloss values — already filled batches are hidden'
-    : currentUser.role==='batchedit'
-    ? 'Batches with no Batch Number yet — already assigned batches are hidden'
-    : 'Batch production records';
-
-  let html=`<div class="page-header">
-    <div><div class="page-title">Formulations ${_pendingBadge}</div><div class="page-subtitle">${_subtitle}</div></div>
-    ${can('formulations')?`<div style="display:flex;gap:8px;">
-      <button class="btn btn-sm" style="background:var(--accent-light);color:var(--accent2);border:1.5px solid #bfdbfe;" onclick="openStandaloneScaler()">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> Batch Scaler
-      </button>
-      <button class="btn btn-primary" onclick="openNewFormModal()" id="btn-new-form">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> New Formulation${_formDraft&&_formDraft.pname?` <span style="background:#fef9c3;color:#b45309;border-radius:4px;padding:1px 6px;font-size:10px;margin-left:4px;">DRAFT</span>`:''}
-      </button>
-    </div>`:''}
-  </div>`;
-
-  // Search bar
-  html+=`<div class="search-filter-bar">
-    <div class="search-input-wrap">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input class="search-input" id="form-search" placeholder="Search by product, batch, code..." oninput="filterFormulations()">
-    </div>
-    <select class="filter-select" id="form-filter-date" onchange="filterFormulations()">
-      <option value="">All Dates</option>
-      <option value="today">Today</option>
-      <option value="week">This Week</option>
-      <option value="month">This Month</option>
-    </select>
-  </div>`;
-
-  html+=`<div id="formulations-list">`;
-  if(myForms.length===0){
-    const _emptyMsg = currentUser.role==='labentry'
-      ? '\u2705 All batches have LAB & Gloss values filled. Nothing pending!'
-      : currentUser.role==='batchedit'
-      ? '\u2705 All batches have a Batch Number assigned. Nothing pending!'
-      : 'No formulations found. Create your first batch!';
-    html+=`<div class="alert alert-info">${_emptyMsg}</div>`;
-  }
-
-  const _fmAll = myForms.slice().reverse();
-  const _fmBatch = 50;
-  const _fmInitial = _fmAll.slice(0, _fmBatch);
-  const _fmRemaining = _fmAll.length - _fmBatch;
-  window._fmAllForms = _fmAll;
-  window._fmLoaded = _fmBatch;
-
-  _fmInitial.forEach(f=>{
-    try{
-    if(!f||!f.productName)return;
-    f.items=f.items||[];
-    const cost=calcBatchCost(f);
-    const totalQty=calcTotalQty(f);
-    html+=`<div class="batch-card" data-id="${f.id}" data-name="${(f.productName||'').toLowerCase()}" data-code="${(f.productCode||'').toLowerCase()}" data-batch="${(f.batchNo||'').toLowerCase()}" data-date="${f.mfgDate||''}" data-remarks="${(f.remarks||'').toLowerCase()}" data-by="${(f.byName||f.by||'').toLowerCase()}">
+// buildFormCardHTML — single source of truth for a formulation card's HTML.
+// Used by renderFormulations() (first page), _fmLoadMore() (pagination) and
+// _fmLoadAllRemaining() (search), so every card always shows the SAME full
+// set of buttons/info no matter how it was loaded onto the page.
+function buildFormCardHTML(f){
+  try{
+  if(!f||!f.productName)return'';
+  f.items=f.items||[];
+  const cost=calcBatchCost(f);
+  const totalQty=calcTotalQty(f);
+  return `<div class="batch-card" data-id="${f.id}" data-name="${(f.productName||'').toLowerCase()}" data-code="${(f.productCode||'').toLowerCase()}" data-batch="${(f.batchNo||'').toLowerCase()}" data-date="${f.mfgDate||''}" data-remarks="${(f.remarks||'').toLowerCase()}" data-by="${(f.byName||f.by||'').toLowerCase()}">
       <div class="batch-card-top">
         <div>
           <div class="batch-card-title">${f.productName}</div>
@@ -1592,7 +1524,79 @@ function renderFormulations(){
         ${(f.items||[]).map(item=>{const rm=getRMById(item.rmId);if(!rm)return'';const u=(item.unit||rm.unit||'KG').toUpperCase();const unitLabel=u==='G'?'Gram':(item.unit||rm.unit);return`<span style="background:#e2e8f0;border:1px solid #94a3b8;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:600;color:#1e293b">${rm.name} (${item.qty} ${unitLabel})</span>`;}).join('')}
       </div>`:''}
     </div>`;
-    }catch(e){console.warn("Skipped formulation render:",f?.id,e);}
+  }catch(e){console.warn("Skipped formulation render:",f?.id,e);return'';}
+}
+function renderFormulations(){
+  let myForms=DB.formulations;
+  if(currentUser.role==='formulation')myForms=DB.formulations.filter(f=>f.by===currentUser.username);
+  // Vivek (labentry): only show batches with NO lab/gloss filled yet
+  if(currentUser.role==='labentry')myForms=DB.formulations.filter(f=>
+    !f.labValues && (f.glossValue==null||f.glossValue===undefined||f.glossValue==='')
+  );
+  // Amar (batchedit): only show batches with missing/empty batch number
+  if(currentUser.role==='batchedit')myForms=DB.formulations.filter(f=>
+    !f.batchNo || String(f.batchNo).trim()===''
+  );
+
+  // Search filter
+  let searchQ = '';
+
+  const _pendingBadge = currentUser.role==='labentry'
+    ? `<span style="background:#f5f3ff;color:#7c3aed;padding:2px 10px;border-radius:20px;font-size:12px;font-weight:700;margin-left:8px;">\u{1F9EA} ${myForms.length} pending</span>`
+    : currentUser.role==='batchedit'
+    ? `<span style="background:#fffbeb;color:#92400e;padding:2px 10px;border-radius:20px;font-size:12px;font-weight:700;margin-left:8px;">\u{1F4CB} ${myForms.length} pending</span>`
+    : '';
+  const _subtitle = currentUser.role==='labentry'
+    ? 'Batches waiting for LAB \u0026 Gloss values — already filled batches are hidden'
+    : currentUser.role==='batchedit'
+    ? 'Batches with no Batch Number yet — already assigned batches are hidden'
+    : 'Batch production records';
+
+  let html=`<div class="page-header">
+    <div><div class="page-title">Formulations ${_pendingBadge}</div><div class="page-subtitle">${_subtitle}</div></div>
+    ${can('formulations')?`<div style="display:flex;gap:8px;">
+      <button class="btn btn-sm" style="background:var(--accent-light);color:var(--accent2);border:1.5px solid #bfdbfe;" onclick="openStandaloneScaler()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> Batch Scaler
+      </button>
+      <button class="btn btn-primary" onclick="openNewFormModal()" id="btn-new-form">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> New Formulation${_formDraft&&_formDraft.pname?` <span style="background:#fef9c3;color:#b45309;border-radius:4px;padding:1px 6px;font-size:10px;margin-left:4px;">DRAFT</span>`:''}
+      </button>
+    </div>`:''}
+  </div>`;
+
+  // Search bar
+  html+=`<div class="search-filter-bar">
+    <div class="search-input-wrap">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input class="search-input" id="form-search" placeholder="Search by product, batch, code..." oninput="filterFormulations()">
+    </div>
+    <select class="filter-select" id="form-filter-date" onchange="filterFormulations()">
+      <option value="">All Dates</option>
+      <option value="today">Today</option>
+      <option value="week">This Week</option>
+      <option value="month">This Month</option>
+    </select>
+  </div>`;
+
+  html+=`<div id="formulations-list">`;
+  if(myForms.length===0){
+    const _emptyMsg = currentUser.role==='labentry'
+      ? '\u2705 All batches have LAB & Gloss values filled. Nothing pending!'
+      : currentUser.role==='batchedit'
+      ? '\u2705 All batches have a Batch Number assigned. Nothing pending!'
+      : 'No formulations found. Create your first batch!';
+    html+=`<div class="alert alert-info">${_emptyMsg}</div>`;
+  }
+
+  const _fmAll = myForms.slice().reverse();
+  const _fmBatch = 50;
+  const _fmInitial = _fmAll.slice(0, _fmBatch);
+  const _fmRemaining = _fmAll.length - _fmBatch;
+  window._fmAllForms = _fmAll;
+  window._fmLoaded = _fmBatch;
+
+  _fmInitial.forEach(f=>{
+    html+=buildFormCardHTML(f);
   });
   if(_fmRemaining > 0){
     html+=`<div id="fm-loadmore" style="padding:20px;text-align:center;">
@@ -1615,26 +1619,8 @@ function _fmLoadMore(){
   const sentinel = document.getElementById('fm-loadmore');
   if(sentinel) sentinel.remove();
   let xhtml='';
-  next.forEach(f=>{
-    try{
-      if(!f||!f.productName)return;
-      f.items=f.items||[];
-      const cost=calcBatchCost(f);
-      const totalQty=calcTotalQty(f);
-      // Build same card data attributes - full card rebuilt inline
-      const card=document.createElement('div');
-      card.className='batch-card';
-      card.dataset.id=f.id;
-      card.dataset.name=(f.productName||'').toLowerCase();
-      card.dataset.code=(f.productCode||'').toLowerCase();
-      card.dataset.batch=(f.batchNo||'').toLowerCase();
-      card.dataset.date=f.mfgDate||'';
-      card.dataset.remarks=(f.remarks||'').toLowerCase();
-      card.dataset.by=(f.byName||f.by||'').toLowerCase();
-      card.innerHTML='<div class="batch-card-top"><div><div class="batch-card-title">'+f.productName+'</div><div class="batch-card-code">'+(f.productCode||'—')+' · Batch: '+(f.batchNo||'—')+'</div></div></div><div class="batch-card-meta" style="margin-top:10px;"><span>📅 '+f.mfgDate+'</span><span>👤 '+f.byName+'</span><span>⚗ '+(f.items||[]).length+' materials</span></div>';
-      if(list) list.appendChild(card);
-    }catch(e){}
-  });
+  next.forEach(f=>{ xhtml+=buildFormCardHTML(f); });
+  if(list) list.insertAdjacentHTML('beforeend', xhtml);
   window._fmLoaded += next.length;
   const remaining = window._fmAllForms.length - window._fmLoaded;
   if(remaining > 0 && list){
@@ -1644,12 +1630,38 @@ function _fmLoadMore(){
     list.appendChild(s);
   }
   const q=document.getElementById('form-search')?.value||'';
-  if(q) filterFormulations();
+  const dateFilter=document.getElementById('form-filter-date')?.value||'';
+  if(q||dateFilter) filterFormulations();
+}
+
+// _fmLoadAllRemaining — pulls EVERY remaining formulation into the DOM
+// (using the full card template, same as the first page) so that search
+// and date filters can match against the complete dataset, not just the
+// first 50 formulations that happened to be loaded initially.
+function _fmLoadAllRemaining(){
+  if(!window._fmAllForms) return;
+  if(window._fmLoaded >= window._fmAllForms.length) return;
+  const list = document.getElementById('formulations-list');
+  const sentinel = document.getElementById('fm-loadmore');
+  if(sentinel) sentinel.remove();
+  const rest = window._fmAllForms.slice(window._fmLoaded);
+  let xhtml='';
+  rest.forEach(f=>{ xhtml+=buildFormCardHTML(f); });
+  if(list) list.insertAdjacentHTML('beforeend', xhtml);
+  window._fmLoaded = window._fmAllForms.length;
 }
 
 function filterFormulations(){
   const q=(document.getElementById('form-search')?.value||'').toLowerCase();
   const dateFilter=document.getElementById('form-filter-date')?.value||'';
+
+  // As soon as the user searches or applies a date filter, make sure ALL
+  // formulations are on the page first — otherwise matches that live
+  // beyond the first 50 (pagination batch) would never appear at all.
+  if((q||dateFilter) && window._fmAllForms && window._fmLoaded<window._fmAllForms.length){
+    _fmLoadAllRemaining();
+  }
+
   const today=nowDate();
   const weekStart=new Date();weekStart.setDate(weekStart.getDate()-7);
   const monthStart=new Date();monthStart.setDate(1);
@@ -6695,461 +6707,7 @@ ${showCost?`
 function closeModal(id){document.getElementById(id)?.remove();formItemCount=0;caItemCount=0;}
 </script>
 
-<!-- ════════════════════════════════════════════════════ -->
-<!--  SURFACE AI CHATBOT                                  -->
-<!-- ════════════════════════════════════════════════════ -->
-
-
-<!-- Chatbot panel HTML -->
-<div id="sai-panel">
-  <div id="sai-header">
-    <div id="sai-avatar">🧠</div>
-    <div id="sai-header-info">
-      <div id="sai-header-name">Surface AI Assistant</div>
-      <div id="sai-header-sub">Powered by live Google Sheets data</div>
-    </div>
-    <div id="sai-header-status"><div id="sai-status-dot"></div> Live</div>
-  </div>
-  <div id="sai-loading-bar"></div>
-  <div id="sai-ctx-banner">
-    <span>✅</span>
-    <span id="sai-ctx-text">Data loaded</span>
-    <button id="sai-refresh-btn" onclick="saiRefreshData()">↻ Refresh</button>
-  </div>
-  <div id="sai-chips">
-    <span class="sai-chip" onclick="saiChip(this)">📦 Stock status</span>
-    <span class="sai-chip" onclick="saiChip(this)">💰 Costliest RM</span>
-    <span class="sai-chip" onclick="saiChip(this)">⚠️ Low stock items</span>
-    <span class="sai-chip" onclick="saiChip(this)">🧪 Recent batches</span>
-    <span class="sai-chip" onclick="saiChip(this)">📊 Total inventory value</span>
-    <span class="sai-chip" onclick="saiChip(this)">🌐 Current TiO2 market price</span>
-    <span class="sai-chip" onclick="saiChip(this)">🔬 Epoxy vs polyester resin</span>
-  </div>
-  <div id="sai-messages"></div>
-  <div id="sai-input-area">
-    <textarea id="sai-input" rows="1" placeholder="Ask anything about your data…" onkeydown="saiKeyDown(event)" oninput="saiAutoResize(this)"></textarea>
-    <button id="sai-send" onclick="saiSend()" title="Send">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-        <path d="M22 2L11 13M22 2L15 22l-4-9-9-4 20-7Z" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-    </button>
-  </div>
-</div>
-
 <script>
-// ════════════════════════════════════════════════════════
-//  SURFACE AI CHATBOT
-// ════════════════════════════════════════════════════════
-const SAI = {
-  open: false,
-  loading: false,
-  dataLoaded: false,
-  dataSnapshot: null,
-  history: [],  // last 4 messages kept for context memory
-  GEMINI_KEY: 'AIzaSyBB9PAtBoJitSi-z70GyfMSECdenYK-yPU',
-};
-
-function saiToggle() {
-  SAI.open = !SAI.open;
-  const panel = document.getElementById('sai-panel');
-  panel.classList.toggle('open', SAI.open);
-  if (SAI.open) {
-    if (!SAI.dataLoaded) {
-      saiLoadData(true);
-    }
-    setTimeout(() => document.getElementById('sai-input')?.focus(), 200);
-    if (SAI.history.length === 0) saiWelcome();
-  }
-}
-
-function saiWelcome() {
-  saiAddMsg('bot', `👋 <strong>Namaste!</strong> I'm your Surface AI assistant — powered by <strong>Gemini AI (Free)</strong>.<br><br>
-I have live access to your <strong>Google Sheets data</strong> — raw materials, inventory, formulations, costs, and transactions.<br><br>
-📊 <strong>Analytics:</strong> cost trends, margin analysis, inventory health<br>
-💡 <strong>Smart suggestions:</strong> cheaper raw material alternatives, formulation tweaks to save money<br>
-⚡ <strong>Real-time alerts:</strong> low stock, overstocked items, cost spikes<br><br>
-Try asking:<br>
-• <em>"Which formulations cost the most?"</em><br>
-• <em>"Where can I save money on raw materials?"</em><br>
-• <em>"What's my inventory value?"</em><br>
-• <em>"Show batch [batch no] details"</em> 🚀`);
-}
-
-function saiChip(el) {
-  const text = el.textContent.replace(/^[^\w]+/, '').trim();
-  document.getElementById('sai-input').value = text;
-  saiSend();
-}
-
-function saiKeyDown(e) {
-  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); saiSend(); }
-}
-
-function saiAutoResize(el) {
-  el.style.height = 'auto';
-  el.style.height = Math.min(el.scrollHeight, 100) + 'px';
-}
-
-// ── Load data from GAS ────────────────────────────────
-async function saiLoadData(silent = false) {
-  if (!silent) {
-    saiAddMsg('bot', `<div class="sai-typing"><span></span><span></span><span></span></div>`);
-  }
-  try {
-    // Use the already-loaded in-memory DB as the fastest/most accurate source
-    // Also try to refresh from GAS if available
-    let snapshot = saiSnapshotFromDB();
-
-    // Attempt GAS refresh in background
-    if (typeof GAS_URL !== 'undefined' && GAS_URL) {
-      try {
-        const params = encodeURIComponent(JSON.stringify({action:'loadAll'}));
-        const res = await fetch(GAS_URL + '?data=' + params, {method:'GET', redirect:'follow'});
-        const json = await res.json();
-        if (json && json.success && json.data) {
-          // Merge GAS data into snapshot
-          const d = json.data;
-          if (d.rawMaterials && d.rawMaterials.length) snapshot.rawMaterials = d.rawMaterials;
-          if (d.inventory && d.inventory.length) snapshot.inventory = d.inventory;
-          if (d.formulations) snapshot.formulations = d.formulations;
-          if (d.stockTransactions) snapshot.stockTransactions = d.stockTransactions;
-          snapshot.source = 'Google Sheets (live)';
-        }
-      } catch(e) {
-        snapshot.source = 'Local cache (GAS unavailable)';
-      }
-    }
-
-    SAI.dataSnapshot = snapshot;
-    SAI.dataLoaded = true;
-
-    // Remove typing bubble
-    const msgs = document.getElementById('sai-messages');
-    const last = msgs.lastElementChild;
-    if (last && last.querySelector('.sai-typing')) last.remove();
-
-    const banner = document.getElementById('sai-ctx-banner');
-    const ctxText = document.getElementById('sai-ctx-text');
-    const rm = snapshot.rawMaterials.length;
-    const forms = snapshot.formulations.length;
-    ctxText.textContent = `${rm} raw materials · ${forms} formulations · ${snapshot.source}`;
-    banner.classList.add('visible');
-
-  } catch(err) {
-    SAI.dataSnapshot = saiSnapshotFromDB();
-    SAI.dataLoaded = true;
-  }
-}
-
-function saiSnapshotFromDB() {
-  try {
-    if (typeof DB === 'undefined') return { rawMaterials:[], inventory:[], formulations:[], stockTransactions:[], auditLog:[], formulationComments:[], packagingCost:26, source:'Unknown' };
-    return {
-      rawMaterials:        JSON.parse(JSON.stringify(DB.rawMaterials||[])),
-      inventory:           JSON.parse(JSON.stringify(DB.inventory||[])),
-      formulations:        JSON.parse(JSON.stringify(DB.formulations||[])),
-      stockTransactions:   JSON.parse(JSON.stringify(DB.stockTransactions||[])),
-      auditLog:            JSON.parse(JSON.stringify(DB.auditLog||[])),
-      formulationComments: JSON.parse(JSON.stringify(DB.formulationComments||[])),
-      basePrices:          JSON.parse(JSON.stringify(DB.basePrices||[])),
-      packagingCost:       DB.packagingCost || 26,
-      settings:            JSON.parse(JSON.stringify(DB.settings||{})),
-      source: 'Live Google Sheets',
-    };
-  } catch(e) { return { rawMaterials:[], inventory:[], formulations:[], stockTransactions:[], auditLog:[], formulationComments:[], packagingCost:26, source:'Error' }; }
-}
-
-async function saiRefreshData() {
-  SAI.dataLoaded = false;
-  document.getElementById('sai-ctx-banner').classList.remove('visible');
-  await saiLoadData(false);
-  saiAddMsg('bot','✅ Data refreshed from Google Sheets!');
-}
-
-// ── Build system prompt — SMART TOKEN SAVER ─────────
-// Detects what user asked and only sends relevant data sections.
-// Full DB is NEVER dumped — saves 80-90% tokens per message.
-function saiBuildSystemPrompt(snapshot, userText) {
-  const rmMap = {};
-  (snapshot.rawMaterials||[]).forEach(r => { rmMap[r.id] = r; });
-  const q = (userText||'').toLowerCase();
-
-  // ── Detect intent keywords ──────────────────────────
-  const wantsInventory    = /invent|stock|qty|quantity|low|out.of|overstock|available|shortage/.test(q);
-  const wantsFormulation  = /formula|batch|product|code|recipe|ingredi|item|cpk|cost.per|making/.test(q);
-  const wantsRawMaterial  = /raw.mat|material|rm|supplier|rate|price|chemical|resin|pigment|filler|curing/.test(q);
-  const wantsTransaction  = /transact|purchase|bought|received|used|debit|stock.in|stock.out|history/.test(q);
-  const wantsAnalytics    = /analy|saving|expensive|cheap|reduce|suggest|recommend|compare|best|worst|total|value|report/.test(q);
-  const wantsCost         = /cost|price|rate|₹|rupee|money|margin|profit|saving|cpk|per.kg/.test(q);
-
-  // If no specific keyword — send minimal context only
-  const sendAll = wantsAnalytics || (!wantsInventory && !wantsFormulation && !wantsRawMaterial && !wantsTransaction && !wantsCost);
-
-  // ── RAW MATERIALS — only if asked, or analytics ──────
-  let rmSection = '';
-  if (wantsRawMaterial || wantsCost || wantsAnalytics || sendAll) {
-    rmSection = '\n[RAW MATERIALS]\n' + (snapshot.rawMaterials||[]).map(r =>
-      `${r.name}[${r.code}] ₹${r.rate}/${r.unit} Sup:${r.supplier||'—'}`
-    ).join('\n');
-  }
-
-  // ── INVENTORY — only if asked ────────────────────────
-  let invSection = '';
-  if (wantsInventory || wantsAnalytics || sendAll) {
-    const totalInvVal = (snapshot.inventory||[]).reduce((s,inv)=>s+(inv.quantity||0)*((rmMap[inv.rmId]||{}).rate||0),0);
-    const rows = (snapshot.inventory||[]).map(inv => {
-      const rm = rmMap[inv.rmId]||{};
-      const qty = inv.quantity||0;
-      const min = rm.minStock||0;
-      const flag = qty<=0?'❌OUT': qty<min?'⚠️LOW': qty>min*10?'📦OVER':'✅';
-      return `${flag} ${rm.name||'#'+inv.rmId}: ${qty}${rm.unit||'KG'} ₹${(qty*(rm.rate||0)).toLocaleString('en-IN')}`;
-    });
-    invSection = `\n[INVENTORY — Total ₹${totalInvVal.toLocaleString('en-IN')}]\n` + rows.join('\n');
-  }
-
-  // ── FORMULATIONS — smart: summary list OR full detail if specific batch/code mentioned ──
-  let formSection = '';
-  if (wantsFormulation || wantsCost || wantsAnalytics || sendAll) {
-    const allForms = snapshot.formulations||[];
-
-    // Check if user mentioned a specific batch/product
-    const needle = q.trim();
-    const specificForm = allForms.find(f =>
-      needle && (
-        (f.batchNo||'').toLowerCase().includes(needle) ||
-        (f.productCode||'').toLowerCase().includes(needle) ||
-        (f.productName||'').toLowerCase().includes(needle) ||
-        String(f.id) === needle
-      )
-    );
-
-    if (specificForm) {
-      // Send FULL detail for the one matched formulation
-      const f = specificForm;
-      const items = (f.items||[]).map(it => {
-        const rm = rmMap[it.rmId]||{};
-        const rate = it.rate!=null ? it.rate : (rm.rate||0);
-        const cost = (it.qty||0)*rate;
-        const pct = 0;
-        return `  ${rm.name||'#'+it.rmId}[${rm.code||''}]: ${it.qty}${it.unit||'KG'} @₹${rate}=₹${cost.toFixed(2)}`;
-      });
-      const tQty  = (f.items||[]).reduce((s,i)=>s+(i.qty||0),0);
-      const tCost = (f.items||[]).reduce((s,i)=>{ const rm=rmMap[i.rmId]||{}; const r=i.rate!=null?i.rate:(rm.rate||0); return s+(i.qty||0)*r; },0);
-      const pack  = tQty*(snapshot.packagingCost||26);
-      const tot   = tCost+pack;
-      const cpk   = tQty>0?(tot/tQty).toFixed(2):'—';
-      formSection = `\n[FORMULATION DETAIL]\n${f.productName}[${f.productCode}] Batch:${f.batchNo} Date:${f.mfgDate||'—'} Party:${f.partyName||'—'}\nType:${f.productType||'—'} Finish:${f.productFinish||'—'} By:${f.byName||'—'}\nRemarks:${f.remarks||'—'}\nIngredients:\n${items.join('\n')}\nCost: RM=₹${tCost.toFixed(0)} + Pack=₹${pack.toFixed(0)} = ₹${tot.toFixed(0)} | CPK=₹${cpk}`;
-    } else {
-      // Summary list — ONE compact line per formulation
-      const lines = allForms.map(f => {
-        const tQty  = (f.items||[]).reduce((s,i)=>s+(i.qty||0),0);
-        const tCost = (f.items||[]).reduce((s,i)=>{ const rm=rmMap[i.rmId]||{}; const r=i.rate!=null?i.rate:(rm.rate||0); return s+(i.qty||0)*r; },0);
-        const pack  = tQty*(snapshot.packagingCost||26);
-        const tot   = tCost+pack;
-        const cpk   = tQty>0?(tot/tQty).toFixed(2):'—';
-        return `ID:${f.id} ${f.productName}[${f.productCode}] Batch:${f.batchNo} ${f.mfgDate||'—'} ${(f.items||[]).length}items ${tQty.toFixed(1)}KG CPK:₹${cpk} Tot:₹${tot.toFixed(0)}`;
-      });
-      formSection = `\n[FORMULATIONS — ${allForms.length} total]\n` + lines.join('\n');
-    }
-  }
-
-  // ── TRANSACTIONS — last 8 only, only if asked ─────────
-  let txSection = '';
-  if (wantsTransaction || sendAll) {
-    txSection = '\n[RECENT TRANSACTIONS — last 8]\n' + (snapshot.stockTransactions||[]).slice(-8).map(t => {
-      const rm = rmMap[t.rmId]||{};
-      return `[${t.date||''}] ${(t.type||'').toUpperCase()} ${rm.name||'#'+t.rmId} ${t.qty}${rm.unit||'KG'} ${t.remarks||''}`;
-    }).join('\n');
-  }
-
-  // ── PRE-COMPUTED ANALYTICS — only for analytics queries ──
-  let analyticsSection = '';
-  if (wantsAnalytics || wantsCost) {
-    const allForms = snapshot.formulations||[];
-    const cpkList = allForms.map(f => {
-      const tQty  = (f.items||[]).reduce((s,i)=>s+(i.qty||0),0);
-      const tCost = (f.items||[]).reduce((s,i)=>{ const rm=rmMap[i.rmId]||{}; const r=i.rate!=null?i.rate:(rm.rate||0); return s+(i.qty||0)*r; },0);
-      const pack  = tQty*(snapshot.packagingCost||26);
-      const tot   = tCost+pack;
-      return { name:f.productName, cpk: tQty>0?tot/tQty:0, tot };
-    }).filter(x=>x.cpk>0).sort((a,b)=>b.cpk-a.cpk);
-
-    const topExpensive = cpkList.slice(0,3).map(x=>`${x.name} ₹${x.cpk.toFixed(2)}/KG`).join(', ');
-    const topCheap     = cpkList.slice(-3).reverse().map(x=>`${x.name} ₹${x.cpk.toFixed(2)}/KG`).join(', ');
-    const portfolioVal = cpkList.reduce((s,x)=>s+x.tot,0);
-    const totalInvVal2 = (snapshot.inventory||[]).reduce((s,inv)=>s+(inv.quantity||0)*((rmMap[inv.rmId]||{}).rate||0),0);
-    const lowCount     = (snapshot.inventory||[]).filter(inv=>{ const rm=rmMap[inv.rmId]||{}; return (inv.quantity||0)<(rm.minStock||0); }).length;
-
-    analyticsSection = `\n[ANALYTICS SUMMARY]\nInventory value: ₹${totalInvVal2.toLocaleString('en-IN')} | Low stock alerts: ${lowCount}\nPortfolio value: ₹${portfolioVal.toLocaleString('en-IN')} | Formulations: ${allForms.length}\nCostliest (CPK): ${topExpensive||'N/A'}\nCheapest (CPK): ${topCheap||'N/A'}`;
-  }
-
-  // ── COMPACT SYSTEM PROMPT ─────────────────────────────
-  return `You are Surface AI for Surface Paints Pvt. Ltd. (powder coating, India). ₹ currency, KG weight. Pack cost: ₹${snapshot.packagingCost||26}/KG.
-Be concise. Indian number format. Quantify savings when suggesting alternatives. Flag issues proactively.
-${rmSection}${invSection}${formSection}${txSection}${analyticsSection}`.trim();
-}
-
-
-// ── Send message ──────────────────────────────────────
-async function saiSend() {
-  const input = document.getElementById('sai-input');
-  const text = input.value.trim();
-  if (!text || SAI.loading) return;
-
-  input.value = '';
-  input.style.height = 'auto';
-  saiAddMsg('user', text);
-
-  if (!SAI.dataLoaded) {
-    await saiLoadData(true);
-  }
-
-  SAI.loading = true;
-  document.getElementById('sai-send').disabled = true;
-  document.getElementById('sai-loading-bar').classList.add('active');
-
-  const typingId = 'sai-typing-' + Date.now();
-  saiAddMsg('bot', `<div class="sai-typing"><span></span><span></span><span></span></div>`, typingId);
-
-  SAI.history.push({ role: 'user', content: text });
-
-  try {
-    // Build system prompt with full live data snapshot
-    const systemPrompt = saiBuildSystemPrompt(SAI.dataSnapshot || saiSnapshotFromDB(), text);
-
-    // ── Claude AI via GAS proxy (no CORS issues, API key safe in Script Properties) ──
-    const gasPayload = {
-      action: 'claudeAI',
-      systemPrompt: systemPrompt,
-      messages: SAI.history.slice(-4).map(m => ({ role: m.role === 'assistant' ? 'assistant' : 'user', content: m.content }))
-    };
-
-    const claudeRes = await fetch(GAS_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify(gasPayload),
-      redirect: 'follow'
-    });
-
-    let reply = '';
-    if (claudeRes.ok) {
-      const claudeData = await claudeRes.json();
-      if (!claudeData.success) throw new Error(claudeData.error || 'GAS returned error');
-      reply = claudeData.reply || '';
-    } else {
-      throw new Error('GAS error ' + claudeRes.status);
-    }
-
-    if (!reply) reply = 'Sorry, no response received. Please try again.';
-
-    document.getElementById(typingId)?.remove();
-    SAI.history.push({ role: 'assistant', content: reply });
-    saiAddMsg('bot', saiFormatReply(reply));
-
-  } catch(err) {
-    document.getElementById(typingId)?.remove();
-    const errMsg = err.message || 'Unknown error';
-    saiAddMsg('bot', `❌ <strong>Error:</strong> ${errMsg}`);
-  } finally {
-    SAI.loading = false;
-    document.getElementById('sai-send').disabled = false;
-    document.getElementById('sai-loading-bar').classList.remove('active');
-  }
-}
-
-// ── Format reply (markdown-lite) ─────────────────────
-function saiFormatReply(text) {
-  return text
-    // Bold **text**
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    // Italic *text*
-    .replace(/\*(.*?)\*/g, '<em>$1</em>')
-    // Code `text`
-    .replace(/`([^`]+)`/g, '<code style="background:#f1f5f9;padding:1px 5px;border-radius:4px;font-family:JetBrains Mono,monospace;font-size:11.5px;">$1</code>')
-    // Bullet points
-    .replace(/^[•\-]\s(.+)$/gm, '<div style="display:flex;gap:6px;margin:2px 0;"><span style="color:#2563eb;flex-shrink:0;">•</span><span>$1</span></div>')
-    // Numbered list
-    .replace(/^(\d+)\.\s(.+)$/gm, '<div style="display:flex;gap:7px;margin:2px 0;"><span style="color:#2563eb;font-weight:700;flex-shrink:0;min-width:16px;">$1.</span><span>$2</span></div>')
-    // Line breaks
-    .replace(/\n\n/g, '<br><br>')
-    .replace(/\n/g, '<br>');
-}
-
-// ── Login / Logout hooks ────────────────────────────
-function saiOnLogin() {
-  // Reset state for fresh session
-  SAI.open = false;
-  SAI.loading = false;
-  SAI.dataLoaded = false;
-  SAI.dataSnapshot = null;
-  SAI.history = [];
-
-  const panel = document.getElementById('sai-panel');
-  if (panel) panel.classList.remove('open');
-  const msgs = document.getElementById('sai-messages');
-  if (msgs) msgs.innerHTML = '';
-  const banner = document.getElementById('sai-ctx-banner');
-  if (banner) banner.classList.remove('visible');
-
-  // Show launcher with direct style — simplest most reliable method
-  if (launcher) {
-    launcher.classList.add('sai-active');
-    launcher.classList.add('sai-visible');
-  }
-
-  // Re-apply after data load in case anything reset it
-  setTimeout(() => {
-    if (!SAI.dataLoaded) saiLoadData(true);
-    if (l) l.classList.add('sai-active');
-  }, 500);
-}
-
-function saiOnLogout() {
-  const panel = document.getElementById('sai-panel');
-  if (launcher) { launcher.classList.remove('sai-active'); launcher.classList.remove('sai-visible'); }
-  if (panel) panel.classList.remove('open');
-  SAI.open = false;
-  SAI.loading = false;
-  SAI.dataLoaded = false;
-  SAI.dataSnapshot = null;
-  SAI.history = [];
-  const msgs = document.getElementById('sai-messages');
-  if (msgs) msgs.innerHTML = '';
-}
-
-// ── Add message to UI ─────────────────────────────────
-function saiAddMsg(role, html, id) {
-  const msgs = document.getElementById('sai-messages');
-  const now = new Date().toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit'});
-
-  const userInitials = (typeof currentUser !== 'undefined' && currentUser)
-    ? (currentUser.name||'U').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2)
-    : 'U';
-
-  const div = document.createElement('div');
-  if (id) div.id = id;
-  div.className = `sai-msg ${role}`;
-
-  if (role === 'bot') {
-    div.innerHTML = `
-      <div class="sai-msg-avatar bot">🧠</div>
-      <div>
-        <div class="sai-bubble">${html}</div>
-        <div class="sai-time">${now}</div>
-      </div>`;
-  } else {
-    div.innerHTML = `
-      <div class="sai-msg-avatar user-av">${userInitials}</div>
-      <div>
-        <div class="sai-bubble">${html}</div>
-        <div class="sai-time">${now}</div>
-      </div>`;
-  }
-
-  msgs.appendChild(div);
-  msgs.scrollTop = msgs.scrollHeight;
-  return div;
-}
 
 // ════════════════════════════════════════════════════════════════════════════
 //  PRODUCTION EFFICIENCY & MACHINE COSTING MODULE  (v3.0)
