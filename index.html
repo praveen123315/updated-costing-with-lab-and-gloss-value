@@ -1,4 +1,4 @@
-F<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -849,8 +849,16 @@ async function loadFromGAS(){
       DB.formulationComments = DB.formulationComments || [];
       if(d.formulationComments && Array.isArray(d.formulationComments)) DB.formulationComments = d.formulationComments;
       if(d.basePrices && Array.isArray(d.basePrices)) DB.basePrices = d.basePrices;
-      if(d.machines && Array.isArray(d.machines) && d.machines.length) DB.machines = d.machines.map(m=>({...m,id:Number(m.id),hourlyMachineCost:Number(m.hourlyMachineCost)||0,stdKgHr:Number(m.stdKgHr)||0,active:m.active!==false&&m.active!=="false"}));
-      if(d.shifts && Array.isArray(d.shifts) && d.shifts.length) DB.shifts = d.shifts.map(s=>({...s,id:Number(s.id),active:s.active!==false&&s.active!=="false"}));
+      if(d.machines && Array.isArray(d.machines) && d.machines.length){
+        DB.machines = d.machines.map(m=>({...m,id:Number(m.id),hourlyMachineCost:Number(m.hourlyMachineCost)||0,stdKgHr:Number(m.stdKgHr)||0,active:m.active!==false&&m.active!=="false"}));
+        const maxMacId = DB.machines.reduce((mx,m)=>Math.max(mx,Number(m.id)||0),0);
+        if(maxMacId >= DB.nextId_machine) DB.nextId_machine = maxMacId + 1;
+      }
+      if(d.shifts && Array.isArray(d.shifts) && d.shifts.length){
+        DB.shifts = d.shifts.map(s=>({...s,id:Number(s.id),crossesMidnight:s.crossesMidnight===true||s.crossesMidnight==='true',active:s.active!==false&&s.active!=="false"}));
+        const maxShiftId = DB.shifts.reduce((mx,s)=>Math.max(mx,Number(s.id)||0),0);
+        if(maxShiftId >= DB.nextId_shift) DB.nextId_shift = maxShiftId + 1;
+      }
       if(d.productionLogs && Array.isArray(d.productionLogs)) {
         DB.productionLogs = d.productionLogs.map(l=>({
           ...l,
@@ -927,20 +935,44 @@ async function doLogin(){
   const btn=document.querySelector('#login-screen .btn-primary');
   btn.innerHTML='<div class="spinner" style="width:16px;height:16px;border-color:#fff3;border-top-color:#fff"></div> Signing in...';
   btn.disabled=true;
-  await loadFromGAS();
-  const user=DB.users.find(x=>x.username===u&&x.password===p);
-  if(!user){
-    document.getElementById('login-error').innerHTML='Invalid credentials. Please try again.';
+  function showInvalid(msg){
+    document.getElementById('login-error').innerHTML=msg||'Invalid credentials. Please try again.';
     document.getElementById('login-error').style.display='flex';
     btn.innerHTML='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg> Sign In';
     btn.disabled=false;
-    return;
+  }
+  let user=null;
+  if(GAS_URL){
+    // v3.10: credentials are checked server-side — the browser never
+    // downloads the full password list anymore.
+    try{
+      const result=await gasCall('login',{username:u,password:p});
+      if(result&&result.success&&result.user){
+        user=result.user;
+      } else {
+        showInvalid('Invalid credentials. Please try again.');
+        return;
+      }
+    }catch(err){
+      showInvalid('Could not reach Google Sheets — '+err.message);
+      return;
+    }
+    await loadFromGAS();
+    // loadFromGAS may replace DB.users with the (password-free) server copy;
+    // make sure the freshly-authenticated user object is the one used.
+    const refreshed=DB.users.find(x=>x.id===user.id);
+    if(refreshed) user=refreshed;
+  } else {
+    // Offline/demo mode — no backend configured, fall back to local seed data.
+    user=DB.users.find(x=>x.username===u&&x.password===p);
+    if(!user){ showInvalid(); return; }
   }
   document.getElementById('login-error').style.display='none';
   currentUser=user;
   initApp();
 }
 function logout(){
+
   currentUser=null;
   if(dashboardRefreshTimer) clearInterval(dashboardRefreshTimer);
   document.getElementById('app').style.display='none';
@@ -4234,14 +4266,24 @@ function deleteRM(id){
   if(!confirm(`Delete "${rm.name}"? This cannot be undone.`))return;
   const inUse=DB.formulations.some(f=>f.items.some(i=>i.rmId===id));
   if(inUse){toast('Cannot delete — this material is used in formulations','error');return;}
-  DB.rawMaterials.splice(DB.rawMaterials.findIndex(r=>r.id===id),1);
+  const rmIdx=DB.rawMaterials.findIndex(r=>r.id===id);
+  const removedRM=DB.rawMaterials[rmIdx];
+  const removedInv=DB.inventory.filter(i=>i.rmId===id);
+  DB.rawMaterials.splice(rmIdx,1);
   DB.inventory=DB.inventory.filter(i=>i.rmId!==id);
   addAudit('Deleted raw material',rm.code+' — '+rm.name);
-  toast('Material deleted','info');
   navigate('rawmaterials');
+  toast('Deleting...','info');
   gasCall('deleteRawMaterial',{rmId:id})
     .then(()=>gasCall('addAudit',{entry:DB.auditLog[0]}))
-    .catch(e=>console.error('deleteRawMaterial error:',e));
+    .then(()=>toast('Material deleted','info'))
+    .catch(err=>{
+      // Roll back local state — the sheet still has this row.
+      DB.rawMaterials.splice(rmIdx,0,removedRM);
+      DB.inventory.push(...removedInv);
+      navigate('rawmaterials');
+      toast('Delete failed — '+err.message,'error');
+    });
 }
 
 function openRMModal(id){
@@ -5160,10 +5202,18 @@ function saveUser(id){
 function deleteUser(id){
   if(id===currentUser.id){toast('Cannot delete yourself','error');return;}
   if(!confirm('Delete this user?'))return;
-  DB.users.splice(DB.users.findIndex(u=>u.id===id),1);
-  toast('User deleted','info');
+  const idx=DB.users.findIndex(u=>u.id===id);
+  const removed=DB.users[idx];
+  DB.users.splice(idx,1);
   navigate('users');
-  gasCall('deleteUser',{userId:id}).catch(e=>console.error('deleteUser error:',e));
+  toast('Deleting...','info');
+  gasCall('deleteUser',{userId:id,requestedBy:currentUser.id})
+    .then(()=>toast('User deleted','info'))
+    .catch(err=>{
+      DB.users.splice(idx,0,removed);
+      navigate('users');
+      toast('Delete failed — '+err.message,'error');
+    });
 }
 
 // ════════════════════════════════════════════════════════
@@ -6903,7 +6953,6 @@ function closeProdModal(){
 }
 
 // peShiftAutoFill is now a no-op — shift auto-fill is per date-row via peDateRenderRows()
-function peShiftAutoFill(){}
 
 function peAddMachineEntry(){
   const idx = ++window._peMachineCounter;
@@ -7371,19 +7420,27 @@ function openShiftModal(id){
 }
 function toggleShift(id){
   const s=DB.shifts.find(x=>x.id===id);
-  if(s){
-    s.active=!s.active;
-    navigate('shiftmaster');
-    toast(`${s.name} ${s.active?'activated':'deactivated'}`,'info');
-    gasCall('saveShift',{shift:s}).catch(e=>console.error('toggleShift save error:',e));
-  }
+  if(!s)return;
+  s.active=!s.active;
+  navigate('shiftmaster');
+  toast(`${s.name} ${s.active?'activated':'deactivated'}`,'info');
+  gasCall('saveShift',{shift:s})
+    .catch(err=>toast('Save failed — change was NOT saved to Google Sheets: '+err.message,'error'));
 }
 function deleteShift(id){
   if(!confirm('Delete this shift? It will be removed from the shift list.')) return;
+  const idx=DB.shifts.findIndex(s=>s.id===id);
+  const removed=DB.shifts[idx];
   DB.shifts=DB.shifts.filter(s=>s.id!==id);
   navigate('shiftmaster');
-  toast('Shift deleted','info');
-  gasCall('deleteShift',{shiftId:id}).catch(e=>console.error('deleteShift error:',e));
+  toast('Deleting...','info');
+  gasCall('deleteShift',{shiftId:id})
+    .then(()=>toast('Shift deleted','info'))
+    .catch(err=>{
+      DB.shifts.splice(idx,0,removed);
+      navigate('shiftmaster');
+      toast('Delete failed — '+err.message,'error');
+    });
 }
 function saveShift(){
   const name=document.getElementById('sm-name').value.trim();
@@ -7394,24 +7451,21 @@ function saveShift(){
   const color=colorRadio?colorRadio.value:'#2563eb';
   const editId=document.getElementById('sm-edit-id').value;
   if(!name||!start||!end){toast('Shift name, start time and end time are required','error');return;}
-  let s;
+  let shift;
   if(editId){
-    s=DB.shifts.find(x=>x.id===Number(editId));
+    const s=DB.shifts.find(x=>x.id===Number(editId));
     if(s){s.name=name;s.startTime=start;s.endTime=end;s.crossesMidnight=midnight;s.color=color;}
+    shift=s;
   } else {
-    s={id:0,name,startTime:start,endTime:end,crossesMidnight:midnight,active:true,color};
-    DB.shifts.push(s);
+    shift={id:DB.nextId_shift++,name,startTime:start,endTime:end,crossesMidnight:midnight,active:true,color};
+    DB.shifts.push(shift);
   }
   document.getElementById('shift-modal').style.display='none';
   navigate('shiftmaster');
   toast('Saving...','info');
-  gasCall('saveShift',{shift:s})
-    .then(res=>{
-      if(res&&res.newId){ s.id=Number(res.newId); }
-      toast('Shift saved ✓','success');
-      navigate('shiftmaster');
-    })
-    .catch(e=>{ console.error('saveShift error:',e); toast('Saved locally but server save failed','error'); });
+  gasCall('saveShift',{shift})
+    .then(()=>toast('Shift saved ✓','success'))
+    .catch(err=>toast('Save failed — shift was NOT saved to Google Sheets: '+err.message,'error'));
 }
 
 // ── Machine Setup page ───────────────────────────────────────────────────────
@@ -7519,12 +7573,12 @@ function openMachineModal(id){
 function editMachine(id){ openMachineModal(id); }
 function toggleMachine(id){
   const m=DB.machines.find(x=>x.id===id);
-  if(m){
-    m.active=!m.active;
-    navigate('machines');
-    toast(`${m.name} ${m.active?'activated':'deactivated'}`,'info');
-    gasCall('saveMachine',{machine:m}).catch(e=>console.error('toggleMachine save error:',e));
-  }
+  if(!m)return;
+  m.active=!m.active;
+  navigate('machines');
+  toast(`${m.name} ${m.active?'activated':'deactivated'}`,'info');
+  gasCall('saveMachine',{machine:m})
+    .catch(err=>toast('Save failed — change was NOT saved to Google Sheets: '+err.message,'error'));
 }
 function saveMachine(){
   const name=document.getElementById('mac-name').value.trim();
@@ -7533,32 +7587,31 @@ function saveMachine(){
   const stdKg=document.getElementById('mac-stdkg').value?Number(document.getElementById('mac-stdkg').value):null;
   const editId=document.getElementById('mac-edit-id').value;
   if(!name||!type){toast('Machine name and type are required','error');return;}
-  let m;
+  let machine;
   if(editId){
-    m=DB.machines.find(x=>x.id===Number(editId));
+    const m=DB.machines.find(x=>x.id===Number(editId));
     if(m){m.name=name;m.type=type;m.hourlyMachineCost=cost;if(stdKg!==null)m.stdKgHr=stdKg;}
+    machine=m;
   } else {
-    m={id:0,name,type,hourlyMachineCost:cost,stdKgHr:stdKg,active:true};
-    DB.machines.push(m);
+    machine={id:DB.nextId_machine++,name,type,hourlyMachineCost:cost,stdKgHr:stdKg,active:true};
+    DB.machines.push(machine);
   }
   document.getElementById('machine-modal').style.display='none';
   navigate('machines');
   toast('Saving...','info');
-  gasCall('saveMachine',{machine:m})
-    .then(res=>{
-      if(res&&res.newId){ m.id=Number(res.newId); }
-      toast('Machine saved ✓','success');
-      navigate('machines');
-    })
-    .catch(e=>{ console.error('saveMachine error:',e); toast('Saved locally but server save failed — check connection','error'); });
+  gasCall('saveMachine',{machine})
+    .then(()=>toast('Machine saved ✓','success'))
+    .catch(err=>toast('Save failed — machine was NOT saved to Google Sheets: '+err.message,'error'));
 }
 function saveLabourRate(){
   const v=Number(document.getElementById('labour-rate-input').value)||60;
   DB.labourRate=v;
+  addAudit('Updated labour rate',`₹${v} per man-hour`);
   toast('Saving...','info');
   gasCall('saveSetting',{key:'labourRate',value:v})
+    .then(()=>gasCall('addAudit',{entry:DB.auditLog[0]}))
     .then(()=>toast('Labour rate updated to ₹'+v+'/hr ✓','success'))
-    .catch(e=>{ console.error('saveLabourRate error:',e); toast('Saved locally but server save failed','error'); });
+    .catch(err=>toast('Save failed — labour rate was NOT saved to Google Sheets: '+err.message,'error'));
 }
 
 // ── Production Reports page ──────────────────────────────────────────────────
