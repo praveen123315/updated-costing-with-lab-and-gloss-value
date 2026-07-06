@@ -501,9 +501,6 @@ tbody tr:nth-child(1){animation-delay:0.03s;} tbody tr:nth-child(2){animation-de
 .forecast-empty p{font-size:13px;}
 .forecast-ref-chip{display:inline-flex;align-items:center;gap:6px;background:var(--blue-light);border:1px solid #93c5fd;border-radius:20px;padding:3px 12px;font-size:12px;font-weight:600;color:var(--blue);margin-left:10px;}
 
-/* KITTING TABLE */
-.kitting-shortage{color:var(--red);font-weight:700;}
-.kitting-ok{color:var(--green);font-weight:700;}
 
 /* BULK UPLOAD */
 .upload-zone{border:2px dashed var(--border2);border-radius:12px;padding:28px;text-align:center;cursor:pointer;transition:all 0.2s;background:var(--bg3);}
@@ -748,6 +745,7 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycbyc-RerRwnz6bLFYgYWmL43
 
 let currentUser = null;
 let dashboardRefreshTimer = null;
+let _dashFilter = 'all'; // Dashboard KPI date filter: 'all' | 'today' | 'yesterday' | 'week' | 'month'
 
 // ════════════════════════════════════════════════════════
 //  GAS API HELPER
@@ -818,7 +816,6 @@ async function loadFromGAS(){
         inventoryPartialDebit: f.inventoryPartialDebit===true||f.inventoryPartialDebit==='true'?true:false,
         skippedDebitRmIds: Array.isArray(f.skippedDebitRmIds)?f.skippedDebitRmIds.map(Number):[],
         debitLots: Number(f.debitLots)||0,
-        debitDate: f.debitDate||'',
         debitRemarks: f.debitRemarks||'',
         // v3.5 FIX-DATE: normalize all dates before storing in DB
         mfgDate: normalizeDate(f.mfgDate)||'',
@@ -853,6 +850,7 @@ async function loadFromGAS(){
       if(d.formulationComments && Array.isArray(d.formulationComments)) DB.formulationComments = d.formulationComments;
       if(d.basePrices && Array.isArray(d.basePrices)) DB.basePrices = d.basePrices;
       if(d.machines && Array.isArray(d.machines) && d.machines.length) DB.machines = d.machines.map(m=>({...m,id:Number(m.id),hourlyMachineCost:Number(m.hourlyMachineCost)||0,stdKgHr:Number(m.stdKgHr)||0,active:m.active!==false&&m.active!=="false"}));
+      if(d.shifts && Array.isArray(d.shifts) && d.shifts.length) DB.shifts = d.shifts.map(s=>({...s,id:Number(s.id),active:s.active!==false&&s.active!=="false"}));
       if(d.productionLogs && Array.isArray(d.productionLogs)) {
         DB.productionLogs = d.productionLogs.map(l=>({
           ...l,
@@ -958,14 +956,11 @@ document.getElementById('login-pass').addEventListener('keypress',e=>{if(e.key==
 const NAV_ICONS = {
   dashboard:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>`,
   formulations:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2v-4M9 21H5a2 2 0 0 1-2-2v-4m0 0h18"/></svg>`,
-  costing:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>`,
   rawmaterials:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>`,
   inventory:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>`,
   reports:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>`,
   users:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
   settings:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`,
-  kitting:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1v-4"/><line x1="5" y1="3" x2="5" y2="16"/><line x1="1" y1="7" x2="16" y2="7"/><line x1="1" y1="11" x2="16" y2="11"/></svg>`,
-  costanalysis:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>`,
   debitstatus:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>`,
   production:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"/></svg>`,
   prodreports:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><polyline points="8 13 10 15 14 11"/></svg>`,
@@ -977,8 +972,8 @@ const NAV_ICONS = {
 const NAV_CONFIG = {
   admin:[
     {section:'Overview',items:[{id:'dashboard',label:'Dashboard'}]},
-    {section:'Production',items:[{id:'formulations',label:'Formulations'},{id:'costing',label:'Costing Engine'},{id:'costanalysis',label:'Cost Analysis'},{id:'production',label:'Production Entry'},{id:'prodreports',label:'Prod. Reports'},{id:'machines',label:'Machine Setup'},{id:'shiftmaster',label:'Shift Master'}]},
-    {section:'Materials',items:[{id:'rawmaterials',label:'Raw Materials'},{id:'inventory',label:'Inventory'},{id:'kitting',label:'Full Kitting'},{id:'forecasting',label:'RM Forecasting'}]},
+    {section:'Production',items:[{id:'formulations',label:'Formulations'},{id:'production',label:'Production Entry'},{id:'prodreports',label:'Prod. Reports'},{id:'machines',label:'Machine Setup'},{id:'shiftmaster',label:'Shift Master'}]},
+    {section:'Materials',items:[{id:'rawmaterials',label:'Raw Materials'},{id:'inventory',label:'Inventory'},{id:'forecasting',label:'RM Forecasting'}]},
     {section:'Reports',items:[{id:'reports',label:'Reports & Export'},{id:'analytics',label:'📊 Business Intelligence'}]},
     {section:'System',items:[{id:'users',label:'User Management'},{id:'settings',label:'Settings'}]},
   ],
@@ -1024,7 +1019,7 @@ const BADGE_CLASSES={admin:'badge-admin',formulation:'badge-form',view:'badge-vi
 
 function can(perm){
   const perms={
-    admin:['dashboard','formulations','costing','rawmaterials','inventory','reports','users','settings','viewPrice','editPrice','manageUsers','viewCost','kitting','costanalysis','addStock','subtractStock','production','prodreports','machines','manageMachines','shiftmaster','forecasting','analytics'],
+    admin:['dashboard','formulations','rawmaterials','inventory','reports','users','settings','viewPrice','editPrice','manageUsers','viewCost','addStock','subtractStock','production','prodreports','machines','manageMachines','shiftmaster','forecasting','analytics'],
     formulation:['dashboard','formulations','inventory','forecasting'],
     inventory:['dashboard','inventory','reports','addStock','subtractStock','forecasting'],
     view:['dashboard','inventory'],
@@ -1089,12 +1084,12 @@ function navigate(page){
   document.querySelectorAll('.nav-item').forEach(e=>e.classList.remove('active'));
   const ni=document.getElementById('nav-'+page);
   if(ni)ni.classList.add('active');
-  const titles={dashboard:'Dashboard',formulations:'Formulations',costing:'Costing Engine',costanalysis:'Cost Analysis',rawmaterials:'Raw Materials',inventory:'Inventory',reports:'Reports & Export',users:'User Management',settings:'System Settings',kitting:'Full Kitting',debitstatus:'Inventory Debit Status',production:'Production Entry',prodreports:'Production Reports & Analytics',machines:'Machine Setup',shiftmaster:'Shift Master',forecasting:'Raw Material Forecasting'};
+  const titles={dashboard:'Dashboard',formulations:'Formulations',rawmaterials:'Raw Materials',inventory:'Inventory',reports:'Reports & Export',users:'User Management',settings:'System Settings',debitstatus:'Inventory Debit Status',production:'Production Entry',prodreports:'Production Reports & Analytics',machines:'Machine Setup',shiftmaster:'Shift Master',forecasting:'Raw Material Forecasting'};
   document.getElementById('page-heading').textContent=titles[page]||page;
   const content=document.getElementById('page-content');
   content.style.cssText='opacity:0;transform:translateY(12px);transition:none;';
   content.innerHTML=`<div class="loading-page"><div class="spinner"></div><span>Loading...</span></div>`;
-  const _heavyPages=['analytics','prodreports','reports','kitting','costanalysis','forecasting'];
+  const _heavyPages=['analytics','prodreports','reports','forecasting'];
   const _delay=_heavyPages.includes(page)?150:40;
   setTimeout(()=>{
     renderPage(page,content);
@@ -1108,8 +1103,6 @@ function renderPage(page,el){
   switch(page){
     case 'dashboard':el.innerHTML=renderDashboard();break;
     case 'formulations':el.innerHTML=renderFormulations();break;
-    case 'costing':el.innerHTML=can('viewCost')?renderCosting():'<div class="alert alert-error">Access denied.</div>';break;
-    case 'costanalysis':el.innerHTML=can('costanalysis')?renderCostAnalysis():'<div class="alert alert-error">Access denied.</div>';break;
     case 'rawmaterials':el.innerHTML=can('editPrice')?renderRawMaterials():'<div class="alert alert-error">Access denied.</div>';break;
     case 'inventory':el.innerHTML=renderInventory();break;
     case 'reports':el.innerHTML=renderReports();break;
@@ -1119,7 +1112,6 @@ function renderPage(page,el){
       break;
     case 'users':el.innerHTML=can('manageUsers')?renderUsers():'<div class="alert alert-error">Access denied.</div>';break;
     case 'settings':el.innerHTML=can('manageUsers')?renderSettings():'<div class="alert alert-error">Access denied.</div>';break;
-    case 'kitting':el.innerHTML=can('kitting')?renderKitting():'<div class="alert alert-error">Access denied.</div>';break;
     case 'debitstatus':el.innerHTML=renderDebitStatus();break;
     case 'production':el.innerHTML=can('production')?renderProductionEntry():'<div class="alert alert-error">Access denied.</div>';break;
     case 'prodreports':el.innerHTML=can('prodreports')?renderProdReports():'<div class="alert alert-error">Access denied.</div>';break;
@@ -1257,48 +1249,126 @@ function refreshDashboard(){
   }
 }
 
+// Is `dateStr` (YYYY-MM-DD or YYYY-MM-DD HH:MM:SS) inside the selected filter window?
+function _dashDateInRange(dateStr, filterKey){
+  if(filterKey==='all') return true;
+  if(!dateStr) return false;
+  const dOnly=String(dateStr).slice(0,10);
+  const d=new Date(dOnly);
+  if(isNaN(d.getTime())) return false;
+  const today=new Date(); today.setHours(0,0,0,0);
+  if(filterKey==='today') return dOnly===nowDate();
+  if(filterKey==='yesterday'){
+    const y=new Date(today); y.setDate(y.getDate()-1);
+    const pad=n=>String(n).padStart(2,'0');
+    return dOnly===`${y.getFullYear()}-${pad(y.getMonth()+1)}-${pad(y.getDate())}`;
+  }
+  if(filterKey==='week'){
+    const weekStart=new Date(today); weekStart.setDate(weekStart.getDate()-7);
+    return d>=weekStart;
+  }
+  if(filterKey==='month'){
+    const monthStart=new Date(today); monthStart.setDate(1);
+    return d>=monthStart;
+  }
+  return true;
+}
+
+// Compute the 6 pending-dashboard metrics for the selected filter window.
+function _dashComputeStats(filterKey){
+  const formsInRange=DB.formulations.filter(f=>_dashDateInRange(f.mfgDate||f.createdAt,filterKey));
+  const totalBatches=formsInRange.length;
+
+  const rmInRange=filterKey==='all' ? DB.rawMaterials : DB.rawMaterials.filter(rm=>_dashDateInRange(rm.updatedDate,filterKey));
+  const totalRawMaterials=rmInRange.length;
+
+  // Batches Pending for Formulation: ForecastInput order rows that don't yet
+  // have a matching Formulation batch — i.e. ordered but not formulated yet.
+  const batchMap={};
+  DB.formulations.forEach(f=>{ if(f.batchNo) batchMap[String(f.batchNo).trim().toLowerCase()]=true; });
+  const pendingForFormulation=(DB.forecastInputRows||[]).filter(r=>{
+    const bn=String(r.batchNo||'').trim().toLowerCase();
+    if(!bn||batchMap[bn]) return false;
+    return _dashDateInRange(r.orderDate||r.createdAt,filterKey);
+  }).length;
+
+  const glossMissing=f=>f.glossValue===null||f.glossValue===undefined||f.glossValue==='';
+  const labPending=formsInRange.filter(f=>!f.labValues).length;
+  const glossPending=formsInRange.filter(glossMissing).length;
+
+  // Missing Batch No. — split by who created the formulation (Sudhir Ji vs Admin).
+  // Mirrors the logic used by the detailed "Formulations Missing Batch No." widget
+  // further down the dashboard, so the two stay in sync.
+  const isBlankBatch=bn=>!bn||String(bn).trim()==='';
+  const whoIs=(f,uname,namePart)=>(f.by||'').toLowerCase()===uname||new RegExp(namePart,'i').test(f.byName||'');
+  const sudhirMissingBatch=DB.formulations.filter(f=>isBlankBatch(f.batchNo)&&whoIs(f,'sudhir','sudhir')).length;
+  const adminMissingBatch=DB.formulations.filter(f=>isBlankBatch(f.batchNo)&&whoIs(f,'admin','admin')).length;
+
+  return {totalRawMaterials,totalBatches,pendingForFormulation,labPending,glossPending,sudhirMissingBatch,adminMissingBatch};
+}
+
+function setDashboardFilter(key){
+  _dashFilter=key;
+  refreshDashboard();
+}
+
 function renderDashboard(){
-  const totalBatches=DB.formulations.length;
-  const today=nowDate();
-  const todayBatches=DB.formulations.filter(f=>f.mfgDate&&f.mfgDate.startsWith(today)).length;
-  const lowStock=DB.rawMaterials.filter(rm=>getStockStatus(rm)==='low').length;
-  const outStock=DB.rawMaterials.filter(rm=>getStockStatus(rm)==='out').length;
-  let totalVal=0;
-  if(can('viewCost'))DB.inventory.forEach(i=>{const rm=getRMById(i.rmId);if(rm)totalVal+=i.quantity*rm.rate;});
+  const stats=_dashComputeStats(_dashFilter);
+  const filterOpts=[['all','All Time'],['today','Today'],['yesterday','Yesterday'],['week','This Week'],['month','This Month']];
+  const filterLabel=(filterOpts.find(o=>o[0]===_dashFilter)||filterOpts[0])[1];
+
+  const filterBar=`<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
+    <span style="font-size:11px;font-weight:800;color:var(--text3);letter-spacing:0.4px;">FILTER:</span>
+    ${filterOpts.map(([key,label])=>`<button class="btn btn-sm ${_dashFilter===key?'btn-primary':'btn-secondary'}" onclick="setDashboardFilter('${key}')">${label}</button>`).join('')}
+  </div>`;
+
+  const fcLink=can('forecasting')?` style="cursor:pointer" onclick="navigate('forecasting')"`:'';
 
   let statsHTML=`<div class="stats-grid">
   <div class="stat-card">
+    <div class="stat-icon green">${NAV_ICONS.rawmaterials}</div>
+    <div class="stat-label">Total Raw Materials</div>
+    <div class="stat-value">${stats.totalRawMaterials}</div>
+    <div class="stat-sub">${filterLabel}</div>
+  </div>
+  <div class="stat-card" style="cursor:pointer" onclick="navigate('formulations')">
     <div class="stat-icon amber">${NAV_ICONS.formulations}</div>
     <div class="stat-label">Total Batches</div>
-    <div class="stat-value">${totalBatches}</div>
-    <div class="stat-sub">All time production</div>
+    <div class="stat-value">${stats.totalBatches}</div>
+    <div class="stat-sub">${filterLabel}</div>
   </div>
-  <div class="stat-card">
-    <div class="stat-icon green">${NAV_ICONS.rawmaterials}</div>
-    <div class="stat-label">Raw Materials</div>
-    <div class="stat-value">${DB.rawMaterials.length}</div>
-    <div class="stat-sub">${lowStock} low · ${outStock} out of stock</div>
+  <div class="stat-card"${fcLink}>
+    <div class="stat-icon blue">${NAV_ICONS.forecasting}</div>
+    <div class="stat-label">Batches Pending for Formulation</div>
+    <div class="stat-value">${stats.pendingForFormulation}</div>
+    <div class="stat-sub">Ordered but not yet formulated</div>
   </div>
-  <div class="stat-card">
-    <div class="stat-icon blue">${NAV_ICONS.inventory}</div>
-    <div class="stat-label">Today's Batches</div>
-    <div class="stat-value">${todayBatches}</div>
-    <div class="stat-sub">Production today</div>
+  <div class="stat-card" style="cursor:pointer" onclick="navigate('formulations')">
+    <div class="stat-icon purple">🧪</div>
+    <div class="stat-label">Lab Values Pending</div>
+    <div class="stat-value">${stats.labPending}</div>
+    <div class="stat-sub">Batches awaiting LAB entry</div>
+  </div>
+  <div class="stat-card" style="cursor:pointer" onclick="navigate('formulations')">
+    <div class="stat-icon purple">✨</div>
+    <div class="stat-label">Gloss Values Pending</div>
+    <div class="stat-value">${stats.glossPending}</div>
+    <div class="stat-sub">Batches awaiting Gloss entry</div>
+  </div>
+  ${can('formulations')?`
+  <div class="stat-card" style="cursor:pointer" onclick="navigate('formulations')">
+    <div class="stat-icon teal">🔬</div>
+    <div class="stat-label">Sudhir Ji — Missing Batch No.</div>
+    <div class="stat-value">${stats.sudhirMissingBatch}</div>
+    <div class="stat-sub">Formulations without a batch no.</div>
+  </div>
+  <div class="stat-card" style="cursor:pointer" onclick="navigate('formulations')">
+    <div class="stat-icon red">🛡️</div>
+    <div class="stat-label">Admin — Missing Batch No.</div>
+    <div class="stat-value">${stats.adminMissingBatch}</div>
+    <div class="stat-sub">Formulations without a batch no.</div>
+  </div>`:''}
   </div>`;
-
-  if(can('viewCost'))statsHTML+=`<div class="stat-card"><div class="stat-icon purple">${NAV_ICONS.costing}</div><div class="stat-label">Stock Valuation</div><div class="stat-value" style="font-size:20px;">${fmtCurrency(totalVal)}</div><div class="stat-sub">Current inventory value</div></div>`;
-
-  // Inventory user extra stats
-  if(currentUser.role==='inventory'){
-    const reorderItems=DB.rawMaterials.filter(rm=>getStockStatus(rm)!=='ok').length;
-    statsHTML+=`<div class="stat-card"><div class="stat-icon red">${NAV_ICONS.inventory}</div><div class="stat-label">Reorder Alerts</div><div class="stat-value">${reorderItems}</div><div class="stat-sub">Materials need restocking</div></div>`;
-  }
-  statsHTML+=`</div>`;
-
-  // Production tiles (admin + production role)
-  if(can("production") && DB.productionLogs) {
-    statsHTML += `<div class="stats-grid" style="margin-bottom:8px">${getProdDashTiles()}</div>`;
-  }
 
   // Refresh indicator
   const refreshInfo=`<div style="display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-bottom:12px;">
@@ -1309,7 +1379,7 @@ function renderDashboard(){
   </div>`;
 
   let alerts='';
-  const alertItems=DB.rawMaterials.filter(rm=>getStockStatus(rm)!=='ok');
+  const alertItems=DB.rawMaterials.filter(rm=>getStockStatus(rm)!=='ok' && !_fcIsUnlimitedStockRM(rm.name));
   if(alertItems.length>0){
     alerts=`<div class="alert alert-warning" style="margin-bottom:20px;">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
@@ -1359,10 +1429,44 @@ function renderDashboard(){
     recentBatches+=`</div>`;
   }
 
+  // Missing Batch No. widget — flags formulations where Sudhir Ji or Admin
+  // created the recipe but never filled in the Batch Number field.
+  let missingBatchWidget='';
+  if(can('formulations')){
+    const isBlankBatch=bn=>!bn||String(bn).trim()==='';
+    const whoIs=(f,uname,namePart)=>(f.by||'').toLowerCase()===uname||new RegExp(namePart,'i').test(f.byName||'');
+    const sudhirMissing=DB.formulations.filter(f=>isBlankBatch(f.batchNo)&&whoIs(f,'sudhir','sudhir'));
+    const adminMissing=DB.formulations.filter(f=>isBlankBatch(f.batchNo)&&whoIs(f,'admin','admin'));
+    const missingListHTML=(list,emptyMsg)=>{
+      if(list.length===0) return `<p style="color:var(--green);font-weight:600;font-size:12px;margin-top:8px;">✓ ${emptyMsg}</p>`;
+      return `<div style="margin-top:8px;display:flex;flex-direction:column;gap:6px;">${list.map(f=>`
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 12px;">
+          <div style="min-width:0;">
+            <div style="font-size:12.5px;font-weight:700;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${f.productName}</div>
+            <div style="font-size:11px;color:var(--text3);">${f.productCode||'—'} · 📅 ${f.mfgDate||f.createdAt||'—'}</div>
+          </div>
+          <button class="btn btn-secondary btn-sm" style="font-size:11px;flex-shrink:0;" onclick="openEditBatchCodeModal(${f.id})">+ Add Batch No</button>
+        </div>`).join('')}</div>`;
+    };
+    missingBatchWidget=`<div class="card" style="margin-top:16px;">
+      <div class="card-title" style="color:var(--red);">🏷️ Formulations Missing Batch No.</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin-top:4px;">
+        <div>
+          <div style="font-size:11px;font-weight:800;color:var(--text3);letter-spacing:0.4px;text-transform:uppercase;">🔬 Sudhir Ji — ${sudhirMissing.length} pending</div>
+          ${missingListHTML(sudhirMissing,'All of Sudhir Ji\'s formulations have a batch no.')}
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:800;color:var(--text3);letter-spacing:0.4px;text-transform:uppercase;">🛡️ Admin — ${adminMissing.length} pending</div>
+          ${missingListHTML(adminMissing,'All of Admin\'s formulations have a batch no.')}
+        </div>
+      </div>
+    </div>`;
+  }
+
   // Inventory user: reorder report widget
   let reorderWidget='';
   if(currentUser.role==='inventory'){
-    const reorderList=DB.rawMaterials.filter(rm=>getStockStatus(rm)!=='ok');
+    const reorderList=DB.rawMaterials.filter(rm=>getStockStatus(rm)!=='ok' && !_fcIsUnlimitedStockRM(rm.name));
     reorderWidget=`<div class="card" style="margin-top:16px;">
       <div class="card-title" style="color:var(--red);">⚠ Reorder Alert — Materials Below Minimum</div>
       ${reorderList.length===0?'<p style="color:var(--green);font-weight:600;">All materials are sufficiently stocked ✓</p>':''}
@@ -1412,11 +1516,11 @@ function renderDashboard(){
     </div>`;
   }
 
-  return statsHTML+refreshInfo+alerts+invTable+recentBatches+reorderWidget+debitWidget;
+  return filterBar+statsHTML+refreshInfo+alerts+invTable+recentBatches+missingBatchWidget+reorderWidget+debitWidget;
 }
 function exportReorderReport(){
   const data=[['Material Name','Code','Unit','Current Stock','Min Required','Shortage','Status']];
-  DB.rawMaterials.filter(rm=>getStockStatus(rm)!=='ok').forEach(rm=>{
+  DB.rawMaterials.filter(rm=>getStockStatus(rm)!=='ok' && !_fcIsUnlimitedStockRM(rm.name)).forEach(rm=>{
     const inv=getInvByRMId(rm.id);
     const short=Math.max(0,rm.minStock-inv.quantity);
     data.push([rm.name,rm.code,rm.unit,inv.quantity.toFixed(2),rm.minStock,short.toFixed(2),getStockStatus(rm).toUpperCase()]);
@@ -1437,7 +1541,7 @@ function buildFormCardHTML(f){
   f.items=f.items||[];
   const cost=calcBatchCost(f);
   const totalQty=calcTotalQty(f);
-  return `<div class="batch-card" data-id="${f.id}" data-name="${(f.productName||'').toLowerCase()}" data-code="${(f.productCode||'').toLowerCase()}" data-batch="${(f.batchNo||'').toLowerCase()}" data-date="${f.mfgDate||''}" data-remarks="${(f.remarks||'').toLowerCase()}" data-by="${(f.byName||f.by||'').toLowerCase()}">
+  return `<div class="batch-card" data-id="${f.id}" data-name="${(f.productName||'').toLowerCase()}" data-code="${(f.productCode||'').toLowerCase()}" data-batch="${(f.batchNo||'').toLowerCase()}" data-date="${f.mfgDate||''}" data-remarks="${(f.remarks||'').toLowerCase()}" data-by="${(f.byName||f.by||'').toLowerCase()}" data-refno="${(f.refNo||'').toLowerCase()}">
       <div class="batch-card-top">
         <div>
           <div class="batch-card-title">${f.productName}</div>
@@ -1570,6 +1674,10 @@ function renderFormulations(){
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       <input class="search-input" id="form-search" placeholder="Search by product, batch, code..." oninput="filterFormulations()">
     </div>
+    <div class="search-input-wrap" style="min-width:200px;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      <input class="search-input" id="form-search-refno" placeholder="Search by Reference No..." oninput="filterFormulations()">
+    </div>
     <select class="filter-select" id="form-filter-date" onchange="filterFormulations()">
       <option value="">All Dates</option>
       <option value="today">Today</option>
@@ -1630,8 +1738,9 @@ function _fmLoadMore(){
     list.appendChild(s);
   }
   const q=document.getElementById('form-search')?.value||'';
+  const refnoQ=document.getElementById('form-search-refno')?.value||'';
   const dateFilter=document.getElementById('form-filter-date')?.value||'';
-  if(q||dateFilter) filterFormulations();
+  if(q||refnoQ||dateFilter) filterFormulations();
 }
 
 // _fmLoadAllRemaining — pulls EVERY remaining formulation into the DOM
@@ -1653,12 +1762,13 @@ function _fmLoadAllRemaining(){
 
 function filterFormulations(){
   const q=(document.getElementById('form-search')?.value||'').toLowerCase();
+  const refnoQ=(document.getElementById('form-search-refno')?.value||'').trim().toLowerCase();
   const dateFilter=document.getElementById('form-filter-date')?.value||'';
 
   // As soon as the user searches or applies a date filter, make sure ALL
   // formulations are on the page first — otherwise matches that live
   // beyond the first 50 (pagination batch) would never appear at all.
-  if((q||dateFilter) && window._fmAllForms && window._fmLoaded<window._fmAllForms.length){
+  if((q||refnoQ||dateFilter) && window._fmAllForms && window._fmLoaded<window._fmAllForms.length){
     _fmLoadAllRemaining();
   }
 
@@ -1673,7 +1783,10 @@ function filterFormulations(){
     const date=card.dataset.date||'';
     const remarks=card.dataset.remarks||'';
     const by=card.dataset.by||'';
+    const refno=card.dataset.refno||'';
     let show=(!q||[name,code,batch,remarks,by].join(' ').includes(q));
+    // Reference No. search — supports both partial and exact matches (substring match).
+    if(show&&refnoQ) show=refno.includes(refnoQ);
     if(show&&dateFilter){
       const d=new Date(date.slice(0,10));
       if(dateFilter==='today')show=date.startsWith(today);
@@ -3910,400 +4023,6 @@ function addFormulationComment(formulationId){
 }
 
 // ════════════════════════════════════════════════════════
-//  COSTING ENGINE
-// ════════════════════════════════════════════════════════
-function renderCosting(){
-  let html=`<div class="page-header">
-    <div><div class="page-title">Costing Engine</div><div class="page-subtitle">Full cost analysis per batch</div></div>
-  </div>`;
-  if(DB.formulations.length===0){html+=`<div class="alert alert-info">No formulations yet.</div>`;return html;}
-  DB.formulations.forEach(f=>{
-    const cost=calcBatchCost(f);
-    const totalQty=calcTotalQty(f);
-    html+=`<div class="report-section">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px;">
-        <div>
-          <div style="font-size:16px;font-weight:800;color:var(--text);">${f.productName}</div>
-          <div style="font-size:12px;color:var(--text3);font-family:'JetBrains Mono';margin-top:3px;">${f.productCode} · ${f.batchNo} · ${f.mfgDate}</div>
-        </div>
-        <div style="text-align:right;">
-          <div class="cost-tag" style="font-size:22px;font-weight:800;">${fmtCurrency(cost.total)}</div>
-          <div style="font-size:13px;font-weight:800;color:var(--text);margin-top:4px;font-family:'JetBrains Mono';">${fmtCurrency(cost.total/totalQty)}<span style="font-size:11px;font-weight:700;color:var(--text2);"> / kg</span></div>
-        </div>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:18px;">
-        <div style="background:var(--green-light);border:1px solid #a7f3d0;border-radius:10px;padding:14px;"><div style="font-size:11px;font-weight:700;color:#065f46;text-transform:uppercase;">RM Cost</div><div class="cost-tag" style="font-size:20px;font-weight:800;margin-top:6px;">${fmtCurrency(cost.rmCost)}</div></div>
-        <div style="background:var(--blue-light);border:1px solid #93c5fd;border-radius:10px;padding:14px;"><div style="font-size:11px;font-weight:700;color:#1e40af;text-transform:uppercase;">Packaging</div><div style="font-size:20px;font-weight:800;margin-top:6px;color:var(--blue);font-family:'JetBrains Mono';">${fmtCurrency(cost.packaging)}</div></div>
-        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px;"><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;">Total Qty</div><div style="font-size:20px;font-weight:800;margin-top:6px;color:var(--text);">${totalQty.toFixed(2)} <span style="font-size:12px;font-weight:600;">KG</span></div></div>
-      </div>
-      <table style="width:100%">
-        <thead><tr><th>Material</th><th>Qty</th><th>Rate/Unit</th><th>Cost</th><th>% Share</th></tr></thead>
-        <tbody>${f.items.map(item=>{
-          const rm=getRMById(item.rmId);if(!rm)return'';
-          const effectiveRate=(item.rate!==undefined&&item.rate!==null)?item.rate:rm.rate;
-          const u=(item.unit||rm.unit||'KG').toUpperCase();
-          const qtyKg=(u==='G'||u==='ML')?item.qty/1000:item.qty;
-          const c=qtyKg*effectiveRate;
-          const pct=cost.rmCost>0?((c/cost.total)*100).toFixed(1):0;
-          return`<tr><td class="td-primary">${rm.name}</td><td>${item.qty} ${item.unit||rm.unit}</td><td class="cost-tag">${fmtCurrency(effectiveRate)}</td><td class="cost-tag">${fmtCurrency(c)}</td><td><div style="display:flex;align-items:center;gap:8px;"><div style="height:6px;width:${Math.min(120,parseFloat(pct)*1.2)}px;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:3px;"></div><span style="font-size:11px;font-weight:600;color:var(--text2)">${pct}%</span></div></td></tr>`;
-        }).join('')}</tbody>
-        <tfoot><tr style="background:var(--bg3);"><td colspan="3" style="padding:10px 14px;font-weight:700;color:var(--text);">TOTAL</td><td class="cost-tag" style="padding:10px 14px;font-size:15px;font-weight:800;">${fmtCurrency(cost.total)}</td><td></td></tr></tfoot>
-      </table>
-    </div>`;
-  });
-  return html;
-}
-
-// ════════════════════════════════════════════════════════
-//  COST ANALYSIS PAGE  — with saved records database
-// ════════════════════════════════════════════════════════
-
-// In-session Cost Analysis saved records
-DB.costAnalysisRecords = DB.costAnalysisRecords || [];
-DB.nextId.ca = DB.nextId.ca || 1;
-DB.formulationComments = DB.formulationComments || [];
-DB.nextId.comment = DB.nextId.comment || 1;
-
-function renderCostAnalysis(){
-  const saved = DB.costAnalysisRecords;
-  let html=`<div class="page-header">
-    <div><div class="page-title">Cost Analysis</div><div class="page-subtitle">Build & save custom costing scenarios — inventory is never debited</div></div>
-    <button class="btn btn-primary" onclick="openNewCostAnalysis()">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> New Analysis
-    </button>
-  </div>
-  <div class="alert alert-info" style="margin-bottom:20px;">
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-    Cost Analysis is for planning only. No inventory is deducted when you run or save an analysis.
-  </div>`;
-
-  // Saved records database
-  html+=`<div class="card" style="margin-bottom:20px;">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
-      <div class="card-title" style="margin:0;">📂 Saved Cost Analyses (${saved.length})</div>
-      <div style="display:flex;gap:8px;align-items:center;">
-        <div class="search-input-wrap" style="min-width:200px;">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input class="search-input" id="ca-db-search" placeholder="Search analyses..." oninput="filterCADB()">
-        </div>
-        <button class="btn btn-success btn-sm" onclick="exportCostAnalysisDB()">↓ Export All</button>
-      </div>
-    </div>`;
-
-  if(saved.length===0){
-    html+=`<div style="text-align:center;padding:32px;color:var(--text3);">
-      <div style="font-size:32px;margin-bottom:8px;">📊</div>
-      <div style="font-size:14px;font-weight:600;">No analyses saved yet</div>
-      <div style="font-size:12px;margin-top:4px;">Click "New Analysis" to build and save a costing scenario</div>
-    </div>`;
-  } else {
-    html+=`<div class="table-wrap"><table id="ca-db-table">
-      <thead><tr><th>Analysis Name</th><th>Product Ref</th><th>Batch Size</th><th>RM Cost</th><th>Total Cost</th><th>Cost/KG</th><th>Saved By</th><th>Date</th><th>Actions</th></tr></thead>
-      <tbody>`;
-    saved.slice().reverse().forEach(rec=>{
-      html+=`<tr>
-        <td class="td-primary">${rec.name}</td>
-        <td style="color:var(--text2)">${rec.productRef||'—'}</td>
-        <td style="font-weight:600;">${rec.batchSize} KG</td>
-        <td class="cost-tag">${fmtCurrency(rec.rmCost)}</td>
-        <td class="cost-tag" style="font-weight:700;">${fmtCurrency(rec.totalCost)}</td>
-        <td class="cost-tag">${fmtCurrency(rec.costPerKg)}</td>
-        <td style="color:var(--text3);font-size:12px;">${rec.savedBy}</td>
-        <td style="color:var(--text3);font-size:12px;">${rec.savedAt}</td>
-        <td style="display:flex;gap:4px;">
-          <button class="btn btn-secondary btn-sm" onclick="viewCostAnalysis(${rec.id})">View</button>
-          <button class="btn btn-teal btn-sm" onclick="openNewCostAnalysis(${rec.id})">Re-run</button>
-          <button class="btn btn-danger btn-sm" onclick="deleteCostAnalysis(${rec.id})">Del</button>
-        </td>
-      </tr>`;
-    });
-    html+=`</tbody></table></div>`;
-  }
-  html+=`</div>`;
-
-  // Cost from existing formulations
-  html+=`<div class="card">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
-      <div class="card-title" style="margin:0;">⚗ Cost from Existing Formulations</div>
-      <div class="search-input-wrap" style="min-width:200px;">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input class="search-input" id="ca-fml-search" placeholder="Search..." oninput="filterCAFml()">
-      </div>
-    </div>
-    <div class="table-wrap"><table id="ca-fml-table">
-      <thead><tr><th>Product</th><th>Code</th><th>Batch</th><th>Date</th><th>RM Cost</th><th>Packaging</th><th>Total Cost</th><th>Cost/KG</th><th></th></tr></thead>
-      <tbody>
-      ${DB.formulations.map(f=>{
-        const c=calcBatchCost(f);const q=calcTotalQty(f);
-        return`<tr><td class="td-primary">${f.productName}</td><td class="mono" style="font-size:11px;">${f.productCode}</td><td class="mono" style="font-size:11px;">${f.batchNo}</td><td style="font-size:12px;">${f.mfgDate}</td><td class="cost-tag">${fmtCurrency(c.rmCost)}</td><td class="cost-tag">${fmtCurrency(c.packaging)}</td><td class="cost-tag" style="font-weight:700;">${fmtCurrency(c.total)}</td><td class="cost-tag">${fmtCurrency(c.total/q)}</td><td><button class="btn btn-teal btn-sm" onclick="openNewCostAnalysisFromFormulation(${f.id})">Analyse</button></td></tr>`;
-      }).join('')}
-      </tbody>
-    </table></div>
-  </div>`;
-
-  return html;
-}
-
-function filterCADB(){
-  const q=(document.getElementById('ca-db-search')?.value||'').toLowerCase();
-  document.querySelectorAll('#ca-db-table tbody tr').forEach(row=>{
-    row.style.display=row.textContent.toLowerCase().includes(q)?'':'none';
-  });
-}
-function filterCAFml(){
-  const q=(document.getElementById('ca-fml-search')?.value||'').toLowerCase();
-  document.querySelectorAll('#ca-fml-table tbody tr').forEach(row=>{
-    row.style.display=row.textContent.toLowerCase().includes(q)?'':'none';
-  });
-}
-
-
-
-let _caItemCount=0;
-function addCAItem(){
-  _caItemCount++;
-  const id='caitem-'+_caItemCount;
-  document.getElementById('ca-items-wrap').insertAdjacentHTML('beforeend',`
-    <div class="fi-row" id="${id}">
-      <div class="rm-search-wrap" style="position:relative;">
-        <input class="rm-search-input" id="rmsearch-${id}" placeholder="🔍 Search raw material..." autocomplete="off"
-          oninput="filterRMDropdownCA('${id}')"
-          onfocus="openRMDropdownCA('${id}')"
-          onkeydown="handleRMDropdownKeyCA(event,'${id}')">
-        <div class="rm-dropdown" id="rmdrop-${id}"></div>
-        <input type="hidden" id="casel-${id}" value="">
-      </div>
-      <input class="form-control" id="caqty-${id}" type="number" step="0.01" min="0" placeholder="Qty">
-      <button class="remove-btn" onclick="document.getElementById('${id}').remove()">−</button>
-    </div>`);
-  openRMDropdownCA(id);
-}
-
-function openRMDropdownCA(id){
-  const q=(document.getElementById('rmsearch-'+id)?.value||'').toLowerCase();
-  renderRMDropdown(id,q);
-  document.getElementById('rmdrop-'+id)?.classList.add('open');
-  document.querySelectorAll('.rm-dropdown.open').forEach(d=>{if(d.id!=='rmdrop-'+id)d.classList.remove('open');});
-}
-function filterRMDropdownCA(id){
-  const q=(document.getElementById('rmsearch-'+id)?.value||'').toLowerCase();
-  renderRMDropdown(id,q);
-  document.getElementById('rmdrop-'+id)?.classList.add('open');
-}
-function handleRMDropdownKeyCA(e,id){handleRMDropdownKey(e,id);}
-function selectRMCA(id,rmId,rmName,rmCode,rmUnit){selectRM(id,rmId,rmName,rmCode,rmUnit);}
-
-
-function _getCAItems(){
-  const items=[];
-  document.querySelectorAll('#ca-items-wrap [id^="caitem-"]').forEach(row=>{
-    const id=row.id;
-    const rmId=parseInt(document.getElementById('casel-'+id)?.value);
-    const qty=parseFloat(document.getElementById('caqty-'+id)?.value)||0;
-    if(rmId&&qty>0) items.push({rmId,qty});
-  });
-  return items;
-}
-
-function previewCostAnalysis(){
-  const items=_getCAItems();
-  const bsize=parseFloat(document.getElementById('ca-bsize')?.value)||1;
-  const lots=parseInt(document.getElementById('ca-lots')?.value)||1;
-  let rmCost=0;
-  const rows=items.map(item=>{
-    const rm=getRMById(item.rmId);if(!rm)return'';
-    const effQty=item.qty*lots;
-    const c=effQty*rm.rate;
-    rmCost+=c;
-    return`<tr><td class="td-primary">${rm.name}</td><td>${item.qty} × ${lots} = ${effQty} ${rm.unit}</td><td class="cost-tag">${fmtCurrency(rm.rate)}</td><td class="cost-tag">${fmtCurrency(c)}</td></tr>`;
-  });
-  const totalQty=bsize*lots;
-  const totalPackaging=(DB.packagingCost||0)*totalQty;
-  const total=rmCost+totalPackaging;
-  document.getElementById('ca-live-result').innerHTML=`
-    <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:16px;margin-top:4px;">
-      <div style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.7px;margin-bottom:10px;">Live Preview</div>
-      <table style="width:100%;margin-bottom:12px;"><thead><tr><th>Material</th><th>Qty (per lot × lots)</th><th>Rate</th><th>Cost</th></tr></thead><tbody>${rows.join('')}</tbody></table>
-      <div style="display:flex;justify-content:flex-end;"><table style="width:300px;border-collapse:collapse;">
-        <tr><td style="padding:6px 10px;color:var(--text2);">RM Total</td><td class="cost-tag" style="padding:6px 10px;text-align:right;">${fmtCurrency(rmCost)}</td></tr>
-        <tr><td style="padding:6px 10px;color:var(--text2);">Packaging (₹${DB.packagingCost}/kg × ${totalQty} kg)</td><td class="cost-tag" style="padding:6px 10px;text-align:right;">${fmtCurrency(totalPackaging)}</td></tr>
-        <tr style="background:var(--accent-light);"><td style="padding:10px;font-weight:800;color:var(--text);">TOTAL COST</td><td class="cost-tag" style="padding:10px;text-align:right;font-size:16px;font-weight:800;">${fmtCurrency(total)}</td></tr>
-        <tr><td style="padding:6px 10px;color:var(--text3);font-size:11px;">Cost/KG (${totalQty} KG total)</td><td class="cost-tag" style="padding:6px 10px;text-align:right;">${fmtCurrency(total/totalQty)}</td></tr>
-      </table></div>
-    </div>`;
-}
-
-function saveCostAnalysis(){
-  const name=document.getElementById('ca-name')?.value.trim();
-  const productRef=document.getElementById('ca-pref')?.value.trim();
-  const batchSize=parseFloat(document.getElementById('ca-bsize')?.value)||0;
-  const lots=parseInt(document.getElementById('ca-lots')?.value)||1;
-  const notes=document.getElementById('ca-notes')?.value.trim();
-  if(!name){toast('Analysis Name is required','error');return;}
-  if(!batchSize){toast('Batch size is required','error');return;}
-  const items=_getCAItems();
-  if(items.length===0){toast('Add at least one material','error');return;}
-  let rmCost=0;
-  items.forEach(item=>{const rm=getRMById(item.rmId);if(rm)rmCost+=item.qty*lots*rm.rate;});
-  const totalQty=batchSize*lots;
-  const totalPackaging=(DB.packagingCost||0)*totalQty;
-  const totalCost=rmCost+totalPackaging;
-  const rec={
-    id:DB.nextId.ca++,
-    name,productRef,batchSize,lots,notes,items,
-    rmCost,packagingCost:totalPackaging,totalCost,costPerKg:totalCost/totalQty,
-    savedBy:currentUser.name,savedAt:nowDateTime()
-  };
-  DB.costAnalysisRecords.push(rec);
-  addAudit('Saved cost analysis',`${name} — ${fmtCurrency(totalCost)}`);
-  closeModal('ca-modal');
-  toast('Cost analysis saved ✓','success');
-  navigate('costanalysis');
-}
-
-function viewCostAnalysis(id){
-  const rec=DB.costAnalysisRecords.find(r=>r.id===id);
-  if(!rec)return;
-  let itemRows=rec.items.map(item=>{
-    const rm=getRMById(item.rmId);if(!rm)return'';
-    const effQty=item.qty*(rec.lots||1);
-    return`<tr><td class="td-primary">${rm.name}</td><td class="mono" style="font-size:11px;">${rm.code}</td><td>${item.qty} × ${rec.lots||1} = ${effQty} ${rm.unit}</td><td class="cost-tag">${fmtCurrency(rm.rate)}</td><td class="cost-tag">${fmtCurrency(effQty*rm.rate)}</td></tr>`;
-  }).join('');
-  const modal=`<div class="modal-overlay" id="ca-view-modal" onclick="if(event.target.id==='ca-view-modal')closeModal('ca-view-modal')">
-  <div class="modal modal-lg">
-    <div class="modal-header">
-      <div><div class="modal-title">${rec.name}</div><div style="font-size:12px;color:var(--text3);margin-top:2px;">Saved by ${rec.savedBy} on ${rec.savedAt}</div></div>
-      <button class="close-btn" onclick="closeModal('ca-view-modal')">✕</button>
-    </div>
-    <div class="modal-body">
-      <div class="form-row" style="margin-bottom:16px;">
-        <div style="background:var(--bg3);border-radius:8px;padding:12px;"><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;">Product Ref</div><div style="font-size:14px;font-weight:600;margin-top:4px;">${rec.productRef||'—'}</div></div>
-        <div style="background:var(--bg3);border-radius:8px;padding:12px;"><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;">Batch Size × Lots</div><div style="font-size:14px;font-weight:600;margin-top:4px;">${rec.batchSize} KG × ${rec.lots||1}</div></div>
-        <div style="background:var(--accent-light);border-radius:8px;padding:12px;"><div style="font-size:11px;font-weight:700;color:var(--accent2);text-transform:uppercase;">Total Cost</div><div class="cost-tag" style="font-size:18px;font-weight:800;margin-top:4px;">${fmtCurrency(rec.totalCost)}</div></div>
-      </div>
-      ${rec.notes?`<div class="alert" style="background:var(--bg3);border:1px solid var(--border);color:var(--text2);margin-bottom:16px;">💬 ${rec.notes}</div>`:''}
-      <table style="width:100%;">
-        <thead><tr><th>Material</th><th>Code</th><th>Qty (per lot × lots)</th><th>Rate</th><th>Cost</th></tr></thead>
-        <tbody>${itemRows}</tbody>
-        <tfoot>
-          <tr><td colspan="4" style="padding:8px 14px;color:var(--text3);font-size:11px;text-transform:uppercase;font-weight:700;">RM Total</td><td class="cost-tag" style="padding:8px 14px;font-weight:700;">${fmtCurrency(rec.rmCost)}</td></tr>
-          <tr><td colspan="4" style="padding:8px 14px;color:var(--text3);font-size:11px;text-transform:uppercase;font-weight:700;">Packaging (₹${DB.packagingCost}/kg × ${(rec.batchSize*(rec.lots||1))} kg)</td><td class="cost-tag" style="padding:8px 14px;">${fmtCurrency(rec.packagingCost!=null?rec.packagingCost:DB.packagingCost*(rec.batchSize*(rec.lots||1)))}</td></tr>
-          <tr style="background:var(--accent-light);"><td colspan="4" style="padding:12px 14px;font-size:14px;font-weight:800;color:var(--text);">TOTAL COST</td><td class="cost-tag" style="padding:12px 14px;font-size:20px;font-weight:800;">${fmtCurrency(rec.totalCost)}</td></tr>
-          <tr><td colspan="4" style="padding:6px 14px;color:var(--text3);font-size:11px;">Cost / KG</td><td class="cost-tag" style="padding:6px 14px;">${fmtCurrency(rec.costPerKg)}</td></tr>
-        </tfoot>
-      </table>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="closeModal('ca-view-modal')">Close</button>
-      <button class="btn btn-success btn-sm" onclick="exportSingleCostAnalysis(${rec.id});closeModal('ca-view-modal')">↓ Export Excel</button>
-    </div>
-  </div></div>`;
-  document.body.insertAdjacentHTML('beforeend',modal);
-}
-
-function deleteCostAnalysis(id){
-  if(!confirm('Delete this analysis record?'))return;
-  DB.costAnalysisRecords=DB.costAnalysisRecords.filter(r=>r.id!==id);
-  toast('Analysis deleted','info');
-  navigate('costanalysis');
-}
-
-function openNewCostAnalysisFromFormulation(fId){
-  const f=DB.formulations.find(x=>x.id===fId);
-  if(!f)return;
-  // Build a fake src rec from formulation data
-  const src={name:f.productName+' Analysis',productRef:f.productCode,batchSize:calcTotalQty(f),lots:f.lots||1,notes:'',items:f.items.map(i=>({rmId:i.rmId,qty:i.qty/(f.lots||1)}))};
-  // Temporarily set then open
-  window._caFromFormSrc=src;
-  openNewCostAnalysis('_fromForm');
-}
-function openNewCostAnalysis(rerunId=null){
-  let src=null;
-  if(rerunId==='_fromForm'){src=window._caFromFormSrc;window._caFromFormSrc=null;}
-  else if(rerunId!==null) src=DB.costAnalysisRecords.find(r=>r.id===rerunId);
-  let caItemCount=0;
-  const buildItemRow=(rmId=null,qty=null)=>{
-    caItemCount++;
-    const id='caitem-'+caItemCount;
-    const preRM=rmId?DB.rawMaterials.find(r=>r.id===rmId):null;
-    const preLabel=preRM?`${preRM.name} (${preRM.code})`:'';
-    const preUnit=preRM?preRM.unit:'KG';
-    return `<div class="fi-row" id="${id}">
-      <div class="rm-search-wrap" style="position:relative;">
-        <input class="rm-search-input" id="rmsearch-${id}" placeholder="🔍 Search raw material..." autocomplete="off"
-          value="${preLabel}"
-          oninput="filterRMDropdown('${id}')"
-          onfocus="openRMDropdown('${id}')"
-          onkeydown="handleRMDropdownKey(event,'${id}')">
-        <div class="rm-dropdown" id="rmdrop-${id}"></div>
-        <input type="hidden" id="casel-${id}" value="${rmId||''}">
-      </div>
-      <input class="form-control" id="caqty-${id}" type="number" step="0.01" min="0" value="${qty||''}" placeholder="Qty">
-      <button class="remove-btn" onclick="document.getElementById('${id}').remove()">−</button>
-    </div>`;
-  };
-  let itemsHTML='';
-  if(src&&src.items&&src.items.length){src.items.forEach(i=>{itemsHTML+=buildItemRow(i.rmId,i.qty);});}
-  else{itemsHTML=buildItemRow();}
-  const modal=`<div class="modal-overlay" id="ca-modal" onclick="if(event.target.id==='ca-modal')closeModal('ca-modal')">
-  <div class="modal modal-lg">
-    <div class="modal-header">
-      <div><div class="modal-title">${src&&rerunId!=='_fromForm'?'Re-run: '+src.name:'New Cost Analysis'}</div><div style="font-size:12px;color:var(--text3);margin-top:2px;">No inventory deducted</div></div>
-      <button class="close-btn" onclick="closeModal('ca-modal')">✕</button>
-    </div>
-    <div class="modal-body">
-      <div class="form-row">
-        <div class="form-group"><label>Analysis Name ✱</label><input class="form-control" id="ca-name" value="${src?(rerunId==='_fromForm'?src.name:src.name+' (copy)'):''}" placeholder="e.g. LDPE Pipe — Q2 2025"></div>
-        <div class="form-group"><label>Product Reference</label><input class="form-control" id="ca-pref" value="${src?src.productRef||'':''}" placeholder="e.g. FG003"></div>
-      </div>
-      <div class="form-row">
-        <div class="form-group"><label>Batch Size (KG) ✱</label><input class="form-control" id="ca-bsize" type="number" step="0.01" value="${src?src.batchSize:''}" placeholder="e.g. 160"></div>
-        <div class="form-group"><label>Number of Lots</label><input class="form-control" id="ca-lots" type="number" min="1" value="${src?src.lots||1:1}"></div>
-      </div>
-      <div class="form-group"><label>Notes</label><textarea class="form-control" id="ca-notes" placeholder="Optional...">${src?src.notes||'':''}</textarea></div>
-      <hr style="border-color:var(--border);margin:14px 0;">
-      <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px;">Raw Material Items</div>
-      <div id="ca-items-wrap">${itemsHTML}</div>
-      <button class="add-item-btn" onclick="addCAItem()">＋ Add Material</button>
-      <div id="ca-live-result" style="margin-top:16px;"></div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="closeModal('ca-modal')">Cancel</button>
-      <button class="btn btn-secondary" onclick="previewCostAnalysis()">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> Preview
-      </button>
-      <button class="btn btn-primary" onclick="saveCostAnalysis()">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Save Analysis
-      </button>
-    </div>
-  </div></div>`;
-  document.body.insertAdjacentHTML('beforeend',modal);
-}
-
-function exportSingleCostAnalysis(id){
-  const rec=DB.costAnalysisRecords.find(r=>r.id===id);if(!rec)return;
-  const data=[['Material','Code','Unit','Qty/Lot','Lots','Total Qty','Rate','Cost']];
-  rec.items.forEach(item=>{
-    const rm=getRMById(item.rmId);if(!rm)return;
-    const effQty=item.qty*(rec.lots||1);
-    data.push([rm.name,rm.code,rm.unit,item.qty,rec.lots||1,effQty,rm.rate,(effQty*rm.rate).toFixed(2)]);
-  });
-  data.push(['','','','','','','RM Total',rec.rmCost.toFixed(2)]);
-  data.push(['','','','','','','Packaging',DB.packagingCost.toFixed(2)]);
-  data.push(['','','','','','','TOTAL',rec.totalCost.toFixed(2)]);
-  data.push(['','','','','','','Cost/KG',rec.costPerKg.toFixed(2)]);
-  dlExcel(data,`CostAnalysis_${rec.name.replace(/\s+/g,'_')}`);
-}
-
-function exportCostAnalysisDB(){
-  const data=[['Analysis Name','Product Ref','Batch Size','Lots','RM Cost','Packaging','Total Cost','Cost/KG','Saved By','Saved At']];
-  DB.costAnalysisRecords.forEach(rec=>{
-    data.push([rec.name,rec.productRef||'',rec.batchSize,rec.lots||1,rec.rmCost.toFixed(2),DB.packagingCost.toFixed(2),rec.totalCost.toFixed(2),rec.costPerKg.toFixed(2),rec.savedBy,rec.savedAt]);
-  });
-  dlExcel(data,'CostAnalysis_Database');
-}
-
-// ════════════════════════════════════════════════════════
 //  RAW MATERIALS  (with bulk import)
 // ════════════════════════════════════════════════════════
 function renderRawMaterials(){
@@ -4520,6 +4239,9 @@ function deleteRM(id){
   addAudit('Deleted raw material',rm.code+' — '+rm.name);
   toast('Material deleted','info');
   navigate('rawmaterials');
+  gasCall('deleteRawMaterial',{rmId:id})
+    .then(()=>gasCall('addAudit',{entry:DB.auditLog[0]}))
+    .catch(e=>console.error('deleteRawMaterial error:',e));
 }
 
 function openRMModal(id){
@@ -4650,10 +4372,10 @@ function renderInventory(){
   const canSubtract=can('subtractStock');
 
   // compute alert counts for tab badge
-  const _critCount=DB.rawMaterials.filter(rm=>getStockStatus(rm)!=='ok').length;
+  const _critCount=DB.rawMaterials.filter(rm=>getStockStatus(rm)!=='ok' && !_fcIsUnlimitedStockRM(rm.name)).length;
   const _today=new Date(); _today.setHours(0,0,0,0);
   const _soon=new Date(_today); _soon.setDate(_soon.getDate()+30);
-  const _expCount=DB.rawMaterials.filter(rm=>{if(!rm.expiryDate)return false;const d=new Date(rm.expiryDate);d.setHours(0,0,0,0);return d<=_soon;}).length;
+  const _expCount=DB.rawMaterials.filter(rm=>{if(!rm.expiryDate||_fcIsUnlimitedStockRM(rm.name))return false;const d=new Date(rm.expiryDate);d.setHours(0,0,0,0);return d<=_soon;}).length;
   const _alertTotal=_critCount+_expCount;
   const tabs=`<div class="tabs">
     <div class="tab active" id="tab-stock" onclick="switchInvTab('stock')">${NAV_ICONS.inventory} Stock Levels</div>
@@ -4821,6 +4543,10 @@ function exportAlertsExcel(){
   const today=new Date(); today.setHours(0,0,0,0);
   const soon=new Date(today); soon.setDate(soon.getDate()+30);
 
+  // ── Base RM list for Alerts — in-house 10%/1% materials have unlimited
+  //    stock and are fully excluded from every Alerts sheet ─────────────
+  const alertRMs=DB.rawMaterials.filter(rm=>!_fcIsUnlimitedStockRM(rm.name));
+
   // ── Build shared RM→formulation map ──────────────────────
   const rmFmMap={};
   DB.formulations.forEach(f=>{
@@ -4833,7 +4559,7 @@ function exportAlertsExcel(){
   // ── Sheet 1: Critical Stock ───────────────────────────────
   const critHeaders=['Material Name','Code','Unit','Current Stock','Min Required','Shortage','Status','Formulation Count','Formulations Using This Material'];
   const critRows=[critHeaders];
-  DB.rawMaterials.filter(rm=>getStockStatus(rm)!=='ok')
+  alertRMs.filter(rm=>getStockStatus(rm)!=='ok')
     .sort((a,b)=>{ const sa=getStockStatus(a),sb=getStockStatus(b); return (sa==='out'&&sb!=='out')?-1:(sb==='out'&&sa!=='out')?1:0; })
     .forEach(rm=>{
       const inv=getInvByRMId(rm.id);
@@ -4847,7 +4573,7 @@ function exportAlertsExcel(){
   // ── Sheet 2: Expiring Soon ────────────────────────────────
   const expHeaders=['Material Name','Code','Unit','Current Stock','Expiry Date','Days Left','Status','Formulation Count','Formulations Using This Material'];
   const expRows=[expHeaders];
-  DB.rawMaterials.filter(rm=>{if(!rm.expiryDate)return false;const d=new Date(rm.expiryDate);d.setHours(0,0,0,0);return d<=soon;})
+  alertRMs.filter(rm=>{if(!rm.expiryDate)return false;const d=new Date(rm.expiryDate);d.setHours(0,0,0,0);return d<=soon;})
     .sort((a,b)=>new Date(a.expiryDate)-new Date(b.expiryDate))
     .forEach(rm=>{
       const inv=getInvByRMId(rm.id);
@@ -4862,7 +4588,7 @@ function exportAlertsExcel(){
   // ── Sheet 3: Most Used Materials (all RM sorted by formulation count) ───────
   const usageHeaders=['#','Material Name','Code','Unit','Current Stock','Min Stock','Stock Status','Formulation Count','Formulations'];
   const usageRows=[usageHeaders];
-  DB.rawMaterials
+  alertRMs
     .map(rm=>({rm,fmNames:rmFmMap[rm.id]||[]}))
     .filter(x=>x.fmNames.length>0)
     .sort((a,b)=>b.fmNames.length-a.fmNames.length)
@@ -4881,6 +4607,10 @@ function renderAlertsTab(){
   const soon=new Date(today); soon.setDate(soon.getDate()+30);
   const urgent=new Date(today); urgent.setDate(urgent.getDate()+7);
 
+  // ── 0. Base RM list for Alerts — in-house 10%/1% materials (unlimited
+  //    stock, internally manufactured) are fully excluded from this tab ──
+  const alertRMs=DB.rawMaterials.filter(rm=>!_fcIsUnlimitedStockRM(rm.name));
+
   // ── 1. Build RM → formulation usage map (unique product names per RM) ───────
   const rmFormulationMap={};   // rmId → [productName, ...]
   DB.formulations.forEach(f=>{
@@ -4892,7 +4622,7 @@ function renderAlertsTab(){
   });
 
   // ── 2. Top-5 most used materials (by unique formulation count) ───────────────
-  const topUsed=DB.rawMaterials
+  const topUsed=alertRMs
     .map(rm=>({rm,fmNames:rmFormulationMap[rm.id]||[]}))
     .filter(x=>x.fmNames.length>0)
     .sort((a,b)=>b.fmNames.length-a.fmNames.length)
@@ -4937,7 +4667,7 @@ function renderAlertsTab(){
   </div>`;
 
   // ── 3. Critical / Short stock ─────────────────────────────
-  const critItems=DB.rawMaterials
+  const critItems=alertRMs
     .filter(rm=>getStockStatus(rm)!=='ok')
     .sort((a,b)=>{
       // Primary: OUT before LOW
@@ -4987,7 +4717,7 @@ function renderAlertsTab(){
   }
 
   // ── 4. Expiring Soon ──────────────────────────────────────
-  const expItems=DB.rawMaterials
+  const expItems=alertRMs
     .filter(rm=>{ if(!rm.expiryDate) return false; const d=new Date(rm.expiryDate); d.setHours(0,0,0,0); return d<=soon; })
     .sort((a,b)=>new Date(a.expiryDate)-new Date(b.expiryDate));
 
@@ -5201,366 +4931,6 @@ function selectAdjustMaterial(rmId,displayName){
   document.getElementById('adj-rm').value=rmId;
   document.getElementById('adj-rm-search').value=displayName;
   closeAdjustMaterialDropdown();
-}
-
-// ════════════════════════════════════════════════════════
-//  FULL KITTING  — with saved analysis database
-// ════════════════════════════════════════════════════════
-DB.kittingRecords = DB.kittingRecords || [];
-DB.nextId.kit = DB.nextId.kit || 1;
-
-function renderKitting(){
-  const saved=DB.kittingRecords;
-  const formOpts=DB.formulations.map(f=>`<option value="${f.id}">${f.productName} (${f.productCode})</option>`).join('');
-
-  let html=`<div class="page-header">
-    <div><div class="page-title">Full Kitting</div><div class="page-subtitle">Plan your production orders — check material availability & shortages</div></div>
-    <button class="btn btn-primary" onclick="openNewKitting()">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> New Kitting Analysis
-    </button>
-  </div>
-  <div class="alert alert-info" style="margin-bottom:20px;">
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-    Kitting analysis checks inventory availability without debiting stock. Save analyses to track production orders in pipeline.
-  </div>`;
-
-  // Saved records database
-  html+=`<div class="card" style="margin-bottom:20px;">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
-      <div class="card-title" style="margin:0;">📋 Saved Kitting Analyses (${saved.length})</div>
-      <div style="display:flex;gap:8px;align-items:center;">
-        <div class="search-input-wrap" style="min-width:200px;">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input class="search-input" id="kit-db-search" placeholder="Search kitting records..." oninput="filterKitDB()">
-        </div>
-        <select class="filter-select" id="kit-db-status" onchange="filterKitDB()">
-          <option value="">All Status</option>
-          <option value="ok">All Available</option>
-          <option value="shortage">Has Shortage</option>
-        </select>
-        <button class="btn btn-success btn-sm" onclick="exportAllKittingRecords()">↓ Export All</button>
-      </div>
-    </div>`;
-
-  if(saved.length===0){
-    html+=`<div style="text-align:center;padding:32px;color:var(--text3);">
-      <div style="font-size:32px;margin-bottom:8px;">📦</div>
-      <div style="font-size:14px;font-weight:600;">No kitting analyses saved yet</div>
-      <div style="font-size:12px;margin-top:4px;">Click "New Kitting Analysis" to check a production order</div>
-    </div>`;
-  } else {
-    html+=`<div class="table-wrap"><table id="kit-db-table">
-      <thead><tr><th>Analysis Name</th><th>Product</th><th>Lots</th><th>Total Required</th><th>Shortages</th><th>Status</th><th>Saved By</th><th>Date</th><th>Actions</th></tr></thead>
-      <tbody>`;
-    saved.slice().reverse().forEach(rec=>{
-      const statusPill=rec.hasShortage
-        ?`<span class="status-pill status-out">⚠ Shortage</span>`
-        :`<span class="status-pill status-ok">✓ Ready</span>`;
-      html+=`<tr data-status="${rec.hasShortage?'shortage':'ok'}">
-        <td class="td-primary">${rec.name}</td>
-        <td>${rec.productName}</td>
-        <td style="font-weight:600;">${rec.lots}</td>
-        <td style="font-weight:600;">${rec.totalRequired.toFixed(2)} KG</td>
-        <td class="${rec.hasShortage?'kitting-shortage':'kitting-ok'}" style="font-weight:700;">${rec.shortageCount} item(s)</td>
-        <td>${statusPill}</td>
-        <td style="color:var(--text3);font-size:12px;">${rec.savedBy}</td>
-        <td style="color:var(--text3);font-size:12px;">${rec.savedAt}</td>
-        <td style="display:flex;gap:4px;">
-          <button class="btn btn-secondary btn-sm" onclick="viewKittingRecord(${rec.id})">View</button>
-          <button class="btn btn-teal btn-sm" onclick="openNewKitting(${rec.id})">Re-run</button>
-          <button class="btn btn-danger btn-sm" onclick="deleteKittingRecord(${rec.id})">Del</button>
-        </td>
-      </tr>`;
-    });
-    html+=`</tbody></table></div>`;
-  }
-  html+=`</div>`;
-
-  // Quick analysis panel (inline, not saved)
-  html+=`<div class="card">
-    <div class="card-title">⚡ Quick Kitting Check (not saved)</div>
-    <div class="form-row">
-      <div class="form-group"><label>Finished Product</label>
-        <select class="form-control" id="kit-form" onchange="runQuickKitting()">${formOpts}</select>
-      </div>
-      <div class="form-group"><label>Number of Lots</label>
-        <input class="form-control" id="kit-lots" type="number" min="1" value="1" oninput="runQuickKitting()">
-      </div>
-    </div>
-    <div id="kitting-result"></div>
-  </div>`;
-
-  return html;
-}
-
-function filterKitDB(){
-  const q=(document.getElementById('kit-db-search')?.value||'').toLowerCase();
-  const status=document.getElementById('kit-db-status')?.value||'';
-  document.querySelectorAll('#kit-db-table tbody tr').forEach(row=>{
-    const matchQ=!q||row.textContent.toLowerCase().includes(q);
-    const matchS=!status||row.dataset.status===status;
-    row.style.display=(matchQ&&matchS)?'':'none';
-  });
-}
-
-function runQuickKitting(){
-  const fId=parseInt(document.getElementById('kit-form')?.value);
-  const lots=parseInt(document.getElementById('kit-lots')?.value)||1;
-  const f=DB.formulations.find(x=>x.id===fId);
-  if(!f){document.getElementById('kitting-result').innerHTML='';return;}
-  const {rows,allOk}=_buildKittingRows(f,lots);
-  document.getElementById('kitting-result').innerHTML=`
-    <div style="margin-top:14px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
-        <div style="font-size:13px;font-weight:700;color:var(--text);">Result: ${f.productName} × ${lots} lot(s)</div>
-        <div style="display:flex;gap:8px;">
-          ${allOk?`<span class="status-pill status-ok">✓ All Materials Available</span>`:`<span class="status-pill status-out">⚠ Shortages Found</span>`}
-          <button class="btn btn-success btn-sm" onclick="exportQuickKitting()">↓ Export</button>
-          <button class="btn btn-primary btn-sm" onclick="saveQuickKittingAsRecord()">💾 Save This Analysis</button>
-        </div>
-      </div>
-      <div class="table-wrap"><table id="quick-kit-table">
-        <thead><tr><th>Finished Product</th><th>Raw Material</th><th>Required Qty</th><th>Unit</th><th>Available</th><th>To Order</th><th>Final Purchase Qty</th><th>Status</th></tr></thead>
-        <tbody>${rows}</tbody>
-      </table></div>
-    </div>`;
-}
-
-function _buildKittingRows(f,lots){
-  let rows='';let allOk=true;
-  f.items.forEach(item=>{
-    const rm=getRMById(item.rmId);if(!rm)return;
-    const required=item.qty*lots;
-    const available=getInvByRMId(rm.id).quantity;
-    const toOrder=Math.max(0,required-available);
-    if(toOrder>0) allOk=false;
-    const statusPill=toOrder>0?`<span class="status-pill status-out">Shortage</span>`:`<span class="status-pill status-ok">OK</span>`;
-    rows+=`<tr>
-      <td class="td-primary">${f.productName}</td>
-      <td class="td-primary">${rm.name}</td>
-      <td style="font-weight:600;">${required.toFixed(3)}</td>
-      <td>${rm.unit}</td>
-      <td>${available.toFixed(3)}</td>
-      <td class="${toOrder>0?'kitting-shortage':'kitting-ok'}" style="font-weight:700;">${toOrder>0?toOrder.toFixed(3):'✓ 0'}</td>
-      <td style="font-weight:700;color:${toOrder>0?'var(--red)':'var(--green)'};">${toOrder>0?toOrder.toFixed(3)+' '+rm.unit:'—'}</td>
-      <td>${statusPill}</td>
-    </tr>`;
-  });
-  return{rows,allOk};
-}
-
-function openNewKitting(rerunId=null){
-  const src=rerunId?DB.kittingRecords.find(r=>r.id===rerunId):null;
-  const formOpts=DB.formulations.map(f=>`<option value="${f.id}" ${src&&src.formId===f.id?'selected':''}>${f.productName} (${f.productCode})</option>`).join('');
-
-  const modal=`<div class="modal-overlay" id="kit-modal" onclick="if(event.target.id==='kit-modal')closeModal('kit-modal')">
-  <div class="modal modal-lg">
-    <div class="modal-header">
-      <div><div class="modal-title">${src?'Re-run: '+src.name:'New Kitting Analysis'}</div><div style="font-size:12px;color:var(--text3);margin-top:2px;">Inventory is not debited</div></div>
-      <button class="close-btn" onclick="closeModal('kit-modal')">✕</button>
-    </div>
-    <div class="modal-body">
-      <div class="form-row">
-        <div class="form-group"><label>Analysis Name ✱</label><input class="form-control" id="kn-name" value="${src?(rerunId?src.name+' (re-run)':src.name):''}" placeholder="e.g. Q2 Production Order"></div>
-        <div class="form-group"><label>Order Reference</label><input class="form-control" id="kn-ref" value="${src?src.orderRef||'':''}" placeholder="e.g. PO-2025-042"></div>
-      </div>
-      <div class="form-row">
-        <div class="form-group"><label>Finished Product ✱</label>
-          <select class="form-control" id="kn-form" onchange="previewKittingModal()">${formOpts}</select>
-        </div>
-        <div class="form-group"><label>Number of Lots ✱</label>
-          <input class="form-control" id="kn-lots" type="number" min="1" value="${src?src.lots:1}" oninput="previewKittingModal()">
-        </div>
-      </div>
-      <div class="form-group"><label>Notes / Remarks</label><textarea class="form-control" id="kn-notes" placeholder="e.g. Urgent order, deliver by 15 March">${src?src.notes||'':''}</textarea></div>
-      <div id="kit-modal-preview" style="margin-top:8px;"></div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="closeModal('kit-modal')">Cancel</button>
-      <button class="btn btn-secondary" onclick="previewKittingModal()">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> Preview
-      </button>
-      <button class="btn btn-primary" onclick="saveKittingAnalysis()">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Save Analysis
-      </button>
-    </div>
-  </div></div>`;
-  document.body.insertAdjacentHTML('beforeend',modal);
-  previewKittingModal();
-}
-
-function previewKittingModal(){
-  const fId=parseInt(document.getElementById('kn-form')?.value);
-  const lots=parseInt(document.getElementById('kn-lots')?.value)||1;
-  const f=DB.formulations.find(x=>x.id===fId);
-  if(!f){document.getElementById('kit-modal-preview').innerHTML='';return;}
-  const {rows,allOk}=_buildKittingRows(f,lots);
-  document.getElementById('kit-modal-preview').innerHTML=`
-    <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px;margin-top:8px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-        <div style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;">Kitting Preview — ${f.productName} × ${lots} lot(s)</div>
-        ${allOk?`<span class="status-pill status-ok">✓ All Available</span>`:`<span class="status-pill status-out">⚠ Shortages</span>`}
-      </div>
-      <div class="table-wrap"><table>
-        <thead><tr><th>Raw Material</th><th>Required</th><th>Available</th><th>To Order</th><th>Status</th></tr></thead>
-        <tbody>
-        ${f.items.map(item=>{
-          const rm=getRMById(item.rmId);if(!rm)return'';
-          const req=item.qty*lots;
-          const avail=getInvByRMId(rm.id).quantity;
-          const toOrder=Math.max(0,req-avail);
-          return`<tr>
-            <td class="td-primary">${rm.name}</td>
-            <td style="font-weight:600;">${req.toFixed(3)} ${rm.unit}</td>
-            <td>${avail.toFixed(3)}</td>
-            <td class="${toOrder>0?'kitting-shortage':'kitting-ok'}" style="font-weight:700;">${toOrder>0?toOrder.toFixed(3):'-'}</td>
-            <td>${toOrder>0?`<span class="status-pill status-out">Shortage</span>`:`<span class="status-pill status-ok">OK</span>`}</td>
-          </tr>`;
-        }).join('')}
-        </tbody>
-      </table></div>
-    </div>`;
-}
-
-function saveKittingAnalysis(){
-  const name=document.getElementById('kn-name')?.value.trim();
-  const orderRef=document.getElementById('kn-ref')?.value.trim();
-  const fId=parseInt(document.getElementById('kn-form')?.value);
-  const lots=parseInt(document.getElementById('kn-lots')?.value)||1;
-  const notes=document.getElementById('kn-notes')?.value.trim();
-  if(!name){toast('Analysis name is required','error');return;}
-  const f=DB.formulations.find(x=>x.id===fId);
-  if(!f){toast('Select a product','error');return;}
-
-  let shortageCount=0;let totalRequired=0;
-  const lineItems=f.items.map(item=>{
-    const rm=getRMById(item.rmId);if(!rm)return null;
-    const required=item.qty*lots;
-    const available=getInvByRMId(rm.id).quantity;
-    const toOrder=Math.max(0,required-available);
-    if(toOrder>0) shortageCount++;
-    totalRequired+=required;
-    return{rmId:item.rmId,rmName:rm.name,rmCode:rm.code,unit:rm.unit,required,available,toOrder,finalPurchase:toOrder>0?toOrder:0};
-  }).filter(Boolean);
-
-  const rec={
-    id:DB.nextId.kit++,
-    name,orderRef,formId:fId,productName:f.productName,productCode:f.productCode,
-    lots,notes,lineItems,shortageCount,totalRequired,
-    hasShortage:shortageCount>0,
-    savedBy:currentUser.name,savedAt:nowDateTime()
-  };
-  DB.kittingRecords.push(rec);
-  addAudit('Saved kitting analysis',`${name} — ${f.productName} × ${lots} lots`);
-  closeModal('kit-modal');
-  toast(`Kitting analysis saved ✓ (${shortageCount} shortage(s))`,'success');
-  navigate('kitting');
-}
-
-function viewKittingRecord(id){
-  const rec=DB.kittingRecords.find(r=>r.id===id);
-  if(!rec)return;
-  let rows=rec.lineItems.map(li=>`<tr>
-    <td class="td-primary">${rec.productName}</td>
-    <td class="td-primary">${li.rmName}</td>
-    <td class="mono" style="font-size:11px;">${li.rmCode}</td>
-    <td style="font-weight:600;">${li.required.toFixed(3)}</td>
-    <td>${li.unit}</td>
-    <td>${li.available.toFixed(3)}</td>
-    <td class="${li.toOrder>0?'kitting-shortage':'kitting-ok'}" style="font-weight:700;">${li.toOrder>0?li.toOrder.toFixed(3):'✓ 0'}</td>
-    <td style="font-weight:700;color:${li.toOrder>0?'var(--red)':'var(--green)'};">${li.finalPurchase>0?li.finalPurchase.toFixed(3)+' '+li.unit:'—'}</td>
-    <td>${li.toOrder>0?`<span class="status-pill status-out">Shortage</span>`:`<span class="status-pill status-ok">OK</span>`}</td>
-  </tr>`).join('');
-
-  const modal=`<div class="modal-overlay" id="kit-view-modal" onclick="if(event.target.id==='kit-view-modal')closeModal('kit-view-modal')">
-  <div class="modal modal-lg">
-    <div class="modal-header">
-      <div>
-        <div class="modal-title">${rec.name}</div>
-        <div style="font-size:12px;color:var(--text3);margin-top:2px;">${rec.productName} · ${rec.lots} lot(s) · Saved by ${rec.savedBy} on ${rec.savedAt}</div>
-      </div>
-      <button class="close-btn" onclick="closeModal('kit-view-modal')">✕</button>
-    </div>
-    <div class="modal-body">
-      <div class="form-row" style="margin-bottom:16px;">
-        <div style="background:var(--bg3);border-radius:8px;padding:12px;"><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;">Order Ref</div><div style="font-size:14px;font-weight:600;margin-top:4px;">${rec.orderRef||'—'}</div></div>
-        <div style="background:var(--bg3);border-radius:8px;padding:12px;"><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;">Total Required</div><div style="font-size:14px;font-weight:600;margin-top:4px;">${rec.totalRequired.toFixed(2)} KG</div></div>
-        <div style="background:${rec.hasShortage?'var(--red-light)':'var(--green-light)'};border-radius:8px;padding:12px;">
-          <div style="font-size:11px;font-weight:700;color:${rec.hasShortage?'var(--red)':'var(--green)'};text-transform:uppercase;">Status</div>
-          <div style="font-size:14px;font-weight:700;margin-top:4px;color:${rec.hasShortage?'var(--red)':'var(--green)'};">${rec.hasShortage?'⚠ '+rec.shortageCount+' Shortage(s)':'✓ All Available'}</div>
-        </div>
-      </div>
-      ${rec.notes?`<div class="alert" style="background:var(--bg3);border:1px solid var(--border);color:var(--text2);margin-bottom:16px;">💬 ${rec.notes}</div>`:''}
-      <div class="table-wrap"><table>
-        <thead><tr><th>Product</th><th>Raw Material</th><th>Code</th><th>Required</th><th>Unit</th><th>Available</th><th>To Order</th><th>Purchase Qty</th><th>Status</th></tr></thead>
-        <tbody>${rows}</tbody>
-      </table></div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="closeModal('kit-view-modal')">Close</button>
-      <button class="btn btn-success btn-sm" onclick="exportSingleKittingRecord(${rec.id});closeModal('kit-view-modal')">↓ Export Excel</button>
-    </div>
-  </div></div>`;
-  document.body.insertAdjacentHTML('beforeend',modal);
-}
-
-function deleteKittingRecord(id){
-  if(!confirm('Delete this kitting analysis?'))return;
-  DB.kittingRecords=DB.kittingRecords.filter(r=>r.id!==id);
-  toast('Record deleted','info');
-  navigate('kitting');
-}
-
-function exportQuickKitting(){
-  const fId=parseInt(document.getElementById('kit-form')?.value);
-  const lots=parseInt(document.getElementById('kit-lots')?.value)||1;
-  const f=DB.formulations.find(x=>x.id===fId);if(!f)return;
-  const data=[['Finished Product','Raw Material','Code','Required Qty','Unit','Available Qty','Qty to Order','Final Purchase Qty','Status']];
-  f.items.forEach(item=>{
-    const rm=getRMById(item.rmId);if(!rm)return;
-    const req=item.qty*lots;
-    const avail=getInvByRMId(rm.id).quantity;
-    const toOrder=Math.max(0,req-avail);
-    data.push([f.productName,rm.name,rm.code,req.toFixed(3),rm.unit,avail.toFixed(3),toOrder.toFixed(3),toOrder>0?toOrder.toFixed(3)+' '+rm.unit:'—',toOrder>0?'Shortage':'OK']);
-  });
-  dlExcel(data,`QuickKitting_${f.productCode}_${lots}lots`);
-}
-
-function saveQuickKittingAsRecord(){
-  const fId=parseInt(document.getElementById('kit-form')?.value);
-  const lots=parseInt(document.getElementById('kit-lots')?.value)||1;
-  const f=DB.formulations.find(x=>x.id===fId);if(!f)return;
-  // Pre-fill and open the save modal
-  window._kitQuickFId=fId;
-  window._kitQuickLots=lots;
-  openNewKitting();
-  // Set values after modal renders
-  setTimeout(()=>{
-    const sel=document.getElementById('kn-form');
-    if(sel){sel.value=fId;previewKittingModal();}
-    const lotsEl=document.getElementById('kn-lots');
-    if(lotsEl){lotsEl.value=lots;previewKittingModal();}
-  },50);
-}
-
-function exportSingleKittingRecord(id){
-  const rec=DB.kittingRecords.find(r=>r.id===id);if(!rec)return;
-  const data=[['Analysis Name','Order Ref','Product','Lots','Saved By','Date','','','','','']];
-  data.push([rec.name,rec.orderRef||'',rec.productName,rec.lots,rec.savedBy,rec.savedAt,'','','','','']);
-  data.push(['','','','','','','','','','','']);
-  data.push(['Finished Product','Raw Material','Code','Required Qty','Unit','Available Qty','Qty to Order','Final Purchase Qty','Status']);
-  rec.lineItems.forEach(li=>{
-    data.push([rec.productName,li.rmName,li.rmCode,li.required.toFixed(3),li.unit,li.available.toFixed(3),li.toOrder.toFixed(3),li.finalPurchase>0?li.finalPurchase.toFixed(3)+' '+li.unit:'—',li.toOrder>0?'SHORTAGE':'OK']);
-  });
-  dlExcel(data,`Kitting_${rec.name.replace(/\s+/g,'_')}`);
-}
-
-function exportAllKittingRecords(){
-  const data=[['Analysis Name','Order Ref','Product','Lots','Total Required KG','Shortages','Status','Saved By','Date']];
-  DB.kittingRecords.forEach(rec=>{
-    data.push([rec.name,rec.orderRef||'',rec.productName,rec.lots,rec.totalRequired.toFixed(2),rec.shortageCount,rec.hasShortage?'SHORTAGE':'ALL OK',rec.savedBy,rec.savedAt]);
-  });
-  dlExcel(data,'Kitting_All_Records');
 }
 
 // ════════════════════════════════════════════════════════
@@ -5793,6 +5163,7 @@ function deleteUser(id){
   DB.users.splice(DB.users.findIndex(u=>u.id===id),1);
   toast('User deleted','info');
   navigate('users');
+  gasCall('deleteUser',{userId:id}).catch(e=>console.error('deleteUser error:',e));
 }
 
 // ════════════════════════════════════════════════════════
@@ -6704,7 +6075,7 @@ ${showCost?`
 // ════════════════════════════════════════════════════════
 //  MODAL UTIL
 // ════════════════════════════════════════════════════════
-function closeModal(id){document.getElementById(id)?.remove();formItemCount=0;caItemCount=0;}
+function closeModal(id){document.getElementById(id)?.remove();formItemCount=0;_caItemCount=0;}
 </script>
 
 <script>
@@ -8000,13 +7371,19 @@ function openShiftModal(id){
 }
 function toggleShift(id){
   const s=DB.shifts.find(x=>x.id===id);
-  if(s){ s.active=!s.active; navigate('shiftmaster'); toast(`${s.name} ${s.active?'activated':'deactivated'}`,'info'); }
+  if(s){
+    s.active=!s.active;
+    navigate('shiftmaster');
+    toast(`${s.name} ${s.active?'activated':'deactivated'}`,'info');
+    gasCall('saveShift',{shift:s}).catch(e=>console.error('toggleShift save error:',e));
+  }
 }
 function deleteShift(id){
   if(!confirm('Delete this shift? It will be removed from the shift list.')) return;
   DB.shifts=DB.shifts.filter(s=>s.id!==id);
   navigate('shiftmaster');
   toast('Shift deleted','info');
+  gasCall('deleteShift',{shiftId:id}).catch(e=>console.error('deleteShift error:',e));
 }
 function saveShift(){
   const name=document.getElementById('sm-name').value.trim();
@@ -8017,15 +7394,24 @@ function saveShift(){
   const color=colorRadio?colorRadio.value:'#2563eb';
   const editId=document.getElementById('sm-edit-id').value;
   if(!name||!start||!end){toast('Shift name, start time and end time are required','error');return;}
+  let s;
   if(editId){
-    const s=DB.shifts.find(x=>x.id===Number(editId));
+    s=DB.shifts.find(x=>x.id===Number(editId));
     if(s){s.name=name;s.startTime=start;s.endTime=end;s.crossesMidnight=midnight;s.color=color;}
   } else {
-    DB.shifts.push({id:DB.nextId_shift++,name,startTime:start,endTime:end,crossesMidnight:midnight,active:true,color});
+    s={id:0,name,startTime:start,endTime:end,crossesMidnight:midnight,active:true,color};
+    DB.shifts.push(s);
   }
   document.getElementById('shift-modal').style.display='none';
   navigate('shiftmaster');
-  toast('Shift saved ✓','success');
+  toast('Saving...','info');
+  gasCall('saveShift',{shift:s})
+    .then(res=>{
+      if(res&&res.newId){ s.id=Number(res.newId); }
+      toast('Shift saved ✓','success');
+      navigate('shiftmaster');
+    })
+    .catch(e=>{ console.error('saveShift error:',e); toast('Saved locally but server save failed','error'); });
 }
 
 // ── Machine Setup page ───────────────────────────────────────────────────────
@@ -8133,7 +7519,12 @@ function openMachineModal(id){
 function editMachine(id){ openMachineModal(id); }
 function toggleMachine(id){
   const m=DB.machines.find(x=>x.id===id);
-  if(m){ m.active=!m.active; navigate('machines'); toast(`${m.name} ${m.active?'activated':'deactivated'}`,'info'); }
+  if(m){
+    m.active=!m.active;
+    navigate('machines');
+    toast(`${m.name} ${m.active?'activated':'deactivated'}`,'info');
+    gasCall('saveMachine',{machine:m}).catch(e=>console.error('toggleMachine save error:',e));
+  }
 }
 function saveMachine(){
   const name=document.getElementById('mac-name').value.trim();
@@ -8142,20 +7533,32 @@ function saveMachine(){
   const stdKg=document.getElementById('mac-stdkg').value?Number(document.getElementById('mac-stdkg').value):null;
   const editId=document.getElementById('mac-edit-id').value;
   if(!name||!type){toast('Machine name and type are required','error');return;}
+  let m;
   if(editId){
-    const m=DB.machines.find(x=>x.id===Number(editId));
+    m=DB.machines.find(x=>x.id===Number(editId));
     if(m){m.name=name;m.type=type;m.hourlyMachineCost=cost;if(stdKg!==null)m.stdKgHr=stdKg;}
   } else {
-    DB.machines.push({id:DB.nextId_machine++,name,type,hourlyMachineCost:cost,stdKgHr:stdKg,active:true});
+    m={id:0,name,type,hourlyMachineCost:cost,stdKgHr:stdKg,active:true};
+    DB.machines.push(m);
   }
   document.getElementById('machine-modal').style.display='none';
   navigate('machines');
-  toast('Machine saved ✓','success');
+  toast('Saving...','info');
+  gasCall('saveMachine',{machine:m})
+    .then(res=>{
+      if(res&&res.newId){ m.id=Number(res.newId); }
+      toast('Machine saved ✓','success');
+      navigate('machines');
+    })
+    .catch(e=>{ console.error('saveMachine error:',e); toast('Saved locally but server save failed — check connection','error'); });
 }
 function saveLabourRate(){
   const v=Number(document.getElementById('labour-rate-input').value)||60;
   DB.labourRate=v;
-  toast('Labour rate updated to ₹'+v+'/hr ✓','success');
+  toast('Saving...','info');
+  gasCall('saveSetting',{key:'labourRate',value:v})
+    .then(()=>toast('Labour rate updated to ₹'+v+'/hr ✓','success'))
+    .catch(e=>{ console.error('saveLabourRate error:',e); toast('Saved locally but server save failed','error'); });
 }
 
 // ── Production Reports page ──────────────────────────────────────────────────
@@ -8478,37 +7881,10 @@ function exportProdPDF(){
   setTimeout(()=>w.print(),400);
 }
 
-// ── Production dashboard tile (shown on main dashboard for prod role) ────────
-function getProdDashTiles(){
-  const today=nowDate();
-  const thisMonth=today.slice(0,7);
-  const todayLogs=DB.productionLogs.filter(l=>l.date===today);
-  const monthLogs=DB.productionLogs.filter(l=>l.date.startsWith(thisMonth));
-  const todayFG=todayLogs.reduce((s,l)=>s+(Number(l.fgOutput)||0),0);
-  const monthFG=monthLogs.reduce((s,l)=>s+(Number(l.fgOutput)||0),0);
-  let monthHrs=0,wasteArr=[];
-  monthLogs.forEach(l=>{const m=calcProdMetrics(l);if(m){monthHrs+=m.machineRunHrs;wasteArr.push(m.wastage);}});
-  const avgWaste=wasteArr.length?wasteArr.reduce((a,b)=>a+b,0)/wasteArr.length:0;
-  return `
-  <div class="stat-card" style="cursor:pointer" onclick="navigate('production')">
-    <div class="stat-icon" style="background:#fef3c7"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2.5"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"/></svg></div>
-    <div class="stat-label">Today's Production</div>
-    <div class="stat-value">${todayFG.toFixed(0)} <span style="font-size:14px;font-weight:600;color:var(--text2)">kg</span></div>
-    <div class="stat-sub">${todayLogs.length} runs today</div>
-  </div>
-  <div class="stat-card" style="cursor:pointer" onclick="navigate('prodreports')">
-    <div class="stat-icon" style="background:#eff6ff"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg></div>
-    <div class="stat-label">Monthly Output</div>
-    <div class="stat-value">${monthFG.toFixed(0)} <span style="font-size:14px;font-weight:600;color:var(--text2)">kg</span></div>
-    <div class="stat-sub">${monthHrs.toFixed(1)} machine hours</div>
-  </div>
-  <div class="stat-card" style="cursor:pointer" onclick="navigate('prodreports')">
-    <div class="stat-icon" style="background:${avgWaste<5?'#f0fdf4':avgWaste<10?'#fffbeb':'#fef2f2'}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${avgWaste<5?'#059669':avgWaste<10?'#d97706':'#dc2626'}" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
-    <div class="stat-label">Avg Wastage</div>
-    <div class="stat-value ${effClass(100-avgWaste,95,90)}">${avgWaste.toFixed(1)}%</div>
-    <div class="stat-sub">this month</div>
-  </div>`;
-}
+// NOTE (dashboard v4.0): the "Today's Production / Monthly Output / Avg Wastage"
+// tile group that used to live here was removed from the main Dashboard per the
+// pending-focused redesign. That data is still available on the dedicated
+// Production Reports page (renderProdReports) — nothing was lost, just moved.
 
 // ════════════════════════════════════════════════════════
 //  SAVE OVERLAY — animated loading + haptic-feel success
@@ -8857,6 +8233,19 @@ function _fcFmtDate(d) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+//  In-house, unlimited-stock raw materials (e.g. "Filler 10%", "Catalyst 1%",
+//  and the material named "BASE") are internally manufactured and never
+//  treated as a shortage item anywhere in the app — RM Forecasting, the
+//  Alerts tab, and the Inventory Reorder Alert — no matter what the
+//  calculated stock looks like.
+// ─────────────────────────────────────────────────────────────────────────────
+function _fcIsUnlimitedStockRM(rmName) {
+  const n = String(rmName || '').trim();
+  if (n.toUpperCase() === 'BASE') return true;
+  return n.includes('10%') || n.includes('1%');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 //  _fcBuildOrdersFromDB — client-side forecast calculation
 //  Uses reference batch BOM × scale factor to get per-RM requirement
 // ─────────────────────────────────────────────────────────────────────────────
@@ -8911,7 +8300,10 @@ function _fcBuildOrdersFromDB() {
       const origKg  = (unit === 'G' || unit === 'ML') ? origQty/1000 : origQty;
       const reqKg   = origKg * scaleFactor;
       const available = getInvByRMId(it.rmId).quantity || 0;
-      const shortQty  = Math.max(0, reqKg - available);
+      const isUnlimited = _fcIsUnlimitedStockRM(rm.name);
+      // In-house 10%/1% materials have unlimited stock — never a shortage,
+      // even if the calculated available quantity is below the requirement.
+      const shortQty  = isUnlimited ? 0 : Math.max(0, reqKg - available);
       const excessQty = Math.max(0, available - reqKg);
       totalReqKg   += reqKg;
       totalShortKg += shortQty;
@@ -8919,7 +8311,7 @@ function _fcBuildOrdersFromDB() {
       if (shortQty > 0) shortItems++;
       return { rmId:it.rmId, rmName:rm.name, rmCode:rm.code, category:rm.category||'',
                origUnit:unit, origQty, origKg, scaleFactor,
-               reqKg, available, shortQty, excessQty,
+               reqKg, available, shortQty, excessQty, unlimitedStock:isUnlimited,
                status: shortQty > 0 ? 'Procurement Required' : 'Available in Inventory' };
     }).filter(Boolean);
 
@@ -9249,7 +8641,10 @@ function _fcBuildConsolidatedView(filtered) {
   const valid = filtered.filter(o=>o.status==='ok'&&o.forecast);
   if (!valid.length) return `<div class="forecast-empty"><h3>No valid orders in selected range</h3></div>`;
 
-  // Merge RM requirements across all valid orders
+  // Merge RM requirements across all valid orders.
+  // In-house 10%/1% materials always arrive with shortQty=0 (see
+  // _fcIsUnlimitedStockRM), so they naturally fall out of shortRMs below —
+  // no separate exclusion list needed.
   const rmMap = {};
   valid.forEach(o => {
     (o.forecast.rows||[]).forEach(r => {
@@ -9267,10 +8662,26 @@ function _fcBuildConsolidatedView(filtered) {
   const shortRMs = allRMs.filter(r=>r.totalShortKg>0);
   const readyRMs = allRMs.filter(r=>r.totalShortKg<=0);
 
+  // Finished Goods / product names affected by at least one real shortage —
+  // shown as a header banner so it's immediately clear which products are at risk.
+  const affectedProducts = Array.from(new Set(
+    valid.filter(o => (o.forecast.rows||[]).some(r => r.shortQty > 0)).map(o => o.productName || (o.formulation && o.formulation.productName) || '—')
+  ));
+
+  const headerBanner = affectedProducts.length
+    ? `<div style="background:#fef2f2;border:1.5px solid #fca5a5;border-radius:10px;padding:10px 14px;margin-bottom:14px;">
+        <div style="font-size:11px;font-weight:800;color:var(--red);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:5px;">⚠ Finished Goods Affected By RM Shortage</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          ${affectedProducts.map(n=>`<span style="background:#fff;border:1px solid #fca5a5;color:var(--red);border-radius:20px;padding:3px 12px;font-size:12px;font-weight:700;">${_esc(n)}</span>`).join('')}
+        </div>
+      </div>`
+    : `<div style="background:var(--green-light);border:1.5px solid #6ee7b7;border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:13px;font-weight:700;color:var(--green);">✓ All raw materials sufficiently stocked — no finished goods affected</div>`;
+
   return `<div class="card" style="padding:18px;">
+    ${headerBanner}
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
-      <div class="card-title" style="margin:0;">🧪 Consolidated RM Requirement — ${valid.length} orders · ${allRMs.length} materials
-        ${shortRMs.length?`<span style="color:var(--red);font-size:12px;font-weight:700;margin-left:8px;">⚠ ${shortRMs.length} short</span>`:'<span style="color:var(--green);font-size:12px;margin-left:8px;">✓ All clear</span>'}
+      <div class="card-title" style="margin:0;">🧪 Consolidated RM Requirement — ${valid.length} orders · ${shortRMs.length} short material${shortRMs.length===1?'':'s'}
+        ${shortRMs.length?`<span style="color:var(--red);font-size:12px;font-weight:700;margin-left:8px;">⚠ Showing only insufficient-stock materials</span>`:'<span style="color:var(--green);font-size:12px;margin-left:8px;">✓ All clear</span>'}
       </div>
       <div style="display:flex;gap:8px;">
         <div class="search-input-wrap" style="min-width:200px;">
@@ -9280,7 +8691,9 @@ function _fcBuildConsolidatedView(filtered) {
         <button class="btn btn-secondary btn-sm" onclick="fcExportConsolidatedExcel()">↓ Excel</button>
       </div>
     </div>
-    <div class="table-wrap"><table id="fc-cons-table">
+    ${shortRMs.length===0
+      ? `<div class="forecast-empty"><h3>✓ No raw material shortages</h3><p>All materials required for these orders are sufficiently stocked.</p></div>`
+      : `<div class="table-wrap"><table id="fc-cons-table">
       <thead><tr>
         <th>#</th><th>Raw Material</th><th>Code</th><th>Category</th>
         <th style="text-align:right">Total Required (KG)</th>
@@ -9290,28 +8703,27 @@ function _fcBuildConsolidatedView(filtered) {
         <th>Status</th><th>Used In</th>
       </tr></thead>
       <tbody>
-      ${allRMs.map((r,i)=>{
+      ${shortRMs.map((r,i)=>{
         const excess=Math.max(0,r.available-r.totalReqKg);
-        const isShort=r.totalShortKg>0;
-        return `<tr style="${isShort?'background:#fff8f8':''}">
+        return `<tr style="background:#fff8f8">
           <td style="font-size:11px;color:#94a3b8">${i+1}</td>
-          <td class="td-primary" style="${isShort?'color:var(--red)':''}">${isShort?'⚠ ':''} ${_esc(r.rmName)}</td>
+          <td class="td-primary" style="color:var(--red)">⚠ ${_esc(r.rmName)}</td>
           <td class="mono" style="font-size:11px;color:#64748b">${_esc(r.rmCode)}</td>
           <td style="font-size:11px;color:var(--text3)">${_esc(r.category)}</td>
           <td style="text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--accent2)">${r.totalReqKg.toFixed(3)}</td>
           <td style="text-align:right;font-family:'JetBrains Mono',monospace">${r.available.toFixed(3)}</td>
-          <td style="text-align:right;font-family:'JetBrains Mono',monospace;font-weight:${isShort?'800':'400'};color:${isShort?'var(--red)':'var(--text3)'};">${isShort?r.totalShortKg.toFixed(3):'—'}</td>
+          <td style="text-align:right;font-family:'JetBrains Mono',monospace;font-weight:800;color:var(--red);">${r.totalShortKg.toFixed(3)}</td>
           <td style="text-align:right;font-family:'JetBrains Mono',monospace;color:${excess>0?'var(--green)':'var(--text3)'};">${excess>0?excess.toFixed(3):'—'}</td>
-          <td>${isShort?'<span class="forecast-status-short">⚠ Procurement</span>':'<span class="forecast-status-ok">✓ In Stock</span>'}</td>
+          <td><span class="forecast-status-short">⚠ Procurement</span></td>
           <td style="font-size:11px">${r.usedIn.slice(0,2).map(n=>`<span style="background:var(--accent-light);color:var(--accent2);border-radius:10px;padding:1px 6px;font-size:10px;">${_esc(n)}</span>`).join(' ')}${r.usedIn.length>2?`<span style="color:var(--text3)"> +${r.usedIn.length-2}</span>`:''}</td>
         </tr>`;
       }).join('')}
       </tbody>
-    </table></div>
+    </table></div>`}
     <div class="forecast-summary-bar" style="margin-top:14px">
-      <div class="fsb-item"><div class="fsb-label">Total Materials</div><div class="fsb-value">${allRMs.length}</div></div>
+      <div class="fsb-item"><div class="fsb-label">Total Materials Checked</div><div class="fsb-value">${allRMs.length}</div></div>
       <div class="fsb-item"><div class="fsb-label">In Stock</div><div class="fsb-value green">${readyRMs.length}</div></div>
-      <div class="fsb-item"><div class="fsb-label">Short</div><div class="fsb-value ${shortRMs.length?'red':'green'}">${shortRMs.length}</div></div>
+      <div class="fsb-item"><div class="fsb-label">Short (Shown Above)</div><div class="fsb-value ${shortRMs.length?'red':'green'}">${shortRMs.length}</div></div>
       <div class="fsb-item"><div class="fsb-label">Total Required</div><div class="fsb-value">${allRMs.reduce((s,r)=>s+r.totalReqKg,0).toFixed(2)} KG</div></div>
       <div class="fsb-item"><div class="fsb-label">Total Shortfall</div><div class="fsb-value ${shortRMs.length?'red':'green'}">${allRMs.reduce((s,r)=>s+r.totalShortKg,0).toFixed(2)} KG</div></div>
     </div>
@@ -9547,11 +8959,16 @@ function fcExportConsolidatedExcel() {
       if(!rmMap[r.rmId].usedIn.includes(o.productName)) rmMap[r.rmId].usedIn.push(o.productName);
     });
   });
-  const allRMs=Object.values(rmMap).sort((a,b)=>b.totalReqKg-a.totalReqKg);
+  // Matches the on-screen Consolidated view: only insufficient-stock materials
+  // (in-house 10%/1% items already arrive with totalShortKg=0, so they're excluded here too).
+  const allRMs=Object.values(rmMap).filter(r=>r.totalShortKg>0).sort((a,b)=>b.totalReqKg-a.totalReqKg);
+  if (!allRMs.length) { toast('No RM shortages to export — all materials sufficiently stocked ✓', 'success'); return; }
+  const affectedProducts = Array.from(new Set(valid.filter(o=>(o.forecast.rows||[]).some(r=>r.shortQty>0)).map(o=>o.productName)));
   const ws=XLSX.utils.aoa_to_sheet([
-    ['Consolidated RM Requirement — '+new Date().toLocaleString('en-IN')],['Orders: '+valid.length],[''],
+    ['Consolidated RM Requirement (Short Materials Only) — '+new Date().toLocaleString('en-IN')],['Orders: '+valid.length],
+    ['Finished Goods Affected: '+(affectedProducts.join(', ')||'None')],[''],
     ['#','Raw Material','Code','Category','Required (KG)','In Stock (KG)','Short (KG)','Excess (KG)','Status','Used In'],
-    ...allRMs.map((r,i)=>{const ex=Math.max(0,r.available-r.totalReqKg);return[i+1,r.rmName,r.rmCode,r.category,r.totalReqKg.toFixed(3),r.available.toFixed(3),r.totalShortKg>0?r.totalShortKg.toFixed(3):'',ex>0?ex.toFixed(3):'',r.totalShortKg>0?'PROCUREMENT REQUIRED':'Available',r.usedIn.join(' / ')];})
+    ...allRMs.map((r,i)=>{const ex=Math.max(0,r.available-r.totalReqKg);return[i+1,r.rmName,r.rmCode,r.category,r.totalReqKg.toFixed(3),r.available.toFixed(3),r.totalShortKg.toFixed(3),ex>0?ex.toFixed(3):'','PROCUREMENT REQUIRED',r.usedIn.join(' / ')];})
   ]);
   ws['!cols']=[{wch:5},{wch:32},{wch:12},{wch:14},{wch:16},{wch:16},{wch:12},{wch:12},{wch:22},{wch:36}];
   const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'RM Consolidated');
