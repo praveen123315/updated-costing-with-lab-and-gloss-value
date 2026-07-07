@@ -1018,7 +1018,7 @@ const NAV_CONFIG = {
   ],
   inventory:[
     {section:'Overview',items:[{id:'dashboard',label:'Dashboard'}]},
-    {section:'Materials',items:[{id:'inventory',label:'Inventory'}]},
+    {section:'Materials',items:[{id:'rawmaterials',label:'Add Material'},{id:'inventory',label:'Inventory'}]},
     {section:'Reports',items:[{id:'reports',label:'Reports'}]},
   ],
   view:[
@@ -1053,7 +1053,7 @@ function can(perm){
   const perms={
     admin:['dashboard','formulations','rawmaterials','inventory','reports','users','settings','viewPrice','editPrice','manageUsers','viewCost','addStock','subtractStock','production','prodreports','machines','manageMachines','shiftmaster','forecasting','analytics'],
     formulation:['dashboard','formulations','inventory','forecasting'],
-    inventory:['dashboard','inventory','reports','addStock','subtractStock','forecasting'],
+    inventory:['dashboard','inventory','reports','addStock','subtractStock','forecasting','addRawMaterial'],
     view:['dashboard','inventory'],
     report:['dashboard','reports','inventory','forecasting','analytics'],
     production:['dashboard','production','prodreports','shiftmaster'],
@@ -1135,7 +1135,7 @@ function renderPage(page,el){
   switch(page){
     case 'dashboard':el.innerHTML=renderDashboard();break;
     case 'formulations':el.innerHTML=renderFormulations();break;
-    case 'rawmaterials':el.innerHTML=can('editPrice')?renderRawMaterials():'<div class="alert alert-error">Access denied.</div>';break;
+    case 'rawmaterials':el.innerHTML=(can('editPrice')||can('addRawMaterial'))?renderRawMaterials():'<div class="alert alert-error">Access denied.</div>';break;
     case 'inventory':el.innerHTML=renderInventory();break;
     case 'reports':el.innerHTML=renderReports();break;
     case 'analytics':
@@ -4058,12 +4058,13 @@ function addFormulationComment(formulationId){
 //  RAW MATERIALS  (with bulk import)
 // ════════════════════════════════════════════════════════
 function renderRawMaterials(){
+  const canPrice=can('editPrice');
   let html=`<div class="page-header">
     <div><div class="page-title">Raw Materials</div><div class="page-subtitle">Material master — prices, suppliers & settings</div></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
-      <button class="btn btn-success btn-sm" onclick="openBulkImport()">
+      ${canPrice?`<button class="btn btn-success btn-sm" onclick="openBulkImport()">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Bulk Import Excel
-      </button>
+      </button>`:''}
       <button class="btn btn-primary" onclick="openRMModal()">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add Material
       </button>
@@ -4094,7 +4095,7 @@ function renderRawMaterials(){
   </div>`;
 
   html+=`<div class="card"><div class="table-wrap"><table id="rm-main-table">
-  <thead><tr><th>Name</th><th>Code</th><th>Unit</th><th>Category</th><th>Rate (₹)</th><th>Supplier</th><th>Last Updated</th><th>Min Stock</th><th>Actions</th></tr></thead>
+  <thead><tr><th>Name</th><th>Code</th><th>Unit</th><th>Category</th>${canPrice?'<th>Rate (₹)</th><th>Supplier</th>':''}<th>Last Updated</th><th>Min Stock</th><th>Actions</th></tr></thead>
   <tbody>`;
   DB.rawMaterials.forEach(rm=>{
     const st=getStockStatus(rm);
@@ -4105,17 +4106,16 @@ function renderRawMaterials(){
       <td class="mono" style="color:var(--text3);font-size:12px;">${rm.code}</td>
       <td>${rm.unit}</td>
       <td><span style="background:${catBg};color:${catCol};border-radius:20px;padding:2px 9px;font-size:11px;font-weight:700;">${rm.category||'—'}</span></td>
-      <td class="cost-tag" style="font-weight:700;">${fmtCurrency(rm.rate)}</td>
-      <td style="color:var(--text2)">${rm.supplier}</td>
+      ${canPrice?`<td class="cost-tag" style="font-weight:700;">${fmtCurrency(rm.rate)}</td><td style="color:var(--text2)">${rm.supplier}</td>`:''}
       <td style="color:var(--text3);font-size:12px;">${rm.updatedDate}</td>
       <td><span class="status-pill ${st==='ok'?'status-ok':st==='low'?'status-low':'status-out'}">${rm.minStock}</span></td>
       <td style="display:flex;gap:4px;">
         <button class="btn btn-secondary btn-sm" onclick="openRMModal(${rm.id})">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Edit
         </button>
-        <button class="btn btn-danger btn-sm" onclick="deleteRM(${rm.id})">
+        ${canPrice?`<button class="btn btn-danger btn-sm" onclick="deleteRM(${rm.id})">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
-        </button>
+        </button>`:''}
       </td>
     </tr>`;
   });
@@ -4231,8 +4231,9 @@ async function confirmBulkImport(){
       const newRMId2=DB.nextId.rm++;
       const newRM={id:newRMId2,name:item.name,code:item.code,unit:item.unit,rate:item.rate,supplier:item.supplier,updatedDate:nowDate(),minStock:0,category:item.category||''};
       DB.rawMaterials.push(newRM);
-      DB.inventory.push({id:newRMId2,rmId:newRMId2,quantity:0});
-      toSave.push({rm:newRM, isNew:true});
+      const newInv={id:newRMId2,rmId:newRMId2,quantity:0};
+      DB.inventory.push(newInv);
+      toSave.push({rm:newRM, inv:newInv, isNew:true});
       added++;
     }
   });
@@ -4244,9 +4245,30 @@ async function confirmBulkImport(){
   let saved=0, failed=0;
   for(const entry of toSave){
     try{
-      await gasCall('saveRawMaterial',{rm:entry.rm,isNew:entry.isNew});
+      const res=await gasCall('saveRawMaterial',{rm:entry.rm,isNew:entry.isNew});
+      // v3.11: the server now always assigns a fresh, lock-protected id for
+      // isNew materials rather than trusting our optimistic guess (DB.nextId.rm++).
+      // That guess can be stale if another session added materials in between,
+      // so sync it back — otherwise this row's local id wouldn't match what's
+      // actually in the sheet, and later edits/deletes would hit the wrong row.
+      if(entry.isNew && res && res.newId && Number(res.newId)!==entry.rm.id){
+        entry.rm.id=Number(res.newId);
+        if(entry.inv){ entry.inv.id=Number(res.newId); entry.inv.rmId=Number(res.newId); }
+      }
       saved++;
-    } catch(e){ console.error('Bulk save failed for',entry.rm.code,e); failed++; }
+    } catch(e){
+      console.error('Bulk save failed for',entry.rm.code,e);
+      failed++;
+      // Roll back local state for anything that never actually made it to the sheet.
+      if(entry.isNew){
+        const rmIdx=DB.rawMaterials.findIndex(r=>r===entry.rm);
+        if(rmIdx!==-1) DB.rawMaterials.splice(rmIdx,1);
+        if(entry.inv){
+          const invIdx=DB.inventory.findIndex(i=>i===entry.inv);
+          if(invIdx!==-1) DB.inventory.splice(invIdx,1);
+        }
+      }
+    }
   }
 
   await gasCall('addAudit',{entry:DB.auditLog[0]});
