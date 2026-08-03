@@ -78,11 +78,6 @@ select.form-control option{background:#fff;}
 .btn-teal:hover{background:#99f6e4;}
 .btn-sm{padding:6px 12px;font-size:12px;}
 .btn-full{width:100%;justify-content:center;padding:13px;}
-.demo-logins{margin-top:20px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px;}
-.demo-logins h4{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-bottom:10px;}
-.demo-login-btn{display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:transparent;border:none;padding:6px 4px;color:var(--text2);font-size:12px;font-family:inherit;cursor:pointer;transition:color 0.2s;border-radius:6px;}
-.demo-login-btn:hover{color:var(--text);background:var(--border);}
-.demo-login-btn span{color:var(--text3);}
 
 /* LAYOUT */
 #app{display:none;min-height:100vh;}
@@ -112,6 +107,7 @@ select.form-control option{background:#fff;}
 .badge-view{background:var(--blue-light);color:#2563eb;}
 .badge-report{background:var(--purple-light);color:#7c3aed;}
 .badge-inventory{background:var(--teal-light);color:#0d9488;}
+.badge-sushil{background:var(--gold-light);color:var(--gold);}
 .page{padding:28px;flex:1;}
 .page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:10px;}
 .page-title{font-size:22px;font-weight:800;color:var(--text);letter-spacing:-0.5px;}
@@ -612,17 +608,6 @@ tbody tr:nth-child(1){animation-delay:0.03s;} tbody tr:nth-child(2){animation-de
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
       Sign In
     </button>
-    <div class="demo-logins">
-      <h4>Demo Accounts</h4>
-      <button class="demo-login-btn" onclick="fillLogin('admin','admin123')">👑 Admin <span>— admin / admin123</span></button>
-      <button class="demo-login-btn" onclick="fillLogin('sudhir','sudhir123')">🔬 Sudhir Ji (Formulation) <span>— sudhir / sudhir123</span></button>
-      <button class="demo-login-btn" onclick="fillLogin('vivek','vivek123')">🧪 Vivek Goswami (LAB Entry) <span>— vivek / vivek123</span></button>
-      <button class="demo-login-btn" onclick="fillLogin('amar','amar123')">📋 Amar Goswami (Batch Editor) <span>— amar / amar123</span></button>
-      <button class="demo-login-btn" onclick="fillLogin('invuser','inv123')">📦 Inventory User <span>— invuser / inv123</span></button>
-      <button class="demo-login-btn" onclick="fillLogin('viewer','view123')">👁 View User <span>— viewer / view123</span></button>
-      <button class="demo-login-btn" onclick="fillLogin('reporter','report123')">📊 Report User <span>— reporter / report123</span></button>
-      <button class="demo-login-btn" onclick="fillLogin('prodop','prod123')">⚙️ Production Operator <span>— prodop / prod123</span></button>
-    </div>
   </div>
 </div>
 
@@ -652,6 +637,10 @@ tbody tr:nth-child(1){animation-delay:0.03s;} tbody tr:nth-child(2){animation-de
     <div class="topbar">
       <div class="topbar-title" id="page-heading">Dashboard</div>
       <div class="topbar-right">
+        <button id="manual-refresh-btn" class="btn btn-secondary btn-sm" title="Reload latest data from Google Sheets" onclick="manualRefresh()" style="display:flex;align-items:center;gap:6px;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+          Refresh
+        </button>
         <span class="badge" id="role-badge">—</span>
         <span id="topbar-date" style="font-size:12px;color:var(--text3);font-weight:500;"></span>
         <span id="saving-indicator" style="display:none;align-items:center;gap:6px;font-size:12px;color:var(--accent2);font-weight:600;">
@@ -670,16 +659,15 @@ tbody tr:nth-child(1){animation-delay:0.03s;} tbody tr:nth-child(2){animation-de
 //  DATA STORE
 // ════════════════════════════════════════════════════════
 const DB = {
-  users: [
-    {id:1,username:'admin',password:'admin123',name:'Administrator',role:'admin'},
-    {id:2,username:'sudhir',password:'sudhir123',name:'Sudhir Ji',role:'formulation'},
-    {id:3,username:'viewer',password:'view123',name:'View User',role:'view'},
-    {id:4,username:'reporter',password:'report123',name:'Report User',role:'report'},
-    {id:5,username:'invuser',password:'inv123',name:'Inventory User',role:'inventory'},
-    {id:6,username:'prodop',password:'prod123',name:'Production Operator',role:'production'},
-    {id:7,username:'vivek',password:'vivek123',name:'Vivek Goswami',role:'labentry'},
-    {id:8,username:'amar',password:'amar123',name:'Amar Goswami',role:'batchedit'},
-  ],
+  // v3.14: previously seeded with 9 hardcoded demo accounts (plaintext
+  // passwords like 'admin123') as an "offline mode" fallback — see
+  // doLogin() below. Removed: this file is published to a public GitHub
+  // repo, and real login always goes through the GAS backend (see
+  // GAS_URL below), so shipping working plaintext credentials in the
+  // page source served zero purpose in production and was a real risk
+  // if GAS_URL were ever accidentally left blank in a build. DB.users
+  // is populated from the server immediately after login.
+  users: [],
   rawMaterials: [
     {id:1,name:'LDPE Granules',code:'RM001',unit:'KG',rate:95,supplier:'Reliance Polymers',updatedDate:'2025-01-15',minStock:50,category:'Binder'},
     {id:2,name:'HDPE Powder',code:'RM002',unit:'KG',rate:88,supplier:'Indian Petrochemicals',updatedDate:'2025-01-20',minStock:100},
@@ -718,7 +706,7 @@ const DB = {
     {time:'2025-01-22 14:15',user:'Sudhir Ji',action:'Created formulation',detail:'FG002 — Batch B2025-002'},
     {time:'2025-01-22 09:00',user:'Administrator',action:'Updated raw material price',detail:'RM001 rate changed to ₹95/kg'},
   ],
-  nextId:{rm:9,formulation:3,user:9,txn:4,comment:1},
+  nextId:{rm:9,formulation:3,user:10,txn:4,comment:1},
   formulationComments: [], // [{id, formulationId, type:'production'|'sushil'|'md', text, by, byName, createdAt}]
   basePrices: [], // [{id, formulationId, rmId, rmName, enteredRate, qty, unit, savedAt}] — v2.3
   // ── Production Efficiency & Machine Costing (v3.0) ──────────────────────────
@@ -739,20 +727,46 @@ const DB = {
   nextId_shift: 3,
   forecastInputRows: [],  // v3.6b: loaded from ForecastInput sheet via loadAll
   partyLookup: [],        // v3.8: loaded from Sheet2
+  sheet2Orders: [],       // v3.12: loaded from Sheet2 (order log for MIS Performance Score)
 };
 
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbyc-RerRwnz6bLFYgYWmL432rbyY5SXxWe7EBdDP4osk7PAK2j0mnueibqFuYnNRvkh/exec';
 
 let currentUser = null;
+let sessionToken = null; // v3.13: session token returned by login(); required on every other GAS call
 let dashboardRefreshTimer = null;
 let _dashFilter = 'all'; // Dashboard KPI date filter: 'all' | 'today' | 'yesterday' | 'week' | 'month'
+
+// ════════════════════════════════════════════════════════
+//  v3.14: HTML-escaping helper — SECURITY FIX.
+//  Nothing in this app escaped user-supplied text before dropping it into
+//  innerHTML (comments, formulation remarks, material names/suppliers,
+//  worker names, machine/shift names, ...). Any authenticated user —
+//  including low-privilege roles — could type `<img src=x onerror=...>`
+//  into a comment or remark and it would execute in every other user's
+//  browser (including an Admin's) the next time that record was viewed.
+//  esc() is applied at every free-text render site identified in the
+//  audit. Never apply it to values used as .value on an <input> (that's
+//  plain-text assignment, not HTML parsing — escaping there would show
+//  literal "&amp;" etc. in edit boxes) or inside CSV/Excel export builders
+//  (those aren't rendered as HTML, so escaping would corrupt the data).
+// ════════════════════════════════════════════════════════
+function esc(str){
+  if(str===null||str===undefined) return '';
+  return String(str).replace(/[&<>"']/g, function(ch){
+    return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[ch];
+  });
+}
 
 // ════════════════════════════════════════════════════════
 //  GAS API HELPER
 // ════════════════════════════════════════════════════════
 function gasCall(action, payload={}) {
   if (!GAS_URL) return Promise.resolve(null);
-  const body = JSON.stringify({action, ...payload});
+  // v3.13: every action except login must carry the session token issued
+  // at login — the backend now rejects everything else without one.
+  const fullPayload = action === 'login' ? {action, ...payload} : {action, ...payload, token: sessionToken};
+  const body = JSON.stringify(fullPayload);
   // Use GET for read-only loadAll (safe, cacheable), POST for all writes.
   // POST avoids the ~2 KB URL limit that silently truncates large payloads on GET.
   const isRead = (action === 'loadAll');
@@ -768,6 +782,13 @@ function gasCall(action, payload={}) {
       return r.json();
     })
     .then(data => {
+      if (data && data.sessionExpired) {
+        // v3.13: token missing/expired server-side — drop back to the
+        // login screen instead of letting the app keep firing calls
+        // that will all fail the same way.
+        toast('Your session expired — please log in again.', 'error');
+        logout();
+      }
       if (data && data.success === false) {
         console.error('GAS returned error for action "' + action + '":', data.error);
         throw new Error(data.error || 'Server error');
@@ -783,9 +804,9 @@ function gasCall(action, payload={}) {
 function showSaving(){const el=document.getElementById('saving-indicator');if(el)el.style.display='flex';}
 function hideSaving(){const el=document.getElementById('saving-indicator');if(el)el.style.display='none';}
 
-async function loadFromGAS(){
+async function loadFromGAS(silent){
   if(!GAS_URL) return;
-  showSaving();
+  if(!silent) showSaving();
   try {
     const result = await gasCall('loadAll');
     if(result && result.success && result.data){
@@ -882,6 +903,16 @@ async function loadFromGAS(){
           createdAt: normalizeDate(r.createdAt)||''
         }));
       if(d.partyLookup && Array.isArray(d.partyLookup)) DB.partyLookup = d.partyLookup;
+      // v3.12: Sheet2 order log for MIS Performance Score. Re-normalize the
+      // date here with the same Indian-format-aware parser used for
+      // forecastInputRows — the backend's own normalizer assumes MM/DD/YYYY
+      // and can misread DD/MM/YYYY values, which would silently drop every
+      // row out of every date range.
+      if(d.sheet2Orders && Array.isArray(d.sheet2Orders))
+        DB.sheet2Orders = d.sheet2Orders.map(r=>({
+          ...r,
+          orderDateTime: normalizeDate(r.orderDateTime)||''
+        }));
 
       // v3.9-FIX: Retroactively enrich formulations that have a refNo but
       // blank partyId / partyName (happens for all Sudhir Ji recipes saved
@@ -912,18 +943,29 @@ async function loadFromGAS(){
       }
 
       _biCache=null; _biCacheKey=''; // clear BI cache on data reload
-      toast('Data loaded from Google Sheets ✓','success');
+      if(!silent) toast('Data loaded from Google Sheets ✓','success');
     } else {
-      toast('Could not load from Sheets — using local data','info');
+      if(!silent) toast('Could not load from Sheets — using local data','info');
     }
-  } catch(e){ toast('GAS connection error — using local data','info'); }
-  hideSaving();
+  } catch(e){ if(!silent) toast('GAS connection error — using local data','info'); }
+  if(!silent) hideSaving();
+}
+
+// v3.14: manual "Refresh" button in the topbar — explicit user action, so
+// (unlike the silent background poll in initApp's timer) this always
+// re-renders the current page even if a modal happens to be open; the
+// person clicked it on purpose, so respect that.
+async function manualRefresh(){
+  const btn=document.getElementById('manual-refresh-btn');
+  if(btn){ btn.disabled=true; btn.style.opacity='0.6'; }
+  await loadFromGAS(false);
+  renderPage(currentPage, document.getElementById('page-content'));
+  if(btn){ btn.disabled=false; btn.style.opacity='1'; }
 }
 
 // ════════════════════════════════════════════════════════
 //  AUTH
 // ════════════════════════════════════════════════════════
-function fillLogin(u,p){document.getElementById('login-user').value=u;document.getElementById('login-pass').value=p;}
 async function doLogin(){
   const u=document.getElementById('login-user').value.trim();
   const p=document.getElementById('login-pass').value.trim();
@@ -941,39 +983,52 @@ async function doLogin(){
     btn.innerHTML='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg> Sign In';
     btn.disabled=false;
   }
+  // v3.14: removed the old "offline/demo mode" branch that checked
+  // credentials against a local DB.users array — that array shipped 9
+  // real plaintext demo passwords in the public page source (see the
+  // removed "Demo Accounts" login-screen buttons). Real authentication
+  // ALWAYS goes through the GAS backend now; if GAS_URL is ever missing,
+  // that's a deployment misconfiguration, not a reason to allow a local
+  // login.
+  if(!GAS_URL){
+    showInvalid('Backend not configured — GAS_URL is missing. Contact your administrator.');
+    return;
+  }
   let user=null;
-  if(GAS_URL){
-    // v3.10: credentials are checked server-side — the browser never
-    // downloads the full password list anymore.
-    try{
-      const result=await gasCall('login',{username:u,password:p});
-      if(result&&result.success&&result.user){
-        user=result.user;
-      } else {
-        showInvalid('Invalid credentials. Please try again.');
-        return;
-      }
-    }catch(err){
-      showInvalid('Could not reach Google Sheets — '+err.message);
+  // v3.10: credentials are checked server-side — the browser never
+  // downloads the full password list anymore.
+  try{
+    const result=await gasCall('login',{username:u,password:p});
+    if(result&&result.success&&result.user){
+      user=result.user;
+      sessionToken=result.token||null; // v3.13
+    } else {
+      // v3.13: surface the real server message (e.g. lockout countdown),
+      // not a generic one, so a locked-out user knows why.
+      showInvalid(result&&result.error ? result.error : 'Invalid credentials. Please try again.');
       return;
     }
-    await loadFromGAS();
-    // loadFromGAS may replace DB.users with the (password-free) server copy;
-    // make sure the freshly-authenticated user object is the one used.
-    const refreshed=DB.users.find(x=>x.id===user.id);
-    if(refreshed) user=refreshed;
-  } else {
-    // Offline/demo mode — no backend configured, fall back to local seed data.
-    user=DB.users.find(x=>x.username===u&&x.password===p);
-    if(!user){ showInvalid(); return; }
+  }catch(err){
+    showInvalid('Could not reach Google Sheets — '+err.message);
+    return;
   }
+  await loadFromGAS();
+  // loadFromGAS may replace DB.users with the (password-free) server copy;
+  // make sure the freshly-authenticated user object is the one used.
+  const refreshed=DB.users.find(x=>x.id===user.id);
+  if(refreshed) user=refreshed;
   document.getElementById('login-error').style.display='none';
   currentUser=user;
   initApp();
 }
 function logout(){
+  // v3.13: best-effort server-side invalidation — fire before clearing the
+  // local token so the request still carries it. Fine if this never lands
+  // (e.g. offline): the token simply expires on its own after being idle.
+  if(sessionToken) gasCall('logout',{}).catch(()=>{});
 
   currentUser=null;
+  sessionToken=null;
   if(dashboardRefreshTimer) clearInterval(dashboardRefreshTimer);
   document.getElementById('app').style.display='none';
   document.getElementById('login-screen').style.display='flex';
@@ -999,6 +1054,7 @@ const NAV_ICONS = {
   machines:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>`,
   forecasting:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><rect x="2" y="2" width="20" height="20" rx="3" fill="none"/></svg>`,
   shiftmaster:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
+  misscore:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M3 3v18h18"/><path d="M18.7 8l-5.1 5.1-3.3-3.3-4.3 4.3"/><circle cx="18.7" cy="8" r="1.6" fill="currentColor" stroke="none"/><circle cx="13.6" cy="13.1" r="1.6" fill="currentColor" stroke="none"/><circle cx="10.3" cy="9.8" r="1.6" fill="currentColor" stroke="none"/><circle cx="6" cy="14.1" r="1.6" fill="currentColor" stroke="none"/></svg>`,
 };
 
 const NAV_CONFIG = {
@@ -1007,6 +1063,7 @@ const NAV_CONFIG = {
     {section:'Production',items:[{id:'formulations',label:'Formulations'},{id:'production',label:'Production Entry'},{id:'prodreports',label:'Prod. Reports'},{id:'machines',label:'Machine Setup'},{id:'shiftmaster',label:'Shift Master'}]},
     {section:'Materials',items:[{id:'rawmaterials',label:'Raw Materials'},{id:'inventory',label:'Inventory'},{id:'forecasting',label:'RM Forecasting'}]},
     {section:'Reports',items:[{id:'reports',label:'Reports & Export'},{id:'analytics',label:'📊 Business Intelligence'}]},
+    {section:'Performance',items:[{id:'misscore',label:'MIS Performance Score'}]},
     {section:'System',items:[{id:'users',label:'User Management'},{id:'settings',label:'Settings'}]},
   ],
   formulation:[
@@ -1028,6 +1085,7 @@ const NAV_CONFIG = {
   report:[
     {section:'Overview',items:[{id:'dashboard',label:'Dashboard'}]},
     {section:'Reports',items:[{id:'reports',label:'Reports & Export'},{id:'analytics',label:'📊 BI Analytics'}]},
+    {section:'Performance',items:[{id:'misscore',label:'MIS Performance Score'}]},
     {section:'Materials',items:[{id:'inventory',label:'Inventory'}]},
   ],
   production:[
@@ -1044,21 +1102,45 @@ const NAV_CONFIG = {
     {section:'Production',items:[{id:'formulations',label:'Formulations'}]},
     {section:'Materials',items:[{id:'inventory',label:'Stock View'}]},
   ],
+  // v3.14: Sushil Ji — same Formulation module toolset as Admin (view all
+  // formulations, create/edit recipes, templates, batch/LAB entry, PDF
+  // exports, cost visibility), plus read-only Inventory ("Stock View") and
+  // RM Forecasting — the same two extra modules Sudhir Ji (role:'formulation')
+  // gets. No nav item for Raw Materials, Reports, Users, Settings,
+  // Production, Machines, Shift Master, MIS Score, Debit Status, etc.
+  sushilji:[
+    {section:'Overview',items:[{id:'dashboard',label:'Dashboard'}]},
+    {section:'Production',items:[{id:'formulations',label:'Formulations'}]},
+    {section:'Forecasting',items:[{id:'forecasting',label:'RM Forecasting'}]},
+    {section:'Materials',items:[{id:'inventory',label:'Stock View'}]},
+  ],
 };
 
-const ROLE_LABELS={admin:'Administrator',formulation:'Formulation User',view:'View Only',report:'Report User',inventory:'Inventory User',production:'Production Entry Operator',labentry:'LAB Entry User',batchedit:'Batch Code Editor'};
-const BADGE_CLASSES={admin:'badge-admin',formulation:'badge-form',view:'badge-view',report:'badge-report',inventory:'badge-inventory',production:'badge-production',labentry:'badge-teal',batchedit:'badge-report'};
+const ROLE_LABELS={admin:'Administrator',formulation:'Formulation User',view:'View Only',report:'Report User',inventory:'Inventory User',production:'Production Entry Operator',labentry:'LAB Entry User',batchedit:'Batch Code Editor',sushilji:'Formulation Manager'};
+const BADGE_CLASSES={admin:'badge-admin',formulation:'badge-form',view:'badge-view',report:'badge-report',inventory:'badge-inventory',production:'badge-production',labentry:'badge-teal',batchedit:'badge-report',sushilji:'badge-sushil'};
 
 function can(perm){
   const perms={
-    admin:['dashboard','formulations','rawmaterials','inventory','reports','users','settings','viewPrice','editPrice','manageUsers','viewCost','addStock','subtractStock','production','prodreports','machines','manageMachines','shiftmaster','forecasting','analytics'],
+    admin:['dashboard','formulations','rawmaterials','inventory','reports','users','settings','viewPrice','editPrice','manageUsers','viewCost','addStock','subtractStock','production','prodreports','machines','manageMachines','shiftmaster','forecasting','analytics','misScore'],
     formulation:['dashboard','formulations','inventory','forecasting'],
     inventory:['dashboard','inventory','reports','addStock','subtractStock','forecasting','addRawMaterial'],
     view:['dashboard','inventory'],
-    report:['dashboard','reports','inventory','forecasting','analytics'],
+    report:['dashboard','reports','inventory','forecasting','analytics','misScore'],
     production:['dashboard','production','prodreports','shiftmaster'],
     labentry:['dashboard','viewFormulations','inventory','saveLabGloss'],
     batchedit:['dashboard','viewFormulations','inventory','editBatchCode'],
+    // v3.14: Sushil Ji — same Formulation module rights as Admin (create/edit
+    // recipes, templates, batch/LAB entry, PDF export, cost visibility), plus
+    // read-only 'inventory' (Stock View, no addStock/subtractStock/viewPrice)
+    // and 'forecasting' (RM Forecasting) — identical to what Sudhir Ji's
+    // 'formulation' role gets for those two modules.
+    // Deliberately excludes rawmaterials/reports/users/settings/production/etc.
+    // and excludes manageUsers (which is also what keeps Party Name hidden —
+    // see Party ID display logic — and keeps the Admin/Sudhir-only comment
+    // types out of his reach). Excluding addStock/subtractStock means no
+    // "Add Stock"/"Adjust" controls appear on his Inventory page, same as
+    // Sudhir Ji's Stock View.
+    sushilji:['dashboard','formulations','viewCost','inventory','forecasting'],
   };
   return(perms[currentUser.role]||[]).includes(perm);
 }
@@ -1087,10 +1169,20 @@ function initApp(){
   document.getElementById('topbar-date').textContent=new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
   buildSidebar();
   navigate('dashboard');
-  // Auto-refresh dashboard every 60 seconds
+  // v3.14: previously this only re-rendered the dashboard from already-
+  // loaded (stale) local data every 60s — it never actually re-fetched
+  // from Google Sheets, so another user's changes were only visible after
+  // a full logout/login. Now it silently re-pulls from Sheets and
+  // refreshes whatever page is open, so multi-user changes show up
+  // without anyone needing to log in again (per-request: skips the
+  // redraw — but not the underlying data refresh — while a modal/form is
+  // open, so it never yanks away something someone is mid-edit on).
   if(dashboardRefreshTimer) clearInterval(dashboardRefreshTimer);
-  dashboardRefreshTimer = setInterval(()=>{
-    if(currentPage==='dashboard') refreshDashboard();
+  dashboardRefreshTimer = setInterval(async ()=>{
+    await loadFromGAS(true);
+    if(!document.querySelector('.modal-overlay')){
+      renderPage(currentPage, document.getElementById('page-content'));
+    }
   }, 60000);
 }
 
@@ -1116,7 +1208,7 @@ function navigate(page){
   document.querySelectorAll('.nav-item').forEach(e=>e.classList.remove('active'));
   const ni=document.getElementById('nav-'+page);
   if(ni)ni.classList.add('active');
-  const titles={dashboard:'Dashboard',formulations:'Formulations',rawmaterials:'Raw Materials',inventory:'Inventory',reports:'Reports & Export',users:'User Management',settings:'System Settings',debitstatus:'Inventory Debit Status',production:'Production Entry',prodreports:'Production Reports & Analytics',machines:'Machine Setup',shiftmaster:'Shift Master',forecasting:'Raw Material Forecasting'};
+  const titles={dashboard:'Dashboard',formulations:'Formulations',rawmaterials:'Raw Materials',inventory:'Inventory',reports:'Reports & Export',users:'User Management',settings:'System Settings',debitstatus:'Inventory Debit Status',production:'Production Entry',prodreports:'Production Reports & Analytics',machines:'Machine Setup',shiftmaster:'Shift Master',forecasting:'Raw Material Forecasting',misscore:'MIS Performance Score'};
   document.getElementById('page-heading').textContent=titles[page]||page;
   const content=document.getElementById('page-content');
   content.style.cssText='opacity:0;transform:translateY(12px);transition:none;';
@@ -1150,6 +1242,7 @@ function renderPage(page,el){
     case 'machines':el.innerHTML=can('manageMachines')?renderMachineSetup():'<div class="alert alert-error">Access denied.</div>';break;
     case 'shiftmaster':el.innerHTML=can('shiftmaster')?renderShiftMaster():'<div class="alert alert-error">Access denied.</div>';break;
     case 'forecasting':el.innerHTML=can('forecasting')?renderForecasting():'<div class="alert alert-error">Access denied.</div>';initForecasting();break;
+    case 'misscore':el.innerHTML=can('misScore')?renderMISScore():'<div class="alert alert-error">Access denied.</div>';break;
     default:el.innerHTML='<p>Page not found</p>';
   }
 }
@@ -1430,8 +1523,8 @@ function renderDashboard(){
     const st=getStockStatus(rm);
     const pct=rm.minStock>0?Math.min(100,(inv.quantity/rm.minStock)*100):100;
     invTable+=`<tr>
-      <td class="td-primary">${rm.name}</td>
-      <td class="mono" style="color:var(--text3);font-size:12px;">${rm.code}</td>
+      <td class="td-primary">${esc(rm.name)}</td>
+      <td class="mono" style="color:var(--text3);font-size:12px;">${esc(rm.code)}</td>
       <td>${rm.unit}</td>
       <td>${inv.quantity.toFixed(2)}<div class="stock-bar"><div class="stock-bar-fill ${st}" style="width:${pct}%"></div></div></td>
       <td>${rm.minStock}</td>
@@ -1506,7 +1599,7 @@ function renderDashboard(){
       ${reorderList.map(rm=>{
         const inv=getInvByRMId(rm.id);
         const short=Math.max(0,rm.minStock-inv.quantity);
-        return`<tr><td class="td-primary">${rm.name}</td><td>${rm.unit}</td><td>${inv.quantity.toFixed(2)}</td><td>${rm.minStock}</td><td style="color:var(--red);font-weight:700;">${short.toFixed(2)}</td><td><span class="status-pill ${getStockStatus(rm)==='low'?'status-low':'status-out'}">${getStockStatus(rm).toUpperCase()}</span></td></tr>`;
+        return`<tr><td class="td-primary">${esc(rm.name)}</td><td>${rm.unit}</td><td>${inv.quantity.toFixed(2)}</td><td>${rm.minStock}</td><td style="color:var(--red);font-weight:700;">${short.toFixed(2)}</td><td><span class="status-pill ${getStockStatus(rm)==='low'?'status-low':'status-out'}">${getStockStatus(rm).toUpperCase()}</span></td></tr>`;
       }).join('')}
       </tbody></table></div>`:''}
       <div style="margin-top:12px;display:flex;gap:8px;">
@@ -1558,6 +1651,714 @@ function exportReorderReport(){
     data.push([rm.name,rm.code,rm.unit,inv.quantity.toFixed(2),rm.minStock,short.toFixed(2),getStockStatus(rm).toUpperCase()]);
   });
   dlExcel(data,'Reorder_Alert_Report');
+}
+
+// ════════════════════════════════════════════════════════
+//  MIS PERFORMANCE SCORE  — new, independent module (Phase 1)
+//  Reads only from data already loaded into DB (formulations,
+//  forecastInputRows, auditLog, users). No backend/GAS changes,
+//  no writes anywhere — a 100% read-only reporting layer that
+//  cannot affect the main Dashboard or any existing workflow.
+// ════════════════════════════════════════════════════════
+
+// ── Date filter state ──────────────────────────────────────
+let _misFilter = { key:'thismonth', from:'', to:'' };
+
+// Phase 2/3: cache of the most recently computed scorecards, keyed by
+// person. Populated once per renderMISScore() call and read by the
+// drill-down modal and the Excel/PDF export — so opening a drill-down or
+// exporting never re-filters the underlying arrays a second time, and
+// always matches exactly what's on screen for the active date filter.
+let _misLastCompute = { sudhir:null, amar:null, vivek:null, range:null };
+
+const _MIS_FILTER_OPTS = [
+  ['today','Today'],['yesterday','Yesterday'],
+  ['thisweek','This Week'],['lastweek','Last Week'],
+  ['thismonth','This Month'],['lastmonth','Last Month'],
+  ['thisyear','This Year'],['custom','Custom Range'],
+];
+
+function _misPad(n){return String(n).padStart(2,'0');}
+function _misYMD(d){return `${d.getFullYear()}-${_misPad(d.getMonth()+1)}-${_misPad(d.getDate())}`;}
+
+// Returns {start:'YYYY-MM-DD', end:'YYYY-MM-DD'} for the active filter.
+function _misGetRange(filter){
+  const today=new Date(); today.setHours(0,0,0,0);
+  const key=filter.key;
+  if(key==='today'){ const s=_misYMD(today); return {start:s,end:s}; }
+  if(key==='yesterday'){ const y=new Date(today); y.setDate(y.getDate()-1); const s=_misYMD(y); return {start:s,end:s}; }
+  if(key==='thisweek'){
+    const dow=(today.getDay()+6)%7; // Monday-start week: 0=Mon..6=Sun
+    const mon=new Date(today); mon.setDate(mon.getDate()-dow);
+    return {start:_misYMD(mon), end:_misYMD(today)};
+  }
+  if(key==='lastweek'){
+    const dow=(today.getDay()+6)%7;
+    const thisMon=new Date(today); thisMon.setDate(thisMon.getDate()-dow);
+    const lastMon=new Date(thisMon); lastMon.setDate(lastMon.getDate()-7);
+    const lastSun=new Date(thisMon); lastSun.setDate(lastSun.getDate()-1);
+    return {start:_misYMD(lastMon), end:_misYMD(lastSun)};
+  }
+  if(key==='thismonth'){
+    const s=new Date(today.getFullYear(),today.getMonth(),1);
+    return {start:_misYMD(s), end:_misYMD(today)};
+  }
+  if(key==='lastmonth'){
+    const s=new Date(today.getFullYear(),today.getMonth()-1,1);
+    const e=new Date(today.getFullYear(),today.getMonth(),0);
+    return {start:_misYMD(s), end:_misYMD(e)};
+  }
+  if(key==='thisyear'){
+    const s=new Date(today.getFullYear(),0,1);
+    return {start:_misYMD(s), end:_misYMD(today)};
+  }
+  if(key==='custom'){
+    return {start:filter.from||_misYMD(today), end:filter.to||_misYMD(today)};
+  }
+  const s=new Date(today.getFullYear(),today.getMonth(),1);
+  return {start:_misYMD(s), end:_misYMD(today)};
+}
+
+function _misDateInRange(dateStr, range){
+  if(!dateStr) return false;
+  const d=String(dateStr).slice(0,10);
+  if(range.start && d<range.start) return false;
+  if(range.end && d>range.end) return false;
+  return true;
+}
+
+function _misRangeLabel(filter){
+  if(filter.key==='custom'){
+    if(filter.from&&filter.to) return `${filter.from} to ${filter.to}`;
+    return 'Custom Range (pick dates below)';
+  }
+  const found=_MIS_FILTER_OPTS.find(o=>o[0]===filter.key);
+  return found?found[1]:'This Month';
+}
+
+function setMISFilter(key){
+  _misFilter.key=key;
+  refreshMISScore();
+}
+function applyMISCustomRange(){
+  const from=document.getElementById('mis-from')?.value||'';
+  const to=document.getElementById('mis-to')?.value||'';
+  if(!from||!to){ toast('Pick both a start and end date','warning'); return; }
+  if(from>to){ toast('Start date must be before end date','warning'); return; }
+  _misFilter={key:'custom',from,to};
+  refreshMISScore();
+}
+function refreshMISScore(){
+  if(currentPage==='misscore'){
+    const content=document.getElementById('page-content');
+    if(content) content.innerHTML=renderMISScore();
+  }
+}
+
+// ── Staff lookup (role-based, resilient to username changes) ──────────────
+function _misStaffUser(role, fallbackUsername){
+  return DB.users.find(u=>u.role===role) || DB.users.find(u=>u.username===fallbackUsername) || null;
+}
+
+// ── Percentage / score helpers ──────────────────────────────
+function _misPct(done, total){
+  if(total<=0) return null; // no data in range — shown as "—", not a misleading 0%
+  return Math.round((done/total)*1000)/10;
+}
+function _misScoreColor(pct){
+  if(pct===null) return 'var(--text3)';
+  if(pct>=85) return 'var(--green)';
+  if(pct>=60) return 'var(--orange)';
+  return 'var(--red)';
+}
+function _misScoreBg(pct){
+  if(pct===null) return 'var(--bg3)';
+  if(pct>=85) return 'var(--green-light)';
+  if(pct>=60) return 'var(--orange-light)';
+  return 'var(--red-light)';
+}
+
+// ── Sudhir Ji (Formulation) stats ──────────────────────────
+// "Orders Received" = Sheet2's A–D order log (Unique ID / Ref No /
+//   Time+Date / Party Name) in range — Sheet2 is the true incoming-order
+//   record, so this replaces the earlier ForecastInput-based count. A
+//   Sheet2 row counts as "fulfilled" when its Ref No matches a
+//   Formulation's refNo — the same link already used for party
+//   auto-lookup — not by batch number, since Sheet2 rows don't carry one.
+// "Formulations Created" = Formulations authored by Sudhir Ji, created in range.
+// "Pending Formulations" = orders in range with no matching formulation (by refNo) yet.
+// "Batch Numbers Filled/Pending" = Sudhir Ji's own formulations, grouped by
+//   whether batchNo is filled — mirrors the existing Dashboard "Missing Batch No." logic.
+function _misComputeSudhir(range){
+  const staff=_misStaffUser('formulation','sudhir');
+  const isBlankBatch=bn=>!bn||String(bn).trim()==='';
+  const isMine=f=>(f.by||'').toLowerCase()==='sudhir' || /sudhir/i.test(f.byName||'');
+
+  const ordersReceived=(DB.sheet2Orders||[]).filter(r=>_misDateInRange(r.orderDateTime,range));
+  const formsCreated=DB.formulations.filter(f=>isMine(f) && _misDateInRange(f.createdAt||f.mfgDate,range));
+
+  const refExists={};
+  DB.formulations.forEach(f=>{ if(f.refNo) refExists[String(f.refNo).trim().toLowerCase()]=true; });
+  const ordersFulfilled=ordersReceived.filter(r=>{
+    const rn=String(r.refNo||'').trim().toLowerCase();
+    return rn && refExists[rn];
+  });
+  const formulationCompletionScore=_misPct(ordersFulfilled.length, ordersReceived.length);
+
+  const batchFilled=formsCreated.filter(f=>!isBlankBatch(f.batchNo));
+  const batchPending=formsCreated.filter(f=>isBlankBatch(f.batchNo));
+  const batchFillingScore=_misPct(batchFilled.length, formsCreated.length);
+
+  const componentScores=[formulationCompletionScore,batchFillingScore].filter(s=>s!==null);
+  const overallScore=componentScores.length?Math.round((componentScores.reduce((a,b)=>a+b,0)/componentScores.length)*10)/10:null;
+
+  // Phase 2: orders in range with no matching formulation yet — the flip
+  // side of ordersFulfilled, used by the drill-down and by the Formulation
+  // Completion Score card (which needs to show BOTH sides, not just one).
+  const fulfilledSet={};
+  ordersFulfilled.forEach(r=>{ fulfilledSet[String(r.refNo||'').trim().toLowerCase()]=true; });
+  const ordersPending=ordersReceived.filter(r=>!fulfilledSet[String(r.refNo||'').trim().toLowerCase()]);
+
+  return {
+    staff,
+    totalOrdersReceived:ordersReceived.length,
+    totalFormulationsCreated:formsCreated.length,
+    pendingFormulations:ordersReceived.length-ordersFulfilled.length,
+    formulationCompletionScore,
+    totalBatchNumbersFilled:batchFilled.length,
+    pendingBatchNumbers:batchPending.length,
+    batchFillingScore,
+    overallScore,
+    _records:{ordersReceived,formsCreated,ordersFulfilled,ordersPending,batchFilled,batchPending}
+  };
+}
+
+// ── Amar Goswami (Batch Editor) stats ───────────────────────
+// CORRECTED (per user clarification — Amar's real job in this app is
+// filling the Batch No on formulations Sudhir Ji creates; the earlier
+// ForecastInput-based "Orders Assigned" version was reading a sheet Amar
+// never actually populates, which is why it always showed "—"/0).
+// Base = Sudhir Ji's formulations, in range (same set as Sudhir's own
+// "Formulations Created" KPI). "Filled" = batchNo present — the exact
+// field the existing Dashboard and Formulations page already use to
+// decide whether a formulation is waiting for Amar.
+function _misComputeAmar(range){
+  const staff=_misStaffUser('batchedit','amar');
+  const isSudhirForm=f=>(f.by||'').toLowerCase()==='sudhir' || /sudhir/i.test(f.byName||'');
+  const isBlankBatch=bn=>!bn||String(bn).trim()==='';
+
+  const sudhirForms=DB.formulations.filter(f=>isSudhirForm(f) && _misDateInRange(f.createdAt||f.mfgDate,range));
+  const batchFilled=sudhirForms.filter(f=>!isBlankBatch(f.batchNo));
+  const batchPending=sudhirForms.filter(f=>isBlankBatch(f.batchNo));
+  const batchFillingScore=_misPct(batchFilled.length, sudhirForms.length);
+  const quantityProcessed=batchFilled.reduce((s,f)=>s+calcTotalQty(f),0);
+
+  return {
+    staff,
+    totalFormulations:sudhirForms.length,
+    totalBatchNumbersFilled:batchFilled.length,
+    pendingBatchNumbers:batchPending.length,
+    totalQuantityProcessed:Math.round(quantityProcessed*1000)/1000,
+    batchFillingScore,
+    _records:{sudhirForms,batchFilled,batchPending}
+  };
+}
+
+// ── Vivek Goswami (LAB Entry) stats ─────────────────────────
+// CORRECTED (per user clarification — Vivek's job is filling LAB (L/A/B)
+// values and the Gloss value on formulations Sudhir Ji creates; the
+// earlier version tracked "Batch Numbers Filled" for Vivek via the Audit
+// Log, which was Amar's job, not Vivek's, and always read 0).
+// Base = Sudhir Ji's formulations, in range — same set used for Amar,
+// so both scorecards measure "how much of Sudhir's output has been
+// completed downstream" on a shared, consistent denominator.
+function _misComputeVivek(range){
+  const staff=_misStaffUser('labentry','vivek');
+  const isSudhirForm=f=>(f.by||'').toLowerCase()==='sudhir' || /sudhir/i.test(f.byName||'');
+  const hasLab=f=>!!f.labValues && (f.labValues.L!=null||f.labValues.A!=null||f.labValues.B!=null);
+  const hasGloss=f=>f.glossValue!==null&&f.glossValue!==undefined&&f.glossValue!=='';
+
+  const sudhirForms=DB.formulations.filter(f=>isSudhirForm(f) && _misDateInRange(f.createdAt||f.mfgDate,range));
+  const labFilled=sudhirForms.filter(hasLab);
+  const labPending=sudhirForms.filter(f=>!hasLab(f));
+  const glossFilled=sudhirForms.filter(hasGloss);
+  const glossPending=sudhirForms.filter(f=>!hasGloss(f));
+
+  const labCompletionScore=_misPct(labFilled.length, sudhirForms.length);
+  const glossCompletionScore=_misPct(glossFilled.length, sudhirForms.length);
+  const componentScores=[labCompletionScore,glossCompletionScore].filter(s=>s!==null);
+  const overallScore=componentScores.length?Math.round((componentScores.reduce((a,b)=>a+b,0)/componentScores.length)*10)/10:null;
+
+  return {
+    staff,
+    totalFormulations:sudhirForms.length,
+    totalLabValuesEntered:labFilled.length,
+    totalGlossValuesEntered:glossFilled.length,
+    labCompletionScore,
+    glossCompletionScore,
+    overallScore,
+    _records:{sudhirForms,labFilled,labPending,glossFilled,glossPending}
+  };
+}
+
+// ── Card renderers ──────────────────────────────────────────
+// Phase 2: both card types take an optional `drillKey` — when present,
+// the card becomes clickable and opens the matching drill-down modal via
+// openMISDrilldown().
+//
+// Both also take an optional `total` — the backlog/base count this value
+// is measured against. When `total` is given and the value is genuinely
+// zero against a nonzero backlog (real work sitting undone, not just "no
+// data for this filter"), the card escalates to a critical look — darker
+// red, 🚨 icon, bold "no work done" text — instead of quietly showing a
+// plain 0 / 0%, which reads the same as "nothing to do" and undersells
+// how bad zero-against-a-real-backlog actually is. Omit `total` for cards
+// where a low number isn't a problem (e.g. "Pending" counts, where 0 is
+// the good outcome) — passing it only where zero-with-backlog needs to
+// stand out on its own.
+function _misStatCard(icon,colorClass,label,value,sub,drillKey,total){
+  const clickable=!!drillKey;
+  const isCritical=Number(total)>0 && Number(value)===0;
+  const cursorStyle=clickable?'cursor:pointer;':'';
+  const borderStyle=isCritical?'border:2px solid #b91c1c;background:#fee2e2;':'';
+  const styleAttr=(cursorStyle||borderStyle)?` style="${cursorStyle}${borderStyle}"`:'';
+  const clickAttr=clickable?` onclick="openMISDrilldown('${drillKey}')" title="Click to view records"`:'';
+  const subLine=isCritical?'⚠ No work done yet':sub;
+  return `<div class="stat-card"${clickAttr}${styleAttr}>
+    <div class="stat-icon ${isCritical?'':colorClass}" style="font-size:19px;${isCritical?'background:#fecaca;':''}">${isCritical?'🚨':icon}</div>
+    <div class="stat-label">${label}</div>
+    <div class="stat-value"${isCritical?' style="color:#7f1d1d;"':''}>${value}</div>
+    ${subLine?`<div class="stat-sub"${isCritical?' style="color:#b91c1c;font-weight:700;"':''}>${subLine}</div>`:''}
+    ${clickable?`<div style="position:absolute;top:10px;right:12px;font-size:11px;color:var(--text3);">🔍</div>`:''}
+  </div>`;
+}
+function _misScoreCard(icon,label,pct,sub,drillKey,total){
+  const display=pct===null?'—':`${pct}%`;
+  const clickable=!!drillKey;
+  const isCritical=pct===0 && Number(total)>0;
+  const borderColor=isCritical?'#b91c1c':_misScoreColor(pct);
+  const bgColor=isCritical?'#fee2e2':_misScoreBg(pct);
+  const valueColor=isCritical?'#7f1d1d':_misScoreColor(pct);
+  const borderWidth=isCritical?'2px':'1.5px';
+  const cursorStyle=clickable?'cursor:pointer;':'';
+  const styleAttr=` style="${cursorStyle}border:${borderWidth} solid ${borderColor};background:${bgColor};"`;
+  const clickAttr=clickable?` onclick="openMISDrilldown('${drillKey}')" title="Click to view records"`:'';
+  const subLine=isCritical?`⚠ No work done — 0 of ${total} completed`:sub;
+  return `<div class="stat-card"${clickAttr}${styleAttr}>
+    <div class="stat-icon" style="background:#fff;font-size:19px;">${isCritical?'🚨':icon}</div>
+    <div class="stat-label">${label}</div>
+    <div class="stat-value" style="color:${valueColor};">${display}</div>
+    ${subLine?`<div class="stat-sub"${isCritical?' style="color:#b91c1c;font-weight:700;"':''}>${subLine}</div>`:''}
+    ${clickable?`<div style="position:absolute;top:10px;right:12px;font-size:11px;color:var(--text3);">🔍</div>`:''}
+  </div>`;
+}
+function _misPersonSection(title, icon, roleLabel, cardsHTML){
+  return `<div class="card" style="margin-bottom:20px;">
+    <div class="card-title" style="font-size:13px;">${icon} ${title} <span style="font-weight:500;text-transform:none;color:var(--text3);margin-left:4px;">— ${roleLabel}</span></div>
+    <div class="stats-grid" style="margin-bottom:0;">${cardsHTML}</div>
+  </div>`;
+}
+
+function renderMISScore(){
+  const range=_misGetRange(_misFilter);
+  const sudhir=_misComputeSudhir(range);
+  const amar=_misComputeAmar(range);
+  const vivek=_misComputeVivek(range);
+
+  // Phase 2/3: cache this render's data so the drill-down modal and the
+  // Excel/PDF export read the exact same numbers/records shown on screen,
+  // without re-filtering DB.formulations / DB.sheet2Orders / etc. a second
+  // time (keeps clicks and exports instant even on a large dataset).
+  _misLastCompute={sudhir,amar,vivek,range,filterLabel:_misRangeLabel(_misFilter)};
+
+  const filterBar=`<div class="card" style="margin-bottom:20px;">
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+      <span style="font-size:11px;font-weight:800;color:var(--text3);letter-spacing:0.4px;">DATE FILTER:</span>
+      ${_MIS_FILTER_OPTS.map(([key,label])=>`<button class="btn btn-sm ${_misFilter.key===key?'btn-primary':'btn-secondary'}" onclick="setMISFilter('${key}')">${label}</button>`).join('')}
+    </div>
+    ${_misFilter.key==='custom'?`<div style="display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;margin-top:12px;">
+      <div class="form-group" style="margin-bottom:0;"><label style="font-size:11px;">From</label><input type="date" class="form-control" id="mis-from" value="${_misFilter.from||''}"></div>
+      <div class="form-group" style="margin-bottom:0;"><label style="font-size:11px;">To</label><input type="date" class="form-control" id="mis-to" value="${_misFilter.to||''}"></div>
+      <button class="btn btn-primary btn-sm" onclick="applyMISCustomRange()">Apply</button>
+    </div>`:''}
+    <div style="margin-top:10px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+      <div style="font-size:12px;color:var(--text3);">Showing: <strong style="color:var(--text2);">${_misRangeLabel(_misFilter)}</strong>${range.start?` (${range.start}${range.end&&range.end!==range.start?' → '+range.end:''})`:''}</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn btn-secondary btn-sm" onclick="exportMISScoreExcel()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Export Excel
+        </button>
+        <button class="btn btn-blue btn-sm" onclick="exportMISScorePDF()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> Export PDF
+        </button>
+      </div>
+    </div>
+  </div>`;
+
+  const sudhirCards=
+    _misStatCard('📦','blue','Total Orders Received',sudhir.totalOrdersReceived,'Sheet2 order log, in range','sudhir:ordersReceived')+
+    _misStatCard('🧪','teal','Total Formulations Created',sudhir.totalFormulationsCreated,'By Sudhir Ji','sudhir:formsCreated',sudhir.totalOrdersReceived)+
+    _misStatCard('⏳','amber','Pending Formulations',sudhir.pendingFormulations,'Orders without a matching formulation','sudhir:ordersPending')+
+    _misScoreCard('✅','Formulation Completion Score',sudhir.formulationCompletionScore,'Orders converted to formulations','sudhir:formScore',sudhir.totalOrdersReceived)+
+    _misStatCard('🏷️','green','Total Batch Numbers Filled',sudhir.totalBatchNumbersFilled,"On Sudhir Ji's own formulations",'sudhir:batchFilled',sudhir.totalFormulationsCreated)+
+    _misStatCard('🔺','red','Pending Batch Numbers',sudhir.pendingBatchNumbers,'Missing batch no.','sudhir:batchPending')+
+    _misScoreCard('📈','Batch Number Filling Score',sudhir.batchFillingScore,'','sudhir:batchScore',sudhir.totalFormulationsCreated)+
+    _misScoreCard('🏆','Overall Performance Score',sudhir.overallScore,'Average of both scores above','sudhir:overall');
+
+  const amarCards=
+    _misStatCard('📋','blue','Total Formulations (Sudhir Ji)',amar.totalFormulations,'Created in range, awaiting batch no.','amar:sudhirForms')+
+    _misStatCard('🏷️','green','Batch Numbers Filled',amar.totalBatchNumbersFilled,'By Amar','amar:batchFilled',amar.totalFormulations)+
+    _misStatCard('🔺','red','Pending Batch Numbers',amar.pendingBatchNumbers,'Missing batch no.','amar:batchPending')+
+    _misStatCard('⚖️','teal','Total Quantity Processed',amar.totalQuantityProcessed+' KG','Sum of qty for filled batches','amar:batchFilled',amar.totalFormulations)+
+    _misScoreCard('✅','Batch Number Filling Score',amar.batchFillingScore,"Sudhir Ji's formulations now batch-coded",'amar:score',amar.totalFormulations);
+
+  const vivekCards=
+    _misStatCard('📋','blue','Total Formulations (Sudhir Ji)',vivek.totalFormulations,'Created in range, awaiting lab/gloss','vivek:sudhirForms')+
+    _misStatCard('🔬','teal','Total Lab Values Entered',vivek.totalLabValuesEntered,'L/a/b values filled','vivek:labFilled',vivek.totalFormulations)+
+    _misStatCard('✨','purple','Total Gloss Values Entered',vivek.totalGlossValuesEntered,'Gloss (GU) filled','vivek:glossFilled',vivek.totalFormulations)+
+    _misScoreCard('✅','Lab Value Completion Score',vivek.labCompletionScore,"Sudhir Ji's formulations with L/a/b recorded",'vivek:labScore',vivek.totalFormulations)+
+    _misScoreCard('📈','Gloss Value Completion Score',vivek.glossCompletionScore,"Sudhir Ji's formulations with gloss recorded",'vivek:glossScore',vivek.totalFormulations)+
+    _misScoreCard('🏆','Overall Performance Score',vivek.overallScore,'Average of both scores above','vivek:overall');
+
+  const notes=`<div class="alert alert-info" style="margin-top:4px;font-size:12px;line-height:1.6;">
+    <strong>How this is calculated:</strong> Sudhir Ji's "Orders" come from Sheet2's order log (Unique ID / Ref No / Time+Date / Party Name, columns A–D) — an order counts as fulfilled once its Ref No matches a Formulation's refNo. Amar's and Vivek's scorecards are both measured against the same base: Sudhir Ji's own formulations created in the selected range. Amar's score is the share of those formulations that now have a Batch No filled in; Vivek's two scores are the share with a Lab (L/a/b) value recorded and the share with a Gloss value recorded. <strong>Click any card marked 🔍 to drill into the underlying records</strong>, and use Export Excel / Export PDF above for an offline copy of this scorecard.
+  </div>`;
+
+  return `<div class="page-header">
+    <div><div class="page-title">📊 MIS Performance Score</div><div class="page-subtitle">Independent staff performance module — does not affect the main Dashboard</div></div>
+  </div>
+  ${filterBar}${_misPersonSection('Sudhir Ji','🔬','Formulation User',sudhirCards)}${_misPersonSection('Amar Goswami','📋','Batch Code Editor',amarCards)}${_misPersonSection('Vivek Goswami','🧪','LAB Entry User',vivekCards)}${notes}`;
+}
+
+// ════════════════════════════════════════════════════════
+//  MIS PERFORMANCE SCORE — Phase 2: Drill-Down
+//  Clicking a card opens a modal listing the underlying records for that
+//  KPI, pulled from the cached _misLastCompute (no re-filtering, no GAS
+//  calls — everything is already in memory). Row counts are capped for
+//  render speed on large datasets; a note tells the user when rows were
+//  cut off and export-to-Excel remains the way to get everything.
+// ════════════════════════════════════════════════════════
+const _MIS_DRILL_ROW_CAP=300;
+
+function _misEsc(v){ return String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+// Column definitions per underlying record shape. Each returns [label,value] pairs.
+function _misCols_Sheet2Order(r){
+  return [['Unique ID',r.uniqueId||'—'],['Ref No',r.refNo||'—'],['Time / Date',r.orderDateTime||'—'],['Party Name',r.partyName||'—']];
+}
+function _misCols_Formulation(f){
+  return [['Product',f.productName||'—'],['Product Code',f.productCode||'—'],['Batch No',f.batchNo||'<span style="color:var(--red)">— missing —</span>'],['Mfg Date',f.mfgDate||'—'],['Created By',f.byName||f.by||'—'],['Ref No',f.refNo||'—']];
+}
+function _misCols_GlossFormulation(f){
+  return [['Product',f.productName||'—'],['Batch No',f.batchNo||'—'],['Gloss Value (GU)',f.glossValue!=null?f.glossValue:'<span style="color:var(--red)">— pending —</span>'],['Recorded At',f.labValues?.recordedAt||'—'],['Recorded By',f.labValues?.recordedBy||'—']];
+}
+function _misCols_LabFormulation(f){
+  const has=f.labValues && (f.labValues.L!=null||f.labValues.A!=null||f.labValues.B!=null);
+  return [['Product',f.productName||'—'],['Batch No',f.batchNo||'—'],['L',has?(f.labValues.L??'—'):'<span style="color:var(--red)">— pending —</span>'],['a',has?(f.labValues.A??'—'):'—'],['b',has?(f.labValues.B??'—'):'—'],['Recorded At',f.labValues?.recordedAt||'—'],['Recorded By',f.labValues?.recordedBy||'—']];
+}
+
+function _misRenderTable(records,colFn,emptyMsg){
+  if(!records||records.length===0) return `<div class="alert alert-info" style="font-size:12px;">${emptyMsg||'No records in this range.'}</div>`;
+  const shown=records.slice(0,_MIS_DRILL_ROW_CAP);
+  const headers=colFn(shown[0]).map(([label])=>label);
+  const rows=shown.map(r=>`<tr>${colFn(r).map(([,val])=>`<td>${typeof val==='string'&&val.includes('<span')?val:_misEsc(val)}</td>`).join('')}</tr>`).join('');
+  const cutoffNote=records.length>_MIS_DRILL_ROW_CAP?`<div class="alert alert-warning" style="font-size:11px;margin-top:8px;">Showing first ${_MIS_DRILL_ROW_CAP} of ${records.length} records for speed — use Export Excel above for the complete list.</div>`:'';
+  return `<div class="table-wrap" style="max-height:360px;"><table><thead><tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table></div>${cutoffNote}`;
+}
+
+function _misDrillGroup(label,badgeColor,records,colFn,emptyMsg){
+  return `<div style="margin-bottom:18px;">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+      <span style="font-size:12px;font-weight:800;color:var(--text2);">${label}</span>
+      <span style="background:${badgeColor};color:#fff;font-size:11px;font-weight:700;padding:1px 9px;border-radius:20px;">${(records||[]).length}</span>
+    </div>
+    ${_misRenderTable(records,colFn,emptyMsg)}
+  </div>`;
+}
+
+// Central dispatcher — maps a "person:kpi" drillKey to a modal title +
+// one or more record groups, built from whatever renderMISScore() last
+// cached for that person. Keeping this as one switch (rather than a
+// separate opener function per KPI) means every card's drill-down logic
+// lives in one place and stays easy to extend if new KPIs are added later.
+function openMISDrilldown(drillKey){
+  const [person,kpi]=drillKey.split(':');
+  const data=_misLastCompute[person];
+  if(!data){ toast('No data loaded yet — pick a date filter first','warning'); return; }
+  const R=data._records||{};
+  let title='', icon='📊', body='';
+
+  if(person==='sudhir'){
+    if(kpi==='ordersReceived'){
+      title='Sudhir Ji — Orders Received'; icon='📦';
+      body=_misDrillGroup('All orders in range (Sheet2 log)','var(--blue)',R.ordersReceived,_misCols_Sheet2Order,'No orders logged in this range.');
+    } else if(kpi==='formsCreated'){
+      title='Sudhir Ji — Formulations Created'; icon='🧪';
+      body=_misDrillGroup('Formulations created in range','var(--teal)',R.formsCreated,_misCols_Formulation,'No formulations created in this range.');
+    } else if(kpi==='ordersPending'){
+      title='Sudhir Ji — Pending Formulations'; icon='⏳';
+      body=_misDrillGroup('Orders with no matching formulation yet','var(--orange)',R.ordersPending,_misCols_Sheet2Order,'Nothing pending — every order in range has a matching formulation.');
+    } else if(kpi==='formScore'){
+      title='Sudhir Ji — Formulation Completion Score'; icon='✅';
+      body=_misDrillGroup('✅ Fulfilled (matched by Ref No)','var(--green)',R.ordersFulfilled,_misCols_Sheet2Order,'None fulfilled yet.')
+          +_misDrillGroup('⏳ Pending (no match yet)','var(--orange)',R.ordersPending,_misCols_Sheet2Order,'Nothing pending.');
+    } else if(kpi==='batchFilled'){
+      title='Sudhir Ji — Batch Numbers Filled'; icon='🏷️';
+      body=_misDrillGroup('Own formulations with a batch no.','var(--green)',R.batchFilled,_misCols_Formulation,'None filled yet in this range.');
+    } else if(kpi==='batchPending'){
+      title='Sudhir Ji — Pending Batch Numbers'; icon='🔺';
+      body=_misDrillGroup('Own formulations missing a batch no.','var(--red)',R.batchPending,_misCols_Formulation,'Nothing pending — every formulation has a batch no.');
+    } else if(kpi==='batchScore'){
+      title='Sudhir Ji — Batch Number Filling Score'; icon='📈';
+      body=_misDrillGroup('✅ Filled','var(--green)',R.batchFilled,_misCols_Formulation,'None filled yet.')
+          +_misDrillGroup('🔺 Pending','var(--red)',R.batchPending,_misCols_Formulation,'Nothing pending.');
+    } else if(kpi==='overall'){
+      title='Sudhir Ji — Overall Performance Score'; icon='🏆';
+      body=`<div class="alert alert-info" style="font-size:12px;margin-bottom:14px;">Overall score is the average of the two component scores below.</div>`
+          +_misDrillGroup('✅ Formulation — Fulfilled','var(--green)',R.ordersFulfilled,_misCols_Sheet2Order,'None fulfilled yet.')
+          +_misDrillGroup('⏳ Formulation — Pending','var(--orange)',R.ordersPending,_misCols_Sheet2Order,'Nothing pending.')
+          +_misDrillGroup('✅ Batch No. — Filled','var(--green)',R.batchFilled,_misCols_Formulation,'None filled yet.')
+          +_misDrillGroup('🔺 Batch No. — Pending','var(--red)',R.batchPending,_misCols_Formulation,'Nothing pending.');
+    }
+  } else if(person==='amar'){
+    if(kpi==='sudhirForms'){
+      title="Amar Goswami — Sudhir Ji's Formulations"; icon='📋';
+      body=_misDrillGroup("All of Sudhir Ji's formulations in range",'var(--blue)',R.sudhirForms,_misCols_Formulation,'No formulations from Sudhir Ji in this range.');
+    } else if(kpi==='batchFilled'){
+      title='Amar Goswami — Batch Numbers Filled'; icon='🏷️';
+      body=_misDrillGroup('Formulations with a batch no. filled in','var(--green)',R.batchFilled,_misCols_Formulation,'None filled yet in this range.');
+    } else if(kpi==='batchPending'){
+      title='Amar Goswami — Pending Batch Numbers'; icon='🔺';
+      body=_misDrillGroup('Formulations still missing a batch no.','var(--red)',R.batchPending,_misCols_Formulation,'Nothing pending — every formulation has a batch no.');
+    } else if(kpi==='score'){
+      title='Amar Goswami — Batch Number Filling Score'; icon='✅';
+      body=_misDrillGroup('✅ Filled','var(--green)',R.batchFilled,_misCols_Formulation,'None filled yet.')
+          +_misDrillGroup('🔺 Pending','var(--red)',R.batchPending,_misCols_Formulation,'Nothing pending.');
+    }
+  } else if(person==='vivek'){
+    if(kpi==='sudhirForms'){
+      title="Vivek Goswami — Sudhir Ji's Formulations"; icon='📋';
+      body=_misDrillGroup("All of Sudhir Ji's formulations in range",'var(--blue)',R.sudhirForms,_misCols_Formulation,'No formulations from Sudhir Ji in this range.');
+    } else if(kpi==='labFilled'){
+      title='Vivek Goswami — Lab Values Entered'; icon='🔬';
+      body=_misDrillGroup('Formulations with L/a/b recorded','var(--teal)',R.labFilled,_misCols_LabFormulation,'None entered yet in this range.');
+    } else if(kpi==='glossFilled'){
+      title='Vivek Goswami — Gloss Values Entered'; icon='✨';
+      body=_misDrillGroup('Formulations with a gloss value recorded','var(--purple)',R.glossFilled,_misCols_GlossFormulation,'None entered yet in this range.');
+    } else if(kpi==='labScore'){
+      title='Vivek Goswami — Lab Value Completion Score'; icon='✅';
+      body=_misDrillGroup('✅ Filled','var(--green)',R.labFilled,_misCols_LabFormulation,'None filled yet.')
+          +_misDrillGroup('⏳ Pending','var(--orange)',R.labPending,_misCols_LabFormulation,'Nothing pending.');
+    } else if(kpi==='glossScore'){
+      title='Vivek Goswami — Gloss Value Completion Score'; icon='📈';
+      body=_misDrillGroup('✅ Filled','var(--green)',R.glossFilled,_misCols_GlossFormulation,'None filled yet.')
+          +_misDrillGroup('⏳ Pending','var(--orange)',R.glossPending,_misCols_GlossFormulation,'Nothing pending.');
+    } else if(kpi==='overall'){
+      title='Vivek Goswami — Overall Performance Score'; icon='🏆';
+      body=`<div class="alert alert-info" style="font-size:12px;margin-bottom:14px;">Overall score is the average of the two component scores below.</div>`
+          +_misDrillGroup('✅ Lab — Filled','var(--green)',R.labFilled,_misCols_LabFormulation,'None filled yet.')
+          +_misDrillGroup('⏳ Lab — Pending','var(--orange)',R.labPending,_misCols_LabFormulation,'Nothing pending.')
+          +_misDrillGroup('✅ Gloss — Filled','var(--green)',R.glossFilled,_misCols_GlossFormulation,'None filled yet.')
+          +_misDrillGroup('⏳ Gloss — Pending','var(--orange)',R.glossPending,_misCols_GlossFormulation,'Nothing pending.');
+    }
+  }
+
+  if(!body){ toast('No drill-down available for this card','warning'); return; }
+
+  const modal=`<div class="modal-overlay" id="mis-drill-modal" onclick="if(event.target.id==='mis-drill-modal')closeModal('mis-drill-modal')">
+  <div class="modal" style="max-width:820px;">
+    <div class="modal-header">
+      <div><div class="modal-title">${icon} ${title}</div><div style="font-size:12px;color:var(--text3);margin-top:2px;">Range: ${_misLastCompute.filterLabel||''}${_misLastCompute.range?.start?` (${_misLastCompute.range.start}${_misLastCompute.range.end&&_misLastCompute.range.end!==_misLastCompute.range.start?' → '+_misLastCompute.range.end:''})`:''}</div></div>
+      <button class="close-btn" onclick="closeModal('mis-drill-modal')">✕</button>
+    </div>
+    <div class="modal-body">${body}</div>
+    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('mis-drill-modal')">Close</button></div>
+  </div></div>`;
+  const old=document.getElementById('mis-drill-modal'); if(old) old.remove();
+  document.body.insertAdjacentHTML('beforeend',modal);
+}
+
+// ════════════════════════════════════════════════════════
+//  MIS PERFORMANCE SCORE — Phase 3: Export (Excel + PDF)
+// ════════════════════════════════════════════════════════
+
+function exportMISScoreExcel(){
+  if(typeof XLSX==='undefined'){toast('XLSX library not loaded','error');return;}
+  const d=_misLastCompute;
+  if(!d.sudhir){toast('Open the MIS Performance Score page first','warning');return;}
+  const rangeLabel=`${d.filterLabel||''}${d.range?.start?` (${d.range.start}${d.range.end&&d.range.end!==d.range.start?' to '+d.range.end:''})`:''}`;
+
+  const wb=XLSX.utils.book_new();
+
+  // Summary sheet
+  const summary=[
+    ['MIS Performance Score — Summary'],
+    ['Date Range',rangeLabel],
+    ['Generated',new Date().toLocaleString('en-IN')],
+    [],
+    ['Sudhir Ji (Formulation User)'],
+    ['KPI','Value'],
+    ['Total Orders Received',d.sudhir.totalOrdersReceived],
+    ['Total Formulations Created',d.sudhir.totalFormulationsCreated],
+    ['Pending Formulations',d.sudhir.pendingFormulations],
+    ['Formulation Completion Score (%)',d.sudhir.formulationCompletionScore??'—'],
+    ['Total Batch Numbers Filled',d.sudhir.totalBatchNumbersFilled],
+    ['Pending Batch Numbers',d.sudhir.pendingBatchNumbers],
+    ['Batch Number Filling Score (%)',d.sudhir.batchFillingScore??'—'],
+    ['Overall Performance Score (%)',d.sudhir.overallScore??'—'],
+    [],
+    ['Amar Goswami (Batch Code Editor)'],
+    ['KPI','Value'],
+    ['Total Formulations (Sudhir Ji)',d.amar.totalFormulations],
+    ['Batch Numbers Filled',d.amar.totalBatchNumbersFilled],
+    ['Pending Batch Numbers',d.amar.pendingBatchNumbers],
+    ['Total Quantity Processed (KG)',d.amar.totalQuantityProcessed],
+    ['Batch Number Filling Score (%)',d.amar.batchFillingScore??'—'],
+    [],
+    ['Vivek Goswami (LAB Entry User)'],
+    ['KPI','Value'],
+    ['Total Formulations (Sudhir Ji)',d.vivek.totalFormulations],
+    ['Total Lab Values Entered',d.vivek.totalLabValuesEntered],
+    ['Total Gloss Values Entered',d.vivek.totalGlossValuesEntered],
+    ['Lab Value Completion Score (%)',d.vivek.labCompletionScore??'—'],
+    ['Gloss Value Completion Score (%)',d.vivek.glossCompletionScore??'—'],
+    ['Overall Performance Score (%)',d.vivek.overallScore??'—'],
+  ];
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(summary),'Summary');
+
+  // Detail sheets — raw records behind each person's KPIs
+  const sudhirOrdersRows=[['Unique ID','Ref No','Time / Date','Party Name','Status']];
+  const fulfilledRefs=new Set((d.sudhir._records.ordersFulfilled||[]).map(r=>r));
+  (d.sudhir._records.ordersReceived||[]).forEach(r=>sudhirOrdersRows.push([r.uniqueId||'',r.refNo||'',r.orderDateTime||'',r.partyName||'',fulfilledRefs.has(r)?'Fulfilled':'Pending']));
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(sudhirOrdersRows),'Sudhir - Orders');
+
+  const sudhirFormsRows=[['Product','Product Code','Batch No','Mfg Date','Ref No']];
+  (d.sudhir._records.formsCreated||[]).forEach(f=>sudhirFormsRows.push([f.productName||'',f.productCode||'',f.batchNo||'',f.mfgDate||'',f.refNo||'']));
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(sudhirFormsRows),'Sudhir - Formulations');
+
+  const amarBatchRows=[['Product','Product Code','Batch No','Mfg Date','Ref No','Status']];
+  const amarFilledSet=new Set(d.amar._records.batchFilled||[]);
+  (d.amar._records.sudhirForms||[]).forEach(f=>amarBatchRows.push([f.productName||'',f.productCode||'',f.batchNo||'',f.mfgDate||'',f.refNo||'',amarFilledSet.has(f)?'Filled':'Pending']));
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(amarBatchRows),'Amar - Batch Nos');
+
+  const vivekLabRows=[['Product','Batch No','L','a','b','Recorded At','Recorded By','Status']];
+  const vivekLabFilledSet=new Set(d.vivek._records.labFilled||[]);
+  (d.vivek._records.sudhirForms||[]).forEach(f=>vivekLabRows.push([f.productName||'',f.batchNo||'',f.labValues?.L??'',f.labValues?.A??'',f.labValues?.B??'',f.labValues?.recordedAt||'',f.labValues?.recordedBy||'',vivekLabFilledSet.has(f)?'Filled':'Pending']));
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(vivekLabRows),'Vivek - Lab Values');
+
+  const vivekGlossRows=[['Product','Batch No','Gloss Value (GU)','Recorded At','Recorded By','Status']];
+  const vivekGlossFilledSet=new Set(d.vivek._records.glossFilled||[]);
+  (d.vivek._records.sudhirForms||[]).forEach(f=>vivekGlossRows.push([f.productName||'',f.batchNo||'',f.glossValue!=null?f.glossValue:'',f.labValues?.recordedAt||'',f.labValues?.recordedBy||'',vivekGlossFilledSet.has(f)?'Filled':'Pending']));
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(vivekGlossRows),'Vivek - Gloss Values');
+
+  XLSX.writeFile(wb,'MIS_Performance_Score_'+new Date().toISOString().slice(0,10)+'.xlsx');
+  addAudit('Exported Excel','MIS Performance Score — '+rangeLabel);
+  toast('MIS Performance Score exported ✓','success');
+}
+
+function exportMISScorePDF(){
+  const d=_misLastCompute;
+  if(!d.sudhir){toast('Open the MIS Performance Score page first','warning');return;}
+  const rangeLabel=`${d.filterLabel||''}${d.range?.start?` (${d.range.start}${d.range.end&&d.range.end!==d.range.start?' to '+d.range.end:''})`:''}`;
+  const printDate=new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'long',year:'numeric'});
+
+  const scoreColor=pct=>pct===null?'#94a3b8':pct>=85?'#15803d':pct>=60?'#b45309':'#b91c1c';
+  const scoreBg=pct=>pct===null?'#f1f5f9':pct>=85?'#dcfce7':pct>=60?'#fef3c7':'#fee2e2';
+  const kpiRow=(label,value)=>`<tr><td>${label}</td><td class="r">${value}</td></tr>`;
+  const scoreRow=(label,pct)=>{const disp=pct===null?'—':pct+'%';return `<tr><td>${label}</td><td class="r" style="font-weight:800;color:${scoreColor(pct)};background:${scoreBg(pct)};">${disp}</td></tr>`;};
+
+  const sudhirTable=`<table>
+    <thead><tr><th>Sudhir Ji — Formulation User</th><th class="r">Value</th></tr></thead>
+    <tbody>
+      ${kpiRow('Total Orders Received',d.sudhir.totalOrdersReceived)}
+      ${kpiRow('Total Formulations Created',d.sudhir.totalFormulationsCreated)}
+      ${kpiRow('Pending Formulations',d.sudhir.pendingFormulations)}
+      ${scoreRow('Formulation Completion Score',d.sudhir.formulationCompletionScore)}
+      ${kpiRow('Total Batch Numbers Filled',d.sudhir.totalBatchNumbersFilled)}
+      ${kpiRow('Pending Batch Numbers',d.sudhir.pendingBatchNumbers)}
+      ${scoreRow('Batch Number Filling Score',d.sudhir.batchFillingScore)}
+      ${scoreRow('Overall Performance Score',d.sudhir.overallScore)}
+    </tbody></table>`;
+
+  const amarTable=`<table>
+    <thead><tr><th>Amar Goswami — Batch Code Editor</th><th class="r">Value</th></tr></thead>
+    <tbody>
+      ${kpiRow('Total Formulations (Sudhir Ji)',d.amar.totalFormulations)}
+      ${kpiRow('Batch Numbers Filled',d.amar.totalBatchNumbersFilled)}
+      ${kpiRow('Pending Batch Numbers',d.amar.pendingBatchNumbers)}
+      ${kpiRow('Total Quantity Processed',d.amar.totalQuantityProcessed+' KG')}
+      ${scoreRow('Batch Number Filling Score',d.amar.batchFillingScore)}
+    </tbody></table>`;
+
+  const vivekTable=`<table>
+    <thead><tr><th>Vivek Goswami — LAB Entry User</th><th class="r">Value</th></tr></thead>
+    <tbody>
+      ${kpiRow('Total Formulations (Sudhir Ji)',d.vivek.totalFormulations)}
+      ${kpiRow('Total Lab Values Entered',d.vivek.totalLabValuesEntered)}
+      ${kpiRow('Total Gloss Values Entered',d.vivek.totalGlossValuesEntered)}
+      ${scoreRow('Lab Value Completion Score',d.vivek.labCompletionScore)}
+      ${scoreRow('Gloss Value Completion Score',d.vivek.glossCompletionScore)}
+      ${scoreRow('Overall Performance Score',d.vivek.overallScore)}
+    </tbody></table>`;
+
+  const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>MIS Performance Score — ${rangeLabel}</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;600;700&family=EB+Garamond:wght@400;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@page{size:A4;margin:14mm 16mm 16mm 16mm;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Crimson Pro',Georgia,serif;font-size:11pt;color:#1a1a1a;background:#fff;line-height:1.4;}
+.lh{border-bottom:2px solid #1a1a1a;padding-bottom:8px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:flex-start;}
+.lh .co{font-family:'EB Garamond',Georgia,serif;font-size:18pt;font-weight:700;color:#0d0d0d;line-height:1.1;}
+.lh .tl{font-size:8.5pt;color:#666;margin-top:1px;}
+.lh-r{text-align:right;font-size:8.5pt;color:#444;line-height:1.6;}
+.lh-r strong{color:#0d0d0d;font-size:9pt;}
+.sh{font-family:'EB Garamond';font-size:10pt;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;border-bottom:1.5px solid #1a1a1a;padding-bottom:3px;margin-bottom:8px;margin-top:16px;color:#0d0d0d;}
+table{width:100%;border-collapse:collapse;font-size:10pt;margin-bottom:6px;}
+thead tr{background:#0d0d0d;color:#fff;}
+thead th{padding:7px 9px;font-size:8pt;text-transform:uppercase;letter-spacing:.6px;font-weight:600;text-align:left;}
+th.r,td.r{text-align:right;font-family:'JetBrains Mono',monospace;font-size:9.5pt;}
+tbody tr{border-bottom:1px solid #e0e0e0;}
+tbody tr:nth-child(even){background:#f8f8f8;}
+td{padding:6px 9px;color:#1a1a1a;vertical-align:middle;}
+.df{margin-top:16px;border-top:1px solid #ccc;padding-top:6px;display:flex;justify-content:space-between;font-size:7.5pt;color:#888;}
+@media screen{body{background:#e0e0e0;padding:20px;}.page{background:#fff;max-width:210mm;margin:0 auto;padding:14mm 16mm 16mm;box-shadow:0 4px 24px rgba(0,0,0,.2);}}
+@media print{.np{display:none;}body{background:#fff;}.page{padding:0;box-shadow:none;}}
+</style></head><body>
+<div class="np" style="text-align:center;margin-bottom:16px;">
+  <button onclick="window.print()" style="background:#0d0d0d;color:#fff;border:none;padding:10px 28px;font-size:13px;font-family:serif;cursor:pointer;border-radius:4px;letter-spacing:1px;margin-right:8px;">🖨 PRINT / SAVE AS PDF</button>
+  <button onclick="window.close()" style="background:#f0f0f0;color:#333;border:none;padding:10px 20px;font-size:13px;font-family:serif;cursor:pointer;border-radius:4px;">Close</button>
+</div>
+<div class="page">
+  <div class="lh">
+    <div><div class="co">Surface Paints Pvt. Ltd.</div><div class="tl">MIS Performance Score — Staff Report</div></div>
+    <div class="lh-r"><strong>Range:</strong> ${rangeLabel}<br>Print Date: ${printDate}</div>
+  </div>
+  <div class="sh">Sudhir Ji</div>${sudhirTable}
+  <div class="sh">Amar Goswami</div>${amarTable}
+  <div class="sh">Vivek Goswami</div>${vivekTable}
+  <div class="df"><span>Surface Paints Pvt. Ltd. — Independent MIS module</span><span>Printed: ${printDate}</span></div>
+</div></body></html>`;
+
+  const blob=new Blob([html],{type:'text/html'});
+  const url=URL.createObjectURL(blob);
+  const old=document.getElementById('pdf-overlay');if(old)old.remove();
+  const overlay=document.createElement('div');
+  overlay.id='pdf-overlay';
+  overlay.style.cssText='position:fixed;inset:0;background:#1a1a1a;z-index:9999;display:flex;flex-direction:column;';
+  const toolbar=document.createElement('div');
+  toolbar.style.cssText='background:#111827;padding:12px 18px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #374151;flex-shrink:0;';
+  toolbar.innerHTML=`
+    <span style="color:#f59e0b;font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:700;">📊 MIS Performance Score — ${rangeLabel}</span>
+    <span style="flex:1"></span>
+    <button onclick="document.getElementById('pdf-print-frame').contentWindow.print()" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#000;border:none;padding:9px 22px;font-size:13px;font-family:'Plus Jakarta Sans',sans-serif;cursor:pointer;border-radius:8px;font-weight:700;">🖨 Print / Save as PDF</button>
+    <a href="${url}" download="MIS_Performance_Score_${new Date().toISOString().slice(0,10)}.html" style="background:#3b82f6;color:#fff;border:none;padding:9px 22px;font-size:13px;font-family:'Plus Jakarta Sans',sans-serif;cursor:pointer;border-radius:8px;font-weight:700;text-decoration:none;">↓ Download</a>
+    <button onclick="document.getElementById('pdf-overlay').remove();URL.revokeObjectURL('${url}')" style="background:#374151;color:#fff;border:1px solid #4b5563;padding:9px 16px;font-size:13px;cursor:pointer;border-radius:8px;">✕ Close</button>`;
+  const iframe=document.createElement('iframe');
+  iframe.id='pdf-print-frame';iframe.src=url;
+  iframe.style.cssText='flex:1;border:none;background:#fff;';
+  overlay.appendChild(toolbar);overlay.appendChild(iframe);
+  document.body.appendChild(overlay);
+  addAudit('Exported PDF','MIS Performance Score — '+rangeLabel);
+  toast('PDF ready — use Print / Save as PDF button','success');
 }
 
 // ════════════════════════════════════════════════════════
@@ -1620,12 +2421,12 @@ function buildFormCardHTML(f){
         </div>
       </div>
       <div class="batch-card-meta" style="margin-top:10px;">
-        <span>📅 ${f.mfgDate}</span><span>👤 ${f.byName}</span>${(currentUser.role!=='labentry'&&currentUser.role!=='batchedit')?`<span>⚗ ${(f.items||[]).length} materials · ${calcTotalQtyDisplay(f)}</span>`:`<span>⚗ Total: ${calcTotalQtyDisplay(f)}</span>`}${f.remarks?`<span>💬 ${f.remarks}</span>`:''}<span style="background:${f.inventoryPartialDebit?'var(--orange-light)':(f.inventoryDebited===false||f.inventoryDebited==="false")?'var(--accent-light)':'var(--green-light)'};color:${f.inventoryPartialDebit?'var(--orange)':(f.inventoryDebited===false||f.inventoryDebited==="false")?'var(--accent2)':'var(--green)'};padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;">${f.inventoryPartialDebit?'⚠️ Partial Debit':(f.inventoryDebited===false||f.inventoryDebited==="false")?'🔒 No Debit':'📦 Debited'}</span>
+        <span>📅 ${f.mfgDate}</span><span>👤 ${esc(f.byName)}</span>${(currentUser.role!=='labentry'&&currentUser.role!=='batchedit')?`<span>⚗ ${(f.items||[]).length} materials · ${calcTotalQtyDisplay(f)}</span>`:`<span>⚗ Total: ${calcTotalQtyDisplay(f)}</span>`}${f.remarks?`<span>💬 ${esc(f.remarks)}</span>`:''}<span style="background:${f.inventoryPartialDebit?'var(--orange-light)':(f.inventoryDebited===false||f.inventoryDebited==="false")?'var(--accent-light)':'var(--green-light)'};color:${f.inventoryPartialDebit?'var(--orange)':(f.inventoryDebited===false||f.inventoryDebited==="false")?'var(--accent2)':'var(--green)'};padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;">${f.inventoryPartialDebit?'⚠️ Partial Debit':(f.inventoryDebited===false||f.inventoryDebited==="false")?'🔒 No Debit':'📦 Debited'}</span>
       </div>
       ${(f.partyName||f.partyId||f.refNo)?`<div style="margin-top:8px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
         ${(f.partyName||f.partyId)?`<div style="background:linear-gradient(135deg,#1d4ed8,#2563eb);border-radius:10px;padding:8px 18px;display:inline-flex;align-items:center;gap:8px;">
           <span style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.7);text-transform:uppercase;letter-spacing:1px;">${can('manageUsers')?'Party Name':'Party ID'}</span>
-          <span style="font-size:16px;font-weight:800;color:#fff;letter-spacing:0.2px;">${can('manageUsers')?(f.partyName||f.partyId):f.partyId}</span>
+          <span style="font-size:16px;font-weight:800;color:#fff;letter-spacing:0.2px;">${esc(can('manageUsers')?(f.partyName||f.partyId):f.partyId)}</span>
         </div>`:''}
         ${f.refNo?`<div style="background:#f8faff;border:1.5px solid #bfdbfe;border-radius:10px;padding:8px 18px;display:inline-flex;align-items:center;gap:8px;">
           <span style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;">Ref No</span>
@@ -1636,7 +2437,7 @@ function buildFormCardHTML(f){
         ${f.labValues?`<span style="background:var(--purple-light);color:var(--purple);padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;">🧪 L:${f.labValues.L||'—'} a:${f.labValues.A||'—'} b:${f.labValues.B||'—'}</span>`:''}
         ${f.glossValue!=null?`<span style="background:#fdf4ff;color:#9333ea;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;">✨ Gloss: ${f.glossValue} GU</span>`:''}
         ${f.refNo?`<span style="background:#eff6ff;color:#1e40af;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;">📋 Ref: ${f.refNo}</span>`:''}
-        ${(f.partyId||f.partyName)?`<span style="background:linear-gradient(135deg,#eff6ff,#dbeafe);color:#1d4ed8;padding:3px 12px;border-radius:20px;font-size:11px;font-weight:800;border:1px solid #bfdbfe;letter-spacing:0.2px;">🏢 ${can('manageUsers')?(f.partyName||f.partyId):f.partyId}</span>`:''}
+        ${(f.partyId||f.partyName)?`<span style="background:linear-gradient(135deg,#eff6ff,#dbeafe);color:#1d4ed8;padding:3px 12px;border-radius:20px;font-size:11px;font-weight:800;border:1px solid #bfdbfe;letter-spacing:0.2px;">🏢 ${esc(can('manageUsers')?(f.partyName||f.partyId):f.partyId)}</span>`:''}
         ${(()=>{const cc=DB.formulationComments.filter(c=>c.formulationId===f.id).length;return cc>0?`<span style="background:var(--blue-light);color:var(--blue);padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;">💬 ${cc} comment${cc>1?'s':''}</span>`:'';})()}
       ${(()=>{
         const fComments=DB.formulationComments.filter(c=>c.formulationId===f.id);
@@ -1651,13 +2452,13 @@ function buildFormCardHTML(f){
             const cfg=typeConfig[c.type]||{label:c.type,bg:'var(--bg3)',color:'var(--text)',border:'var(--border)'};
             return`<div style="background:${cfg.bg};border:1px solid ${cfg.border};border-radius:8px;padding:6px 12px;display:flex;align-items:flex-start;gap:8px;">
               <span style="font-size:10px;font-weight:800;color:${cfg.color};white-space:nowrap;padding-top:1px;">By ${cfg.label}:</span>
-              <span style="font-size:12px;color:var(--text);font-weight:500;line-height:1.4;">${c.text}</span>
+              <span style="font-size:12px;color:var(--text);font-weight:500;line-height:1.4;">${esc(c.text)}</span>
             </div>`;
           }).join('')}
         </div>`;
       })()}
       ${(currentUser.role!=='labentry'&&currentUser.role!=='batchedit')?`<div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap;">
-        ${(f.items||[]).map(item=>{const rm=getRMById(item.rmId);if(!rm)return'';const u=(item.unit||rm.unit||'KG').toUpperCase();const unitLabel=u==='G'?'Gram':(item.unit||rm.unit);return`<span style="background:#e2e8f0;border:1px solid #94a3b8;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:600;color:#1e293b">${rm.name} (${item.qty} ${unitLabel})</span>`;}).join('')}
+        ${(f.items||[]).map(item=>{const rm=getRMById(item.rmId);if(!rm)return'';const u=(item.unit||rm.unit||'KG').toUpperCase();const unitLabel=u==='G'?'Gram':(item.unit||rm.unit);return`<span style="background:#e2e8f0;border:1px solid #94a3b8;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:600;color:#1e293b">${esc(rm.name)} (${item.qty} ${unitLabel})</span>`;}).join('')}
       </div>`:''}
     </div>`;
   }catch(e){console.warn("Skipped formulation render:",f?.id,e);return'';}
@@ -1665,13 +2466,16 @@ function buildFormCardHTML(f){
 function renderFormulations(){
   let myForms=DB.formulations;
   if(currentUser.role==='formulation')myForms=DB.formulations.filter(f=>f.by===currentUser.username);
-  // Vivek (labentry): only show batches with NO lab/gloss filled yet
+  // Both Vivek and Amar only ever work on Sudhir Ji's formulations — same
+  // isSudhirForm check already used for the MIS Performance Score module.
+  const isSudhirFormulation=f=>(f.by||'').toLowerCase()==='sudhir' || /sudhir/i.test(f.byName||'');
+  // Vivek (labentry): only show Sudhir Ji's batches with NO lab/gloss filled yet
   if(currentUser.role==='labentry')myForms=DB.formulations.filter(f=>
-    !f.labValues && (f.glossValue==null||f.glossValue===undefined||f.glossValue==='')
+    isSudhirFormulation(f) && !f.labValues && (f.glossValue==null||f.glossValue===undefined||f.glossValue==='')
   );
-  // Amar (batchedit): only show batches with missing/empty batch number
+  // Amar (batchedit): only show Sudhir Ji's batches with missing/empty batch number
   if(currentUser.role==='batchedit')myForms=DB.formulations.filter(f=>
-    !f.batchNo || String(f.batchNo).trim()===''
+    isSudhirFormulation(f) && (!f.batchNo || String(f.batchNo).trim()==='')
   );
 
   // Search filter
@@ -1968,7 +2772,7 @@ function openLabGlossModal(id){
           </select>
         </div>
       </div>
-      <div class="form-group"><label>Notes</label><textarea class="form-control" id="lab-notes" placeholder="Any remarks about color/gloss measurement...">${f.labNotes||''}</textarea></div>
+      <div class="form-group"><label>Notes</label><textarea class="form-control" id="lab-notes" placeholder="Any remarks about color/gloss measurement...">${esc(f.labNotes||'')}</textarea></div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('labgloss-modal')">Cancel</button>
@@ -1997,7 +2801,8 @@ function saveLabGloss(id){
   toast('Saving LAB/Gloss to Sheets...','info');
   gasCall('saveLabGloss',{formulation:{id:f.id,productName:f.productName,productCode:f.productCode||'',batchNo:f.batchNo||'',labValues:f.labValues||null,glossValue:f.glossValue??null,glossAngle:f.glossAngle||'',labNotes:f.labNotes||''}})
     .then(()=>gasCall('addAudit',{entry:DB.auditLog[0]}))
-    .then(()=>toast('LAB & Gloss values saved ✓','success'));
+    .then(()=>toast('LAB & Gloss values saved ✓','success'))
+    .catch(err=>toast('❌ LAB/Gloss SAVE FAILED — '+err.message+' — values shown locally but NOT saved to Sheets. Please retry.','error'));
   navigate('formulations');
 }
 
@@ -2021,7 +2826,7 @@ function exportWorkerPDF(id){
     const unitLabel=unit==='G'?'Gram':unit==='ML'?'ML':unit;
     itemRows+=`<tr>
       <td class="sno">${sno++}</td>
-      <td class="rmname">${rm.name}</td>
+      <td class="rmname">${esc(rm.name)}</td>
       <td class="qty">${qtyDisplay}&nbsp;${unitLabel}</td>
       <td class="writebox"></td>
     </tr>`;
@@ -2033,7 +2838,7 @@ function exportWorkerPDF(id){
   const refPartyRow = (f.refNo||f.partyId||f.partyName)?`
     <div class="ref-bar">
       ${f.refNo?`<div class="ref-item"><span class="ref-lbl">Ref No</span><strong style="font-size:15pt;font-weight:800;color:#1a1a1a;">${f.refNo}</strong></div>`:''}
-      ${(f.partyId||f.partyName)?`<div class="ref-item"><span class="ref-lbl">${can('manageUsers')?'Party Name':'Party ID'}</span><strong style="font-size:15pt;font-weight:800;color:#1a1a1a;">${can('manageUsers')?(f.partyName||f.partyId):f.partyId}</strong></div>`:''}
+      ${(f.partyId||f.partyName)?`<div class="ref-item"><span class="ref-lbl">${can('manageUsers')?'Party Name':'Party ID'}</span><strong style="font-size:15pt;font-weight:800;color:#1a1a1a;">${esc(can('manageUsers')?(f.partyName||f.partyId):f.partyId)}</strong></div>`:''}
     </div>`:'';
 
   const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Worker Recipe — ${f.productName}</title>
@@ -2145,7 +2950,7 @@ function openSudhirDebitModal(id){
           <span style="margin-top:6px;display:block;font-weight:700;">${skipped.join(', ')}</span>
           <span style="margin-top:4px;display:block;font-size:11px;">Recipe was saved, but these materials had zero inventory so their stock was not reduced.</span>
         </div>`:''}
-        ${f.debitRemarks?`<div style="margin-top:12px;font-size:12px;color:var(--text2);background:var(--bg3);border-radius:8px;padding:10px 14px;">💬 Remark: ${f.debitRemarks}</div>`:''}
+        ${f.debitRemarks?`<div style="margin-top:12px;font-size:12px;color:var(--text2);background:var(--bg3);border-radius:8px;padding:10px 14px;">💬 Remark: ${esc(f.debitRemarks)}</div>`:''}
       </div>
       <div class="modal-footer">
         <button class="btn btn-secondary" onclick="closeModal('sudhir-debit-modal')">Close</button>
@@ -2225,7 +3030,7 @@ function updateDebitPreview(id){
     const ok=available>=totalNeeded;
     if(!ok){hasShortage=true;skippedNames.push(rm.name);}
     rows+=`<tr>
-      <td class="td-primary">${rm.name}</td>
+      <td class="td-primary">${esc(rm.name)}</td>
       <td style="font-weight:700;">${totalNeeded.toFixed(3)} KG</td>
       <td>${available.toFixed(3)}</td>
       <td><span class="status-pill ${ok?'status-ok':'status-out'}">${ok?'✓ Will Debit':'⚠ Skip (zero)'}</span></td>
@@ -2458,7 +3263,7 @@ function updateSudhirPreview(id){
     const ok=available>=totalNeeded;
     if(!ok)hasShortage=true;
     rows+=`<tr>
-      <td class="td-primary">${rm.name}</td>
+      <td class="td-primary">${esc(rm.name)}</td>
       <td>${item.qty} ${u}</td>
       <td style="font-weight:700;">${totalNeeded.toFixed(3)} KG</td>
       <td>${available.toFixed(3)}</td>
@@ -2534,7 +3339,7 @@ function generateSudhirPDF(id){
     const qtyDisplay=totalNeededDisplay%1===0?totalNeededDisplay.toFixed(0):totalNeededDisplay.toFixed(3);
     itemRows+=`<tr>
       <td style="text-align:center;">${sno++}</td>
-      <td>${rm.name}</td>
+      <td>${esc(rm.name)}</td>
       <td style="text-align:right;font-size:13pt;font-weight:800;">${qtyDisplay} ${unit}</td>
     </tr>`;
   });
@@ -3922,7 +4727,7 @@ function viewFormulation(id){
     const u=unit.toUpperCase();
     const qtyKg=(u==='G'||u==='ML')?item.qty/1000:item.qty;
     const unitLabel=u==='G'?'Gram':unit;
-    return`<tr><td class="td-primary">${rm.name}</td><td class="mono" style="font-size:12px;color:var(--text3)">${rm.code}</td><td>${item.qty} ${unitLabel}</td>${can('viewCost')?`<td class="cost-tag">${fmtCurrency(effectiveRate)}</td><td class="cost-tag">${fmtCurrency(qtyKg*effectiveRate)}</td>`:'<td colspan="2" style="color:var(--text3)">—</td>'}</tr>`;
+    return`<tr><td class="td-primary">${esc(rm.name)}</td><td class="mono" style="font-size:12px;color:var(--text3)">${esc(rm.code)}</td><td>${item.qty} ${unitLabel}</td>${can('viewCost')?`<td class="cost-tag">${fmtCurrency(effectiveRate)}</td><td class="cost-tag">${fmtCurrency(qtyKg*effectiveRate)}</td>`:'<td colspan="2" style="color:var(--text3)">—</td>'}</tr>`;
   }).join('');
 
   // Build comments HTML
@@ -3939,9 +4744,9 @@ function viewFormulation(id){
       commentsHTML+=`<div style="background:${commentTypeBg[c.type]||'var(--bg3)'};border:1.5px solid ${commentTypeBorder[c.type]||'var(--border)'};border-radius:10px;padding:12px 14px;margin-bottom:10px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
           <span style="font-size:12px;font-weight:800;color:${commentTypeColor[c.type]||'var(--text)'};">${commentTypeLabels[c.type]||c.type}</span>
-          <span style="font-size:11px;color:var(--text3);">${c.byName} · ${c.createdAt}</span>
+          <span style="font-size:11px;color:var(--text3);">${esc(c.byName)} · ${c.createdAt}</span>
         </div>
-        <div style="font-size:13px;color:var(--text);line-height:1.5;">${c.text}</div>
+        <div style="font-size:13px;color:var(--text);line-height:1.5;">${esc(c.text)}</div>
       </div>`;
     });
   }
@@ -3971,14 +4776,14 @@ function viewFormulation(id){
     <div class="modal-body">
       <div class="form-row" style="margin-bottom:16px;">
         <div style="background:var(--bg3);border-radius:8px;padding:12px;"><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px;">Mfg Date & Time</div><div style="font-size:14px;font-weight:600;color:var(--text)">${f.mfgDate}</div></div>
-        <div style="background:var(--bg3);border-radius:8px;padding:12px;"><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px;">Created By</div><div style="font-size:14px;font-weight:600;color:var(--text)">${f.byName}</div></div>
+        <div style="background:var(--bg3);border-radius:8px;padding:12px;"><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px;">Created By</div><div style="font-size:14px;font-weight:600;color:var(--text)">${esc(f.byName)}</div></div>
         <div style="background:var(--bg3);border-radius:8px;padding:12px;"><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px;">Total Qty (KG)</div><div style="font-size:14px;font-weight:600;color:var(--text)">${calcTotalQtyDisplay(f)}</div></div>
       </div>
       ${(f.refNo||f.partyId||f.partyName)?`<div style="background:linear-gradient(135deg,#f0f5ff,#e8f0fe);border:1.5px solid #bfdbfe;border-radius:14px;padding:16px 20px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
-        ${(f.partyName||f.partyId)?`<div><div style="font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">${can('manageUsers')?'Party Name':'Party ID'}</div><div style="font-size:22px;font-weight:800;color:#1d4ed8;letter-spacing:-0.3px;">${can('manageUsers')?(f.partyName||f.partyId):f.partyId}</div></div>`:''}
+        ${(f.partyName||f.partyId)?`<div><div style="font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">${can('manageUsers')?'Party Name':'Party ID'}</div><div style="font-size:22px;font-weight:800;color:#1d4ed8;letter-spacing:-0.3px;">${esc(can('manageUsers')?(f.partyName||f.partyId):f.partyId)}</div></div>`:''}
         ${f.refNo?`<div style="text-align:right;"><div style="font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Ref No</div><div style="font-size:22px;font-weight:800;color:#1d4ed8;font-family:'JetBrains Mono',monospace;letter-spacing:-0.5px;">${f.refNo}</div></div>`:''}
       </div>`:''}
-      ${f.remarks?`<div class="alert" style="background:var(--bg3);border:1px solid var(--border);color:var(--text2);margin-bottom:16px;">💬 ${f.remarks}</div>`:''}
+      ${f.remarks?`<div class="alert" style="background:var(--bg3);border:1px solid var(--border);color:var(--text2);margin-bottom:16px;">💬 ${esc(f.remarks)}</div>`:''}
       ${(currentUser.role!=='labentry'&&currentUser.role!=='batchedit')?`<table style="width:100%">
         <thead><tr><th>Material</th><th>Code</th><th>Qty</th>${can('viewCost')?'<th>Rate</th><th>Cost</th>':'<th colspan="2"></th>'}</tr></thead>
         <tbody>${itemsHTML}</tbody>
@@ -4038,9 +4843,9 @@ function addFormulationComment(formulationId){
     html+=`<div style="background:${commentTypeBg[c.type]||'var(--bg3)'};border:1.5px solid ${commentTypeBorder[c.type]||'var(--border)'};border-radius:10px;padding:12px 14px;margin-bottom:10px;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
         <span style="font-size:12px;font-weight:800;color:${commentTypeColor[c.type]||'var(--text)'};">${commentTypeLabels[c.type]||c.type}</span>
-        <span style="font-size:11px;color:var(--text3);">${c.byName} · ${c.createdAt}</span>
+        <span style="font-size:11px;color:var(--text3);">${esc(c.byName)} · ${c.createdAt}</span>
       </div>
-      <div style="font-size:13px;color:var(--text);line-height:1.5;">${c.text}</div>
+      <div style="font-size:13px;color:var(--text);line-height:1.5;">${esc(c.text)}</div>
     </div>`;
   });
   const listEl=document.getElementById('vf-comments-list');
@@ -4102,11 +4907,11 @@ function renderRawMaterials(){
     const catColors={Binder:'#dbeafe:#1e40af',Pigment:'#fce7f3:#9d174d',Hardener:'#dcfce7:#14532d',Filler:'#fef3c7:#92400e',Additive:'#f3e8ff:#6b21a8',Other:'#f1f5f9:#475569'};
     const[catBg,catCol]=(catColors[rm.category||'Other']||catColors['Other']).split(':');
     html+=`<tr>
-      <td class="td-primary">${rm.name}</td>
-      <td class="mono" style="color:var(--text3);font-size:12px;">${rm.code}</td>
+      <td class="td-primary">${esc(rm.name)}</td>
+      <td class="mono" style="color:var(--text3);font-size:12px;">${esc(rm.code)}</td>
       <td>${rm.unit}</td>
       <td><span style="background:${catBg};color:${catCol};border-radius:20px;padding:2px 9px;font-size:11px;font-weight:700;">${rm.category||'—'}</span></td>
-      ${canPrice?`<td class="cost-tag" style="font-weight:700;">${fmtCurrency(rm.rate)}</td><td style="color:var(--text2)">${rm.supplier}</td>`:''}
+      ${canPrice?`<td class="cost-tag" style="font-weight:700;">${fmtCurrency(rm.rate)}</td><td style="color:var(--text2)">${esc(rm.supplier)}</td>`:''}
       <td style="color:var(--text3);font-size:12px;">${rm.updatedDate}</td>
       <td><span class="status-pill ${st==='ok'?'status-ok':st==='low'?'status-low':'status-out'}">${rm.minStock}</span></td>
       <td style="display:flex;gap:4px;">
@@ -4492,8 +5297,8 @@ function renderStockTab(){
     const st=getStockStatus(rm);
     const pct=rm.minStock>0?Math.min(100,(inv.quantity/rm.minStock)*100):100;
     t+=`<tr data-status="${st}">
-      <td class="td-primary">${rm.name}</td>
-      <td class="mono" style="color:var(--text3);font-size:12px;">${rm.code}</td>
+      <td class="td-primary">${esc(rm.name)}</td>
+      <td class="mono" style="color:var(--text3);font-size:12px;">${esc(rm.code)}</td>
       <td>${rm.unit}</td>
       <td><strong style="font-size:14px;">${inv.quantity.toFixed(2)}</strong><div class="stock-bar"><div class="stock-bar-fill ${st}" style="width:${pct}%"></div></div></td>
       <td>${rm.minStock}</td>
@@ -4765,8 +5570,8 @@ function renderAlertsTab(){
         ? fmNames.map(n=>`<span style="display:inline-block;background:var(--accent-light);color:var(--accent2);border-radius:4px;padding:1px 7px;font-size:10px;font-weight:600;margin:1px 2px 1px 0;">${n}</span>`).join('')
         : `<span style="color:var(--text3);font-size:11px;">Not used in any formulation</span>`;
       critHTML+=`<tr style="background:${pillColor};">
-        <td class="td-primary" style="font-weight:700;">${rm.name}</td>
-        <td class="mono" style="font-size:11px;color:var(--text3);">${rm.code}</td>
+        <td class="td-primary" style="font-weight:700;">${esc(rm.name)}</td>
+        <td class="mono" style="font-size:11px;color:var(--text3);">${esc(rm.code)}</td>
         <td><strong style="color:${st==='out'?'var(--red)':'var(--orange)'};">${inv.quantity.toFixed(2)} ${rm.unit}</strong></td>
         <td>${rm.minStock} ${rm.unit}</td>
         <td style="color:var(--red);font-weight:700;">${shortage>0?shortage.toFixed(2)+' '+rm.unit:'—'}</td>
@@ -4812,8 +5617,8 @@ function renderAlertsTab(){
         ? fmNames.map(n=>`<span style="display:inline-block;background:var(--accent-light);color:var(--accent2);border-radius:4px;padding:1px 7px;font-size:10px;font-weight:600;margin:1px 2px 1px 0;">${n}</span>`).join('')
         : `<span style="color:var(--text3);font-size:11px;">Not used in any formulation</span>`;
       expHTML+=`<tr style="background:${rowBg};">
-        <td class="td-primary" style="font-weight:700;">${rm.name}</td>
-        <td class="mono" style="font-size:11px;color:var(--text3);">${rm.code}</td>
+        <td class="td-primary" style="font-weight:700;">${esc(rm.name)}</td>
+        <td class="mono" style="font-size:11px;color:var(--text3);">${esc(rm.code)}</td>
         <td><strong>${inv.quantity.toFixed(2)} ${rm.unit}</strong></td>
         <td style="font-weight:600;">${rm.expiryDate}</td>
         <td><span style="font-weight:800;color:${dayColor};">${dayLabel}</span></td>
@@ -4907,7 +5712,8 @@ function saveStock(){
   gasCall('addTransaction',{transaction:tx})
     .then(()=>gasCall('updateInventory',{rmId,newQuantity:inv.quantity}))
     .then(()=>gasCall('addAudit',{entry:DB.auditLog[0]}))
-    .then(()=>toast('Stock saved ✓','success'));
+    .then(()=>toast('Stock saved ✓','success'))
+    .catch(err=>toast('❌ STOCK SAVE FAILED — '+err.message+' — quantity shown locally but NOT saved to Sheets. Please refresh and retry.','error'));
   navigate('inventory');
 }
 
@@ -4931,7 +5737,8 @@ function saveAdjustment(){
   gasCall('addTransaction',{transaction:tx})
     .then(()=>gasCall('updateInventory',{rmId,newQuantity:inv.quantity}))
     .then(()=>gasCall('addAudit',{entry:DB.auditLog[0]}))
-    .then(()=>toast('Adjustment saved ✓','success'));
+    .then(()=>toast('Adjustment saved ✓','success'))
+    .catch(err=>toast('❌ ADJUSTMENT SAVE FAILED — '+err.message+' — quantity shown locally but NOT saved to Sheets. Please refresh and retry.','error'));
   navigate('inventory');
 }
 
@@ -4962,16 +5769,16 @@ function openAdjustMaterialDropdown(){
       const stockBadge=st==='ok'?'<span style="background:#d1fae5;color:#065f46;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:700;">✓ IN STOCK</span>':
                        st==='low'?'<span style="background:#fef3c7;color:#92400e;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:700;">⚠ LOW</span>':
                                  '<span style="background:#fee2e2;color:#991b1b;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:700;">✕ OUT</span>';
-      return`<div onmousedown="selectAdjustMaterial(${rm.id},'${rm.name.replace(/'/g,"\\'")} (${rm.code})')" 
+      return`<div onmousedown="selectAdjustMaterial(${rm.id},'${rm.name.replace(/'/g,"\\'")} (${esc(rm.code)})')" 
         style="padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .1s;" 
         onmouseover="this.style.background='var(--accent-light)'" 
         onmouseout="this.style.background=''">
         <div style="display:flex;align-items:center;justify-content:space-between;">
-          <div style="font-size:13px;font-weight:600;color:var(--text);">${rm.name}</div>
+          <div style="font-size:13px;font-weight:600;color:var(--text);">${esc(rm.name)}</div>
           ${stockBadge}
         </div>
         <div style="font-size:11px;color:var(--text3);margin-top:3px;">
-          Code: <span class="mono" style="color:var(--text2);">${rm.code}</span> · 
+          Code: <span class="mono" style="color:var(--text2);">${esc(rm.code)}</span> · 
           Available: <strong>${inv.quantity.toFixed(2)} ${rm.unit}</strong> · 
           Min Stock: ${rm.minStock}
         </div>
@@ -5044,7 +5851,7 @@ function renderReports(){
       <tbody>
       ${DB.formulations.flatMap(f=>f.items.map(item=>{
         const rm=getRMById(item.rmId);
-        return rm?`<tr data-rmid="${item.rmId}"><td class="td-primary">${rm.name}</td><td>${f.productName}</td><td class="mono" style="font-size:11px;">${f.batchNo}</td><td style="font-weight:700;">${item.qty.toFixed(3)}</td><td>${rm.unit}</td><td style="color:var(--text3);font-size:12px;">${f.mfgDate}</td></tr>`:'';
+        return rm?`<tr data-rmid="${item.rmId}"><td class="td-primary">${esc(rm.name)}</td><td>${f.productName}</td><td class="mono" style="font-size:11px;">${f.batchNo}</td><td style="font-weight:700;">${item.qty.toFixed(3)}</td><td>${rm.unit}</td><td style="color:var(--text3);font-size:12px;">${f.mfgDate}</td></tr>`:'';
       })).join('')}
       </tbody>
     </table></div>
@@ -5070,7 +5877,7 @@ function renderReports(){
           <td style="text-align:center;font-weight:700;font-family:'JetBrains Mono'">${f.labValues?.B!=null?f.labValues.B:'—'}</td>
           <td style="text-align:center;font-weight:700;color:var(--purple)">${f.glossValue!=null?f.glossValue+' GU':'—'}</td>
           <td style="text-align:center;font-size:11px;color:var(--text3)">${f.glossAngle||'—'}</td>
-          <td style="font-size:12px;color:var(--text2)">${f.labNotes||'—'}</td>
+          <td style="font-size:12px;color:var(--text2)">${esc(f.labNotes)||'—'}</td>
           <td style="font-size:12px;color:var(--text3)">${f.labValues?.recordedBy||'—'}</td>
         </tr>`).join('')}</tbody>
       </table></div>`}
@@ -5147,8 +5954,8 @@ function renderUsers(){
   <thead><tr><th>Name</th><th>Username</th><th>Role</th><th>Actions</th></tr></thead><tbody>`;
   DB.users.forEach(u=>{
     html+=`<tr>
-      <td class="td-primary">${u.name}</td>
-      <td class="mono" style="font-size:12px;color:var(--text3)">${u.username}</td>
+      <td class="td-primary">${esc(u.name)}</td>
+      <td class="mono" style="font-size:12px;color:var(--text3)">${esc(u.username)}</td>
       <td><span class="badge ${BADGE_CLASSES[u.role]}">${ROLE_LABELS[u.role]}</span></td>
       <td style="display:flex;gap:6px;">
         <button class="btn btn-secondary btn-sm" onclick="openUserModal(${u.id})">
@@ -5181,12 +5988,13 @@ function openUserModal(id){
           <option value="production" ${u.role==='production'?'selected':''}>⚙️ Production Entry Operator</option>
           <option value="labentry" ${u.role==='labentry'?'selected':''}>🧪 LAB Entry User</option>
           <option value="batchedit" ${u.role==='batchedit'?'selected':''}>📋 Batch Code Editor</option>
+          <option value="sushilji" ${u.role==='sushilji'?'selected':''}>🔬 Formulation Manager (Sushil Ji)</option>
         </select>
       </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('user-modal')">Cancel</button>
-      <button class="btn btn-primary" onclick="saveUser(${id||0})">Save</button>
+      <button class="btn btn-primary" id="usr-save-btn" onclick="saveUser(${id||0})">Save</button>
     </div>
   </div></div>`;
   document.body.insertAdjacentHTML('beforeend',modal);
@@ -5198,6 +6006,11 @@ function saveUser(id){
   const pass=document.getElementById('usr-pass').value;
   const role=document.getElementById('usr-role').value;
   if(!name||!username){toast('Fill required fields','error');return;}
+  if(!id&&!pass){toast('Password required','error');return;}
+  // v3.14: guard against a fast double-click firing two saves before the
+  // modal closes (same pattern as saveRM's saveBtn.disabled guard).
+  const saveBtn=document.getElementById('usr-save-btn');
+  if(saveBtn){ if(saveBtn.disabled) return; saveBtn.disabled=true; saveBtn.textContent='Saving…'; }
   if(id){
     const u=DB.users.find(x=>x.id===id);
     u.name=name;u.username=username;u.role=role;
@@ -5206,16 +6019,22 @@ function saveUser(id){
     toast('Saving...','info');
     gasCall('saveUser',{user:u,isNew:false})
       .then(()=>gasCall('addAudit',{entry:DB.auditLog[0]}))
-      .then(()=>toast('User updated ✓','success'));
+      .then(()=>toast('User updated ✓','success'))
+      .catch(err=>toast('❌ USER SAVE FAILED — '+err.message+' — change shown locally but NOT saved to Sheets.','error'));
   }else{
-    if(!pass){toast('Password required','error');return;}
     const newUser={id:DB.nextId.user++,username,password:pass,name,role};
     DB.users.push(newUser);
     addAudit('Created user',`${username} — ${role}`);
     toast('Saving...','info');
     gasCall('saveUser',{user:newUser,isNew:true})
-      .then(()=>gasCall('addAudit',{entry:DB.auditLog[0]}))
-      .then(()=>toast('User saved ✓','success'));
+      .then(res=>{
+        // v3.13: server now assigns the id under lock (same fix as raw
+        // materials) rather than trusting the client-guessed one — sync it.
+        if(res&&res.newId) newUser.id=Number(res.newId);
+        return gasCall('addAudit',{entry:DB.auditLog[0]});
+      })
+      .then(()=>toast('User saved ✓','success'))
+      .catch(err=>toast('❌ USER SAVE FAILED — '+err.message+' — user shown locally but NOT saved to Sheets.','error'));
   }
   closeModal('user-modal');
   navigate('users');
@@ -5414,7 +6233,8 @@ function toggleInventoryDebit(){
   addAudit('Changed inventory debit setting', state ? 'Debit ON — inventory will be deducted on save' : 'Debit OFF — inventory will NOT be deducted on save');
   toast(state ? '✅ Inventory debit turned ON' : '⚠️ Inventory debit turned OFF — stock will not be deducted', state?'success':'info');
   gasCall('saveSetting',{key:'debitInventoryOnSave',value:state})
-    .then(()=>gasCall('addAudit',{entry:DB.auditLog[0]}));
+    .then(()=>gasCall('addAudit',{entry:DB.auditLog[0]}))
+    .catch(err=>toast('❌ SETTING SAVE FAILED — '+err.message+' — change shown locally but NOT saved to Sheets.','error'));
   navigate('settings');
 }
 
@@ -5426,7 +6246,8 @@ function savePkgCost(){
   toast('Saving...','info');
   gasCall('saveSetting',{key:'packagingCost',value:v})
     .then(()=>gasCall('addAudit',{entry:DB.auditLog[0]}))
-    .then(()=>toast('Settings saved ✓','success'));
+    .then(()=>toast('Settings saved ✓','success'))
+    .catch(err=>toast('❌ SETTINGS SAVE FAILED — '+err.message+' — value shown locally but NOT saved to Sheets.','error'));
 }
 function saveGASUrl(){
   toast('URL saved — Please edit the GAS_URL variable in the HTML file source code and re-deploy','info');
@@ -5516,7 +6337,7 @@ function exportFormulationPDF(id){
     const cat=rm.category||'Other';
     const catLetter=(cat||'O')[0].toUpperCase();
     const catBadge=`<span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:${CAT_BG[cat]||'#f1f5f9'};color:${CAT_COLOR[cat]||'#475569'};font-size:7.5pt;font-weight:800;margin-left:4px;vertical-align:middle;border:1px solid ${CAT_COLOR[cat]||'#475569'};" title="${cat}">${catLetter}</span>`;
-    itemRows+=`<tr><td class="c">${sno++}${catBadge}</td><td>${rm.name}</td><td class="c">${rm.code}</td><td class="r" style="font-weight:700;">${item.qty.toFixed(3)} ${unitLabel}</td>${showCost?`<td class="r">&#8377;${effectiveRate.toLocaleString('en-IN',{minimumFractionDigits:2})}</td><td class="r">&#8377;${(qtyKg*effectiveRate).toLocaleString('en-IN',{minimumFractionDigits:2})}</td>`:''}</tr>`;
+    itemRows+=`<tr><td class="c">${sno++}${catBadge}</td><td>${esc(rm.name)}</td><td class="c">${esc(rm.code)}</td><td class="r" style="font-weight:700;">${item.qty.toFixed(3)} ${unitLabel}</td>${showCost?`<td class="r">&#8377;${effectiveRate.toLocaleString('en-IN',{minimumFractionDigits:2})}</td><td class="r">&#8377;${(qtyKg*effectiveRate).toLocaleString('en-IN',{minimumFractionDigits:2})}</td>`:''}</tr>`;
   });
   const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Batch Record — ${f.batchNo}</title>
 <style>
@@ -5577,8 +6398,8 @@ td{padding:6px 9px;color:#1a1a1a;vertical-align:middle;}
     <div class="ic"><div class="il">Batch Number</div><div class="iv">${f.batchNo||'—'}</div></div>
     <div class="ic"><div class="il">Manufacturing Date &amp; Time</div><div class="iv">${f.mfgDate}</div></div>
     <div class="ic"><div class="il">Lots / Multiplier</div><div class="iv">${f.lots||1}</div></div>
-    <div class="ic"><div class="il">Prepared By</div><div class="iv">${f.byName}</div></div>
-    ${(f.refNo||f.partyName||f.partyId)?`<div class="ic" style="grid-column:1/-1;background:linear-gradient(135deg,#eff6ff,#e0ecff);border-top:2px solid #2563eb;"><div style="display:flex;gap:32px;align-items:center;">${f.refNo?`<div><div class="il">Ref No</div><div class="iv" style="font-size:13pt;font-weight:800;color:#1d4ed8;">${f.refNo}</div></div>`:''} ${(f.partyName||f.partyId)?`<div><div class="il">Party Name</div><div class="iv" style="font-size:13pt;font-weight:800;color:#1d4ed8;">${f.partyName||f.partyId}</div></div>`:''}</div></div>`:''}
+    <div class="ic"><div class="il">Prepared By</div><div class="iv">${esc(f.byName)}</div></div>
+    ${(f.refNo||f.partyName||f.partyId)?`<div class="ic" style="grid-column:1/-1;background:linear-gradient(135deg,#eff6ff,#e0ecff);border-top:2px solid #2563eb;"><div style="display:flex;gap:32px;align-items:center;">${f.refNo?`<div><div class="il">Ref No</div><div class="iv" style="font-size:13pt;font-weight:800;color:#1d4ed8;">${f.refNo}</div></div>`:''} ${(f.partyName||f.partyId)?`<div><div class="il">${can('manageUsers')?'Party Name':'Party ID'}</div><div class="iv" style="font-size:13pt;font-weight:800;color:#1d4ed8;">${esc(can('manageUsers')?(f.partyName||f.partyId):f.partyId)}</div></div>`:''}</div></div>`:''}
   </div>
 
   <table>
@@ -6232,7 +7053,7 @@ function renderProductionEntry(){
   const today = nowDate();
   const todayLogs = DB.productionLogs.filter(l=>l.date===today);
   const todayFG   = todayLogs.reduce((s,l)=>s+(Number(l.fgOutput)||0),0);
-  const machineOpts = DB.machines.filter(m=>m.active).map(m=>`<option value="${m.id}">${m.name} (${m.type})</option>`).join('');
+  const machineOpts = DB.machines.filter(m=>m.active).map(m=>`<option value="${m.id}">${esc(m.name)} (${esc(m.type)})</option>`).join('');
   // formulation search handled by live-search widget (peFormSearch)
 
   let tableRows = logs.length ? logs.map(log=>{
@@ -6305,7 +7126,7 @@ function renderProductionEntry(){
     </div>
     <select class="filter-select" id="prod-filter-machine" onchange="prodFilterTable()">
       <option value="">All Machines</option>
-      ${DB.machines.map(m=>`<option value="${m.name}">${m.name}</option>`).join('')}
+      ${DB.machines.map(m=>`<option value="${esc(m.name)}">${esc(m.name)}</option>`).join('')}
     </select>
     <input type="date" class="filter-select" id="prod-filter-date" onchange="prodFilterTable()" style="padding:9px 12px;">
     <button class="btn btn-secondary btn-sm" onclick="exportProdExcel()">
@@ -6364,7 +7185,7 @@ function renderProductionEntry(){
                 <input type="date" id="pe-date-picker" class="form-control" style="width:170px;">
                 <select id="pe-shift-picker" class="form-control" style="width:220px;">
                   <option value="">— Select Shift —</option>
-                  ${DB.shifts.filter(s=>s.active).map(s=>`<option value="${s.id}" data-start="${s.startTime}" data-end="${s.endTime}">${s.name} (${s.startTime}–${s.endTime}${s.crossesMidnight?' +1d':''})</option>`).join('')}
+                  ${DB.shifts.filter(s=>s.active).map(s=>`<option value="${s.id}" data-start="${s.startTime}" data-end="${s.endTime}">${esc(s.name)} (${s.startTime}–${s.endTime}${s.crossesMidnight?' +1d':''})</option>`).join('')}
                 </select>
                 <button type="button" class="btn btn-secondary btn-sm" onclick="peAddDateRow()" style="white-space:nowrap;">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -6575,7 +7396,7 @@ function peDateRenderRows(){
       +`<span style="background:#f0fdf4;border:1px solid #6ee7b7;border-radius:16px;padding:3px 11px;font-size:12px;font-weight:700;color:#065f46;white-space:nowrap;">📅 ${fmtd}</span>`
       +`<select onchange="peDateRowShiftChange(${i},this.value)" style="border:1.5px solid ${shiftColor}44;border-radius:8px;padding:5px 10px;font-size:12px;font-weight:600;color:${shiftColor};background:${shiftColor}11;font-family:inherit;cursor:pointer;outline:none;min-width:180px;">`
       +`<option value="">&#8212; Shift &#8212;</option>`
-      +DB.shifts.filter(s=>s.active).map(s=>`<option value="${s.id}" ${String(s.id)===String(row.shiftId)?'selected':''}>${s.name} (${s.startTime}–${s.endTime}${s.crossesMidnight?' +1d':''})</option>`).join('')
+      +DB.shifts.filter(s=>s.active).map(s=>`<option value="${s.id}" ${String(s.id)===String(row.shiftId)?'selected':''}>${esc(s.name)} (${s.startTime}–${s.endTime}${s.crossesMidnight?' +1d':''})</option>`).join('')
       +`</select>`
       +`<button onclick="peRemoveDateRow(${i})" style="background:none;border:1px solid #fca5a5;border-radius:7px;cursor:pointer;color:#dc2626;font-size:12px;padding:4px 10px;font-weight:700;" title="Remove">✕ Remove</button>`
       +`</div>`;
@@ -6636,7 +7457,7 @@ function buildProdLogPrintHTML(){
   const fCost=f?calcBatchCost(f):null;
   const fQty=f?calcTotalQty(f):0;
   const dt=new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'long',year:'numeric'});
-  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Production Log — ${log.productName}</title>
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Production Log — ${esc(log.productName)}</title>
   <style>
     *{margin:0;padding:0;box-sizing:border-box;}
     body{font-family:Arial,sans-serif;font-size:12px;color:#111;background:#fff;padding:28px;}
@@ -6660,14 +7481,14 @@ function buildProdLogPrintHTML(){
   </style></head><body>
   <div class="header">
     <div><h1>Surface Paints Pvt. Ltd.</h1><div class="sub">Production Log Report</div></div>
-    <div style="text-align:right;"><div style="font-size:15px;font-weight:700;">${log.productName}</div><div class="sub">Printed: ${dt}</div></div>
+    <div style="text-align:right;"><div style="font-size:15px;font-weight:700;">${esc(log.productName)}</div><div class="sub">Printed: ${dt}</div></div>
   </div>
   <div class="section">
     <div class="section-title">📋 Entry Details</div>
     <div class="grid">
       <div class="field"><label>Date</label><div class="val">${log.date}</div></div>
       <div class="field"><label>Worker(s)</label><div class="val">${log.workerName||'—'}</div></div>
-      <div class="field"><label>Product</label><div class="val">${log.productName}</div></div>
+      <div class="field"><label>Product</label><div class="val">${esc(log.productName)}</div></div>
       <div class="field"><label>Machine</label><div class="val">${mac?mac.name:'#'+log.machineId}</div></div>
       <div class="field"><label>RPM</label><div class="val">${log.rpm||'—'}</div></div>
       <div class="field"><label>Hour Meter</label><div class="val">${log.hourMeter||'—'}</div></div>
@@ -6676,7 +7497,7 @@ function buildProdLogPrintHTML(){
       <div class="field"><label>Break (min)</label><div class="val">${log.breakMins}</div></div>
       <div class="field"><label>RM Input</label><div class="val">${log.rmInput} kg</div></div>
       <div class="field"><label>FG Output</label><div class="val">${log.fgOutput} kg</div></div>
-      <div class="field"><label>Remarks</label><div class="val">${log.remarks||'—'}</div></div>
+      <div class="field"><label>Remarks</label><div class="val">${esc(log.remarks)||'—'}</div></div>
     </div>
     ${f?`<div class="formulation-box" style="margin-top:10px;grid-column:1/-1">
       <strong>🔗 Linked Formulation: ${f.productName}</strong>
@@ -6805,7 +7626,7 @@ function exportProdReportPDF(){
   </tbody></table>
   <h2>📋 All Production Logs</h2>
   <table><thead><tr><th>Date</th><th>Worker(s)</th><th>Product</th><th>Machine</th><th>FG (kg)</th><th>Wastage%</th><th>Eff%</th><th>Conv Cost/kg</th></tr></thead><tbody>
-  ${logs.map(log=>{const m=calcProdMetrics(log);const mac=DB.machines.find(x=>x.id===log.machineId);if(!m)return'';const wc=m.wastage<5?'good':m.wastage<10?'warn':'bad';const ec=m.machineEff>=85?'good':m.machineEff>=60?'warn':'bad';return`<tr><td>${log.date}</td><td>${log.workerName}</td><td>${log.productName}</td><td>${mac?mac.name:'#'+log.machineId}</td><td>${log.fgOutput}</td><td class="${wc}">${m.wastage.toFixed(1)}%</td><td class="${ec}">${m.machineEff.toFixed(1)}%</td><td>₹${m.convCostPerKg.toFixed(2)}</td></tr>`;}).join('')}
+  ${logs.map(log=>{const m=calcProdMetrics(log);const mac=DB.machines.find(x=>x.id===log.machineId);if(!m)return'';const wc=m.wastage<5?'good':m.wastage<10?'warn':'bad';const ec=m.machineEff>=85?'good':m.machineEff>=60?'warn':'bad';return`<tr><td>${log.date}</td><td>${esc(log.workerName)}</td><td>${esc(log.productName)}</td><td>${mac?esc(mac.name):'#'+log.machineId}</td><td>${log.fgOutput}</td><td class="${wc}">${m.wastage.toFixed(1)}%</td><td class="${ec}">${m.machineEff.toFixed(1)}%</td><td>₹${m.convCostPerKg.toFixed(2)}</td></tr>`;}).join('')}
   </tbody></table>
   <div class="footer">
     <span>Surface Paints Pvt. Ltd. — Production Report</span>
@@ -6979,7 +7800,7 @@ function closeProdModal(){
 function peAddMachineEntry(){
   const idx = ++window._peMachineCounter;
   const container = document.getElementById('pe-machine-entries-container');
-  const machOpts  = DB.machines.filter(m=>m.active).map(m=>`<option value="${m.id}">${m.name} (${m.type})</option>`).join('');
+  const machOpts  = DB.machines.filter(m=>m.active).map(m=>`<option value="${m.id}">${esc(m.name)} (${esc(m.type)})</option>`).join('');
   // grab shift defaults from first date-row if available
   let defStart='', defEnd='';
   if(window._peDates&&window._peDates.length>0){
@@ -7255,8 +8076,8 @@ function viewProdLog(id){
     <div class="prod-entry-grid" style="margin-bottom:16px">
       <div><strong>Date:</strong> ${log.date}</div>
       <div><strong>Shift:</strong> ${shiftV}</div>
-      <div><strong>Worker:</strong> ${log.workerName}</div>
-      <div><strong>Product:</strong> ${log.productName}</div>
+      <div><strong>Worker:</strong> ${esc(log.workerName)}</div>
+      <div><strong>Product:</strong> ${esc(log.productName)}</div>
       <div><strong>Machine:</strong> ${mac?mac.name:'#'+log.machineId}</div>
       <div><strong>RPM:</strong> ${log.rpm||'—'}</div>
       <div><strong>Hour Meter:</strong> ${log.hourMeter||'—'}</div>
@@ -7265,7 +8086,7 @@ function viewProdLog(id){
       <div><strong>Break (min):</strong> ${log.breakMins}</div>
       <div><strong>RM Input:</strong> ${log.rmInput} kg</div>
       <div><strong>FG Output:</strong> ${log.fgOutput} kg</div>
-      <div><strong>Remarks:</strong> ${log.remarks||'—'}</div>
+      <div><strong>Remarks:</strong> ${esc(log.remarks)||'—'}</div>
       ${f?`<div style="grid-column:1/-1;background:var(--accent-light);border:1px solid #bfdbfe;border-radius:8px;padding:10px 14px;">
         <strong style="color:var(--accent);">🔗 Linked Formulation:</strong>
         <span style="margin-left:8px;font-weight:700;">${f.productName}</span>
@@ -7317,7 +8138,7 @@ function renderShiftMaster(){
       <td class="td-primary">
         <span style="display:inline-flex;align-items:center;gap:8px;">
           <span style="width:12px;height:12px;border-radius:50%;background:${s.color};display:inline-block;flex-shrink:0;box-shadow:0 0 0 2px ${s.color}33;"></span>
-          ${s.name}
+          ${esc(s.name)}
         </span>
       </td>
       <td><span class="mono" style="font-size:13px;">${s.startTime}</span></td>
@@ -7445,8 +8266,8 @@ function toggleShift(id){
   if(!s)return;
   s.active=!s.active;
   navigate('shiftmaster');
-  toast(`${s.name} ${s.active?'activated':'deactivated'}`,'info');
-  gasCall('saveShift',{shift:s})
+  toast(`${esc(s.name)} ${s.active?'activated':'deactivated'}`,'info');
+  gasCall('saveShift',{shift:s,isNew:false})
     .catch(err=>toast('Save failed — change was NOT saved to Google Sheets: '+err.message,'error'));
 }
 function deleteShift(id){
@@ -7485,8 +8306,8 @@ function saveShift(){
   document.getElementById('shift-modal').style.display='none';
   navigate('shiftmaster');
   toast('Saving...','info');
-  gasCall('saveShift',{shift})
-    .then(()=>toast('Shift saved ✓','success'))
+  gasCall('saveShift',{shift,isNew:!editId})
+    .then(res=>{ if(res&&res.newId&&shift){ shift.id=Number(res.newId); if(DB.nextId_shift<=shift.id) DB.nextId_shift=shift.id+1; } toast('Shift saved ✓','success'); })
     .catch(err=>toast('Save failed — shift was NOT saved to Google Sheets: '+err.message,'error'));
 }
 
@@ -7494,8 +8315,8 @@ function saveShift(){
 function renderMachineSetup(){
   const machRows = DB.machines.map(m=>`
     <tr>
-      <td class="td-primary">${m.name}</td>
-      <td>${m.type}</td>
+      <td class="td-primary">${esc(m.name)}</td>
+      <td>${esc(m.type)}</td>
       <td>${fmtCurrency(m.hourlyMachineCost)}/hr</td>
       <td>${m.stdKgHr ? m.stdKgHr+' kg/hr' : '— (auto)'}</td>
       <td><span class="status-pill ${m.active?'status-ok':'status-out'}">${m.active?'Active':'Inactive'}</span></td>
@@ -7598,8 +8419,8 @@ function toggleMachine(id){
   if(!m)return;
   m.active=!m.active;
   navigate('machines');
-  toast(`${m.name} ${m.active?'activated':'deactivated'}`,'info');
-  gasCall('saveMachine',{machine:m})
+  toast(`${esc(m.name)} ${m.active?'activated':'deactivated'}`,'info');
+  gasCall('saveMachine',{machine:m,isNew:false})
     .catch(err=>toast('Save failed — change was NOT saved to Google Sheets: '+err.message,'error'));
 }
 function saveMachine(){
@@ -7621,8 +8442,8 @@ function saveMachine(){
   document.getElementById('machine-modal').style.display='none';
   navigate('machines');
   toast('Saving...','info');
-  gasCall('saveMachine',{machine})
-    .then(()=>toast('Machine saved ✓','success'))
+  gasCall('saveMachine',{machine,isNew:!editId})
+    .then(res=>{ if(res&&res.newId&&machine){ machine.id=Number(res.newId); if(DB.nextId_machine<=machine.id) DB.nextId_machine=machine.id+1; } toast('Machine saved ✓','success'); })
     .catch(err=>toast('Save failed — machine was NOT saved to Google Sheets: '+err.message,'error'));
 }
 function saveLabourRate(){
@@ -7724,8 +8545,8 @@ function renderProdReports(){
     if(!m) return '';
     return `<tr>
       <td>${log.date}</td>
-      <td>${log.workerName}</td>
-      <td>${log.productName}</td>
+      <td>${esc(log.workerName)}</td>
+      <td>${esc(log.productName)}</td>
       <td><span class="machine-tag" style="font-size:10px">${mac?mac.name:'#'+log.machineId}</span></td>
       <td>${m.machineRunHrs.toFixed(2)}</td>
       <td>${log.fgOutput}</td>
@@ -7773,7 +8594,7 @@ function renderProdReports(){
     </select>
     <select class="filter-select" id="rpt-machine" onchange="applyProdFilters()">
       <option value="">All Machines</option>
-      ${DB.machines.map(m=>`<option value="${m.id}">${m.name}</option>`).join('')}
+      ${DB.machines.map(m=>`<option value="${m.id}">${esc(m.name)}</option>`).join('')}
     </select>
     <select class="filter-select" id="rpt-worker" onchange="applyProdFilters()">
       <option value="">All Workers</option>
@@ -7857,7 +8678,7 @@ function applyProdFilters(){
     const mac=DB.machines.find(x=>x.id===log.machineId);
     if(!m) return '';
     return `<tr>
-      <td>${log.date}</td><td>${log.workerName}</td><td>${log.productName}</td>
+      <td>${log.date}</td><td>${esc(log.workerName)}</td><td>${esc(log.productName)}</td>
       <td><span class="machine-tag" style="font-size:10px">${mac?mac.name:'#'+log.machineId}</span></td>
       <td>${m.machineRunHrs.toFixed(2)}</td><td>${log.fgOutput}</td>
       <td>${effBadge(m.wastage,3,8,'%')}</td>
@@ -7942,7 +8763,7 @@ function exportProdPDF(){
     if(!m) return;
     const wc=m.wastage<5?'good':m.wastage<10?'warn':'bad';
     const ec=m.machineEff>=85?'good':m.machineEff>=60?'warn':'bad';
-    html+=`<tr><td>${log.date}</td><td>${log.workerName}</td><td>${log.productName}</td>
+    html+=`<tr><td>${log.date}</td><td>${esc(log.workerName)}</td><td>${esc(log.productName)}</td>
     <td>${mac?mac.name:'#'+log.machineId}</td>
     <td>${m.machineRunHrs.toFixed(2)}</td><td>${log.fgOutput}</td>
     <td class="${wc}">${m.wastage.toFixed(2)}%</td>
@@ -9376,7 +10197,7 @@ function renderAnalytics(){
     </div>
     <select class="filter-select" id="bi-party" onchange="refreshBI()" style="height:38px;">
       <option value="">All Customers</option>
-      ${[...new Set(DB.formulations.map(f=>f.partyName||f.partyId).filter(Boolean))].sort().map(p=>`<option value="${p}">${p}</option>`).join('')}
+      ${[...new Set(DB.formulations.map(f=>f.partyName||f.partyId).filter(Boolean))].sort().map(p=>`<option value="${esc(p)}">${esc(p)}</option>`).join('')}
     </select>
     <button class="btn btn-primary btn-sm" onclick="exportBIExcel()" style="height:38px;">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -9647,7 +10468,7 @@ function renderBICustomers(d){
     });
     const prodSubList=Object.values(prodSub).sort((a,b)=>b.count-a.count);
 
-    return`<div class="bi-cust-card" data-name="${p.name.toLowerCase()}" style="background:#fff;border:1px solid #e2e8f0;border-radius:14px;margin-bottom:12px;overflow:hidden;">
+    return`<div class="bi-cust-card" data-name="${esc(p.name.toLowerCase())}" style="background:#fff;border:1px solid #e2e8f0;border-radius:14px;margin-bottom:12px;overflow:hidden;">
 
       <!-- Customer header row — click to expand -->
       <div onclick="toggleBICust(${ci})" style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;cursor:pointer;gap:12px;flex-wrap:wrap;background:#f8fafc;">
@@ -9656,7 +10477,7 @@ function renderBICustomers(d){
             ${p.name.charAt(0).toUpperCase()}
           </div>
           <div style="min-width:0;">
-            <div style="font-size:15px;font-weight:800;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.name}</div>
+            <div style="font-size:15px;font-weight:800;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(p.name)}</div>
             <div style="font-size:11px;color:#64748b;margin-top:2px;">${p.orders} order${p.orders!==1?'s':''} · ${prodSubList.length} product${prodSubList.length!==1?'s':''} · Last: ${p.lastOrder.slice(0,10)||'—'}</div>
           </div>
         </div>
@@ -9683,7 +10504,7 @@ function renderBICustomers(d){
         <!-- Product sub-summary pills -->
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 16px;">
           ${prodSubList.map(ps=>`<div style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:10px;padding:8px 14px;min-width:0;">
-            <div style="font-size:12px;font-weight:700;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px;">${ps.name}</div>
+            <div style="font-size:12px;font-weight:700;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px;">${esc(ps.name)}</div>
             <div style="font-size:11px;color:#64748b;margin-top:2px;">${ps.count}× · ${ps.totalKg.toFixed(2)} KG · ${fmtCurrency(ps.totalCost)}</div>
           </div>`).join('')}
         </div>
@@ -9987,7 +10808,7 @@ function renderBIRepeat(d){
         const pri=r.count>=5?'🔥 Top Priority':r.count>=3?'⭐ High':'🔄 Regular';
         return`<tr>
           <td class="mono" style="font-size:11px;color:#94a3b8;">${i+1}</td>
-          <td class="td-primary">${r.party}</td>
+          <td class="td-primary">${esc(r.party)}</td>
           <td style="font-weight:600;">${r.product}</td>
           <td style="text-align:right;font-weight:800;font-family:'JetBrains Mono';color:#3b82f6;font-size:16px;">${r.count}</td>
           <td style="text-align:right;font-family:'JetBrains Mono';">${r.totalKg.toFixed(2)}</td>
