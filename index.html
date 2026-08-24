@@ -1106,13 +1106,16 @@ const NAV_CONFIG = {
   // formulations, create/edit recipes, templates, batch/LAB entry, PDF
   // exports, cost visibility), plus read-only Inventory ("Stock View") and
   // RM Forecasting — the same two extra modules Sudhir Ji (role:'formulation')
-  // gets. No nav item for Raw Materials, Reports, Users, Settings,
-  // Production, Machines, Shift Master, MIS Score, Debit Status, etc.
+  // gets. No nav item for Reports, Users, Settings, Production, Machines,
+  // Shift Master, MIS Score, Debit Status, etc.
+  // v3.15: added a "Raw Materials" nav item so he can Add Raw Material and
+  // View/Add/Update Raw Material Price — he still has no Delete button
+  // there (see can('deleteRawMaterial') in renderRawMaterials).
   sushilji:[
     {section:'Overview',items:[{id:'dashboard',label:'Dashboard'}]},
     {section:'Production',items:[{id:'formulations',label:'Formulations'}]},
     {section:'Forecasting',items:[{id:'forecasting',label:'RM Forecasting'}]},
-    {section:'Materials',items:[{id:'inventory',label:'Stock View'}]},
+    {section:'Materials',items:[{id:'rawmaterials',label:'Raw Materials'},{id:'inventory',label:'Stock View'}]},
   ],
 };
 
@@ -1121,7 +1124,11 @@ const BADGE_CLASSES={admin:'badge-admin',formulation:'badge-form',view:'badge-vi
 
 function can(perm){
   const perms={
-    admin:['dashboard','formulations','rawmaterials','inventory','reports','users','settings','viewPrice','editPrice','manageUsers','viewCost','addStock','subtractStock','production','prodreports','machines','manageMachines','shiftmaster','forecasting','analytics','misScore'],
+    // v3.15: added 'deleteRawMaterial' as its own permission (previously
+    // deleting a raw material was gated on 'editPrice' alone). Admin still
+    // gets it here so nothing changes for Admin; see the sushilji entry
+    // below for why this had to be split out.
+    admin:['dashboard','formulations','rawmaterials','inventory','reports','users','settings','viewPrice','editPrice','manageUsers','viewCost','addStock','subtractStock','production','prodreports','machines','manageMachines','shiftmaster','forecasting','analytics','misScore','deleteRawMaterial'],
     formulation:['dashboard','formulations','inventory','forecasting'],
     inventory:['dashboard','inventory','reports','addStock','subtractStock','forecasting','addRawMaterial'],
     view:['dashboard','inventory'],
@@ -1134,13 +1141,21 @@ function can(perm){
     // read-only 'inventory' (Stock View, no addStock/subtractStock/viewPrice)
     // and 'forecasting' (RM Forecasting) — identical to what Sudhir Ji's
     // 'formulation' role gets for those two modules.
-    // Deliberately excludes rawmaterials/reports/users/settings/production/etc.
+    // Deliberately excludes reports/users/settings/production/etc.
     // and excludes manageUsers (which is also what keeps Party Name hidden —
     // see Party ID display logic — and keeps the Admin/Sudhir-only comment
     // types out of his reach). Excluding addStock/subtractStock means no
     // "Add Stock"/"Adjust" controls appear on his Inventory page, same as
-    // Sudhir Ji's Stock View.
-    sushilji:['dashboard','formulations','viewCost','inventory','forecasting'],
+    // Sudhir Ji's Stock View — v3.15 leaves this untouched, so he still
+    // cannot debit/adjust inventory.
+    // v3.15: added 'addRawMaterial' + 'editRMPrice' so he can reach the
+    // Raw Materials page and Add/View/Update raw material prices there.
+    // 'editRMPrice' is intentionally its own flag (NOT 'editPrice') so he
+    // does not also inherit 'editPrice'-gated things meant for Admin only —
+    // the Inventory page's Add/Subtract Stock controls, the Bulk Import
+    // Excel tool, and (see renderRawMaterials) the Delete button, which now
+    // checks the separate 'deleteRawMaterial' permission he does NOT have.
+    sushilji:['dashboard','formulations','viewCost','inventory','forecasting','addRawMaterial','editRMPrice'],
   };
   return(perms[currentUser.role]||[]).includes(perm);
 }
@@ -4863,11 +4878,20 @@ function addFormulationComment(formulationId){
 //  RAW MATERIALS  (with bulk import)
 // ════════════════════════════════════════════════════════
 function renderRawMaterials(){
-  const canPrice=can('editPrice');
+  // v3.15: split what used to be a single 'editPrice' check into three
+  // separate permissions so Sushil Ji (who gets 'editRMPrice' but NOT
+  // 'editPrice') can View/Add/Update raw material prices without also
+  // inheriting Admin-only Bulk Import or Delete rights.
+  //   canViewPrice  — see & edit the Rate/Supplier columns (Admin OR Sushil Ji)
+  //   canBulkImport — Bulk Import Excel button (Admin only, unchanged)
+  //   canDelete     — Delete button (Admin only, unchanged)
+  const canViewPrice=can('editPrice')||can('editRMPrice');
+  const canBulkImport=can('editPrice');
+  const canDelete=can('deleteRawMaterial');
   let html=`<div class="page-header">
     <div><div class="page-title">Raw Materials</div><div class="page-subtitle">Material master — prices, suppliers & settings</div></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
-      ${canPrice?`<button class="btn btn-success btn-sm" onclick="openBulkImport()">
+      ${canBulkImport?`<button class="btn btn-success btn-sm" onclick="openBulkImport()">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Bulk Import Excel
       </button>`:''}
       <button class="btn btn-primary" onclick="openRMModal()">
@@ -4900,7 +4924,7 @@ function renderRawMaterials(){
   </div>`;
 
   html+=`<div class="card"><div class="table-wrap"><table id="rm-main-table">
-  <thead><tr><th>Name</th><th>Code</th><th>Unit</th><th>Category</th>${canPrice?'<th>Rate (₹)</th><th>Supplier</th>':''}<th>Last Updated</th><th>Min Stock</th><th>Actions</th></tr></thead>
+  <thead><tr><th>Name</th><th>Code</th><th>Unit</th><th>Category</th>${canViewPrice?'<th>Rate (₹)</th><th>Supplier</th>':''}<th>Last Updated</th><th>Min Stock</th><th>Actions</th></tr></thead>
   <tbody>`;
   DB.rawMaterials.forEach(rm=>{
     const st=getStockStatus(rm);
@@ -4911,14 +4935,14 @@ function renderRawMaterials(){
       <td class="mono" style="color:var(--text3);font-size:12px;">${esc(rm.code)}</td>
       <td>${rm.unit}</td>
       <td><span style="background:${catBg};color:${catCol};border-radius:20px;padding:2px 9px;font-size:11px;font-weight:700;">${rm.category||'—'}</span></td>
-      ${canPrice?`<td class="cost-tag" style="font-weight:700;">${fmtCurrency(rm.rate)}</td><td style="color:var(--text2)">${esc(rm.supplier)}</td>`:''}
+      ${canViewPrice?`<td class="cost-tag" style="font-weight:700;">${fmtCurrency(rm.rate)}</td><td style="color:var(--text2)">${esc(rm.supplier)}</td>`:''}
       <td style="color:var(--text3);font-size:12px;">${rm.updatedDate}</td>
       <td><span class="status-pill ${st==='ok'?'status-ok':st==='low'?'status-low':'status-out'}">${rm.minStock}</span></td>
       <td style="display:flex;gap:4px;">
         <button class="btn btn-secondary btn-sm" onclick="openRMModal(${rm.id})">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Edit
         </button>
-        ${canPrice?`<button class="btn btn-danger btn-sm" onclick="deleteRM(${rm.id})">
+        ${canDelete?`<button class="btn btn-danger btn-sm" onclick="deleteRM(${rm.id})">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
         </button>`:''}
       </td>
