@@ -6171,6 +6171,7 @@ function renderDebitStatus(){
 
 function renderSettings(){
   const debit = DB.settings.debitInventoryOnSave;
+  const _rmSyncOutdated = _rmSyncCountOutdated();
   return`<div class="page-header"><div><div class="page-title">System Settings</div></div></div>
 
   <!-- INVENTORY DEBIT CONTROL — most prominent card -->
@@ -6238,6 +6239,19 @@ function renderSettings(){
     <button class="btn btn-primary" onclick="savePkgCost()">Save Settings</button>
   </div>
 
+  <div class="card" style="max-width:520px;margin-bottom:16px;">
+    <div class="card-title">🔄 Sync Raw Material Prices</div>
+    <div style="font-size:12.5px;color:var(--text2);line-height:1.55;margin-bottom:12px;">
+      Applies the <strong>current</strong> raw material prices to every existing formulation, recalculates their costs and saves everything to Google Sheets. Quantities, inventory and all other data are not changed.
+    </div>
+    <div class="alert ${_rmSyncOutdated?'alert-warning':'alert-success'}" style="margin-bottom:14px;">
+      ${_rmSyncOutdated
+        ? `⚠ ${_rmSyncOutdated} formulation${_rmSyncOutdated===1?'':'s'} still use older raw material prices.`
+        : '✅ All formulations already use the latest raw material prices.'}
+    </div>
+    <button class="btn btn-primary" id="rm-sync-btn" onclick="syncRawMaterialPrices()">🔄 Sync Raw Material Prices</button>
+  </div>
+
   <div class="card" style="max-width:520px;">
     <div class="card-title">☁️ Google Apps Script Connection</div>
     <div class="alert ${GAS_URL?'alert-success':'alert-warning'}" style="margin-bottom:16px;">
@@ -6273,6 +6287,77 @@ function savePkgCost(){
     .then(()=>toast('Settings saved ✓','success'))
     .catch(err=>toast('❌ SETTINGS SAVE FAILED — '+err.message+' — value shown locally but NOT saved to Sheets.','error'));
 }
+// ── Sync Raw Material Prices ─────────────────────────────────────────────
+// A formulation item keeps a saved rate (item.rate). A blank/0 rate already
+// follows the live RM rate, so only saved, positive rates can be "outdated".
+function _rmSyncCountOutdated(){
+  let n=0;
+  (DB.formulations||[]).forEach(f=>{
+    const stale=(f.items||[]).some(it=>{
+      const rm=getRMById(it.rmId);
+      return rm && Number(rm.rate)>0 && it.rate!==undefined && it.rate!==null &&
+             Number(it.rate)>0 && Math.abs(Number(it.rate)-Number(rm.rate))>0.0000001;
+    });
+    if(stale) n++;
+  });
+  return n;
+}
+
+async function syncRawMaterialPrices(){
+  const pending=_rmSyncCountOutdated();
+  const ok=confirm(
+    'Sync Raw Material Prices?\n\n'+
+    'This will replace the saved raw material rates in ALL existing formulations with the current prices from the Raw Materials page, recalculate their costs and save them to Google Sheets.\n\n'+
+    (pending?pending+' formulation(s) currently use older prices.\n\n':'')+
+    'Custom per-batch rates will be overwritten. This cannot be undone. Continue?');
+  if(!ok) return;
+
+  const btn=document.getElementById('rm-sync-btn');
+  const btnHtml=btn?btn.innerHTML:'';
+  if(btn){btn.disabled=true;btn.innerHTML='⏳ Syncing...';}
+  showSaving();
+  try{
+    const res=await gasCall('syncRawMaterialPrices',{});
+
+    // Mirror the backend rule locally: only saved, positive item rates are
+    // replaced, and only by a positive current RM rate.
+    let localItems=0;
+    DB.formulations.forEach(f=>(f.items||[]).forEach(it=>{
+      const rm=getRMById(it.rmId);
+      if(rm && Number(rm.rate)>0 && Number(it.rate)>0 &&
+         Math.abs(Number(it.rate)-Number(rm.rate))>0.0000001){
+        it.rate=Number(rm.rate); localItems++;
+      }
+    }));
+    _biCache=null; _biCacheKey='';
+
+    const items=res&&res.success?res.itemsUpdated:localItems;
+    const forms=res&&res.success?res.formulationsWithRateChanges:pending;
+    addAudit('Synced raw material prices',`${items} item rate(s) updated across ${forms} formulation(s)`);
+    if(res&&res.success) gasCall('addAudit',{entry:DB.auditLog[0]}).catch(()=>{});
+
+    let msg=items
+      ? `✅ Prices synced — ${items} item rate(s) updated in ${forms} formulation(s)`
+      : '✅ Everything was already up to date';
+    if(res&&res.rmsWithoutPrice) msg+=` (${res.rmsWithoutPrice} raw material(s) have no price and were skipped)`;
+    toast(msg,'success');
+
+    if(res&&res.success) await loadFromGAS(true);
+    navigate('settings');
+  }catch(err){
+    const m=String(err&&err.message||err);
+    if(m.indexOf('Unknown action')!==-1){
+      toast('❌ Backend not updated — please redeploy the latest Code.gs (new version) and try again.','error');
+    }else{
+      toast('❌ SYNC FAILED — '+m+' — nothing was changed on screen.','error');
+    }
+  }finally{
+    hideSaving();
+    const b=document.getElementById('rm-sync-btn');
+    if(b){b.disabled=false;b.innerHTML=btnHtml;}
+  }
+}
+
 function saveGASUrl(){
   toast('URL saved — Please edit the GAS_URL variable in the HTML file source code and re-deploy','info');
 }
